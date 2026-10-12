@@ -101,20 +101,35 @@ jobs:
       - name: Build frontend (Vite)
         run: npm run build
 
-      - name: Build installer and publish
+      - name: Build installer
         working-directory: desktop-shell
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          # 发布目标写在 desktop-shell/package.json 的 build.publish 里；
-          # 这里不覆盖，避免和仓库里的配置漂移。
         shell: pwsh
         run: |
-          if ("${{ secrets.GH_TOKEN }}" -eq '') {
-            throw "缺少 GH_TOKEN secret：请在仓库 Settings → Secrets and variables → Actions 里添加一个带 repo 权限的 PAT。"
-          }
-          # 先把版本号写进 package.json，latest.yml 才会带正确版本。
+          # 只构建，不发布：发布交给下一步的脚本。
           npm version ${{ steps.version.outputs.next }} --no-git-tag-version --allow-same-version
-          npm run package:win -- --publish always
+          npm run package:win
+
+      - name: Publish release
+        working-directory: desktop-shell
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          if ("${{ secrets.GH_TOKEN }}" -eq '') {
+            throw "缺少 GH_TOKEN secret：请在仓库 Settings → Secrets and variables → Actions 里添加一个带 Contents 写权限的 PAT（fine-grained，仅授权本仓库）。"
+          }
+          # 用脚本发布，而不是 electron-builder --publish always：
+          # 后者并发上传偶发地创建出**两个同 tag 的 Draft Release**
+          # （实测：一个拿到 exe/latest.yml，另一个拿到 .blockmap），
+          # 且 Draft 客户端看不见，需要人工合并。脚本逐个串行上传并校验。
+          pwsh -NoProfile -File scripts/publish-release.ps1 -Version ${{ steps.version.outputs.next }} -Owner ${{ github.repository_owner }} -Repo ${{ github.event.repository.name }}
+
+      - name: Verify release is usable by clients
+        working-directory: desktop-shell
+        shell: pwsh
+        run: |
+          # 用它自己会做的事来验收：匿名下载清单、核对 sha512、确认安装包可下载。
+          node tools/verify-release.mjs ${{ github.repository_owner }} ${{ github.event.repository.name }} ${{ steps.version.outputs.next }}
 
       - name: Summarize
         shell: pwsh
