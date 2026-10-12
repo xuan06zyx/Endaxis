@@ -1,0 +1,23 @@
+# 桌面壳的构建产物与依赖。
+#
+# 这些目录要么体积巨大（release/ 约 390 MB、webapp/ 18 MB），要么是本机生成的
+# 中间产物，都不该进仓库。只提交源码与脚本，构建在本地或 CI 里做。
+
+node_modules/
+release/
+webapp/
+app-runtime/
+.webapp-staging/
+
+# 由 scripts/generate-icon.mjs 从上游 logo 生成，可随时重建。
+build/icon.ico
+build/icon.png
+
+# 验证脚本的输出（截图等）。
+verification/
+
+# 上游源码的补丁快照：补丁已直接提交在上游文件里，这里只作留档。
+# 若你更希望保持"上游文件零改动 + 运行时打补丁"，可改用 patches/ 的方案。
+patches/
+
+*.log

@@ -1,0 +1,97 @@
+{
+  "name": "endaxis-desktop",
+  "version": "1.0.3",
+  "private": true,
+  "description": "Endaxis 本地版桌面应用（Electron 套壳）——《明日方舟：终末地》排轴工具",
+  "author": "Endaxis Desktop Shell",
+  "license": "MIT",
+  "main": "src/main/index.js",
+  "scripts": {
+    "check": "node --check src/main/index.js && node --check src/main/server.js && node --check src/main/menu.js && node --check src/main/windowState.js && node --check src/main/config.js && node --check src/main/updater.js && node --check src/main/storageMigration.js && node --check src/main/closeCoordinator.js && node --check src/preload.js && node --check src/main/strings.js",
+    "build:web": "npm --prefix ../Endaxis run build",
+    "prepare:dist": "node scripts/prepare-dist.mjs",
+    "prepare:runtime": "node scripts/prepare-runtime-deps.mjs",
+    "icon": "node scripts/generate-icon.mjs",
+    "setup": "npm install && npm run build:web && npm run prepare:dist && npm run prepare:runtime && npm run icon",
+    "start": "node scripts/launch.mjs .",
+    "verify": "node scripts/launch.mjs tools/verify-app.js",
+    "verify:window": "node scripts/launch.mjs tools/verify-window.js",
+    "verify:packaged": "node scripts/launch.mjs tools/verify-exe.js",
+    "verify:autosave": "node scripts/launch.mjs tools/verify-autosave.js",
+    "verify:closeflush": "node scripts/launch.mjs tools/verify-close-flush.js",
+    "verify:storage-migration": "node scripts/launch.mjs tools/verify-storage-migration.js",
+    "verify:port-conflict": "node scripts/launch.mjs tools/verify-port-conflict.js",
+    "diagnose": "node scripts/launch.mjs tools/diagnose-boot.js",
+    "dev": "node scripts/dev.mjs",
+    "dist": "npm run build:web && npm run prepare:dist && npm run prepare:runtime && npm run icon && electron-builder --win --x64",
+    "dist:dir": "npm run build:web && npm run prepare:dist && npm run prepare:runtime && npm run icon && electron-builder --win --x64 --dir",
+    "package:win": "npm run prepare:dist && npm run prepare:runtime && npm run icon && electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "sharp": "^0.34.5"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "build": {
+    "appId": "com.endaxis.desktop",
+    "productName": "Endaxis",
+    "copyright": "Endaxis 粉丝自制工具",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      {
+        "from": "app-runtime/node_modules",
+        "to": "node_modules",
+        "filter": [
+          "**/*"
+        ]
+      },
+      "!**/*.map",
+      "!**/*.md"
+    ],
+    "extraResources": [
+      {
+        "from": "webapp",
+        "to": "webapp"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Endaxis",
+      "artifactName": "Endaxis-Setup-${version}-${arch}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "xuan06zyx",
+        "repo": "Endaxis"
+      }
+    ]
+  }
+}
