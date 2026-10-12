@@ -171,13 +171,123 @@ it('keeps refresh protection and exposes the error when browser autosave fails',
   const files = scope.run(() => useProjectFileSession(project, { persistToBrowser: true }))!;
   try {
     project.commit('edit', value => ({ ...value, createdWith: 'edited' }));
-    await Promise.resolve();
-    expect(files.browserSaveError.value).toBe('storage unavailable');
+    // 写入被合并到防抖窗口里，离页事件会先把它交出去。
     const event = createBeforeUnloadEvent();
     target.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
+    await Promise.resolve();
+    expect(files.browserSaveError.value).toBe('storage unavailable');
   } finally {
     scope.stop();
+  }
+});
+
+it('flushBrowserSaveAndWait delivers queued edits and waits for the write to finish', async () => {
+  const target = new EventTarget();
+  vi.stubGlobal('window', target);
+  saveBrowserProjectMock.mockReset();
+  let completeSave!: () => void;
+  saveBrowserProjectMock.mockImplementation(
+    () =>
+      new Promise<void>(resolve => {
+        completeSave = resolve;
+      }),
+  );
+  const project = new ProjectEditorSession(createEmptyProject({ createdWith: 'test' }));
+  const scope = effectScope();
+  const files = scope.run(() => useProjectFileSession(project, { persistToBrowser: true }))!;
+  try {
+    project.commit('edit', value => ({ ...value, createdWith: 'edited' }));
+    // 还没到防抖窗口：此刻什么都不会写。
+    expect(saveBrowserProjectMock).not.toHaveBeenCalled();
+
+    let settled = false;
+    const flushing = files.flushBrowserSaveAndWait().then(() => {
+      settled = true;
+    });
+    // 关键：写入已发起但未完成时，flush 不能提前返回。
+    await Promise.resolve();
+    expect(saveBrowserProjectMock).toHaveBeenCalledTimes(1);
+    expect(settled).toBe(false);
+
+    completeSave();
+    await flushing;
+    expect(settled).toBe(true);
+  } finally {
+    scope.stop();
+  }
+});
+
+it('flushBrowserSaveAndWait does nothing when browser persistence is disabled', async () => {
+  vi.stubGlobal('window', new EventTarget());
+  saveBrowserProjectMock.mockReset();
+  saveBrowserProjectMock.mockResolvedValue(undefined);
+  const project = new ProjectEditorSession(createEmptyProject({ createdWith: 'test' }));
+  const scope = effectScope();
+  const files = scope.run(() => useProjectFileSession(project))!;
+  try {
+    project.commit('edit', value => ({ ...value, createdWith: 'edited' }));
+    await files.flushBrowserSaveAndWait();
+    expect(saveBrowserProjectMock).not.toHaveBeenCalled();
+  } finally {
+    scope.stop();
+  }
+});
+
+it('merges a burst of edits into a single browser write', async () => {
+  vi.useFakeTimers();
+  try {
+    const target = new EventTarget();
+    vi.stubGlobal('window', target);
+    saveBrowserProjectMock.mockReset();
+    saveBrowserProjectMock.mockResolvedValue(undefined);
+    const project = new ProjectEditorSession(createEmptyProject({ createdWith: 'test' }));
+    const scope = effectScope();
+    scope.run(() => useProjectFileSession(project, { persistToBrowser: true }));
+    try {
+      for (let index = 0; index < 20; index += 1) {
+        project.commit('edit', value => ({ ...value, createdWith: `edit-${index}` }));
+      }
+      // 防抖窗口内一次都不该写盘。
+      expect(saveBrowserProjectMock).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1_200);
+      expect(saveBrowserProjectMock).toHaveBeenCalledTimes(1);
+      // 写入的是最后一次改动，不是中间某一帧。
+      expect(saveBrowserProjectMock).toHaveBeenCalledWith(project.snapshot.project);
+      expect(project.snapshot.project.createdWith).toBe('edit-19');
+    } finally {
+      scope.stop();
+    }
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('forces a write when continuous edits outlast the maximum wait', async () => {
+  vi.useFakeTimers();
+  try {
+    const target = new EventTarget();
+    vi.stubGlobal('window', target);
+    saveBrowserProjectMock.mockReset();
+    saveBrowserProjectMock.mockResolvedValue(undefined);
+    const project = new ProjectEditorSession(createEmptyProject({ createdWith: 'test' }));
+    const scope = effectScope();
+    scope.run(() => useProjectFileSession(project, { persistToBrowser: true }));
+    try {
+      // 每 1 秒改一次，持续超过最长等待：防抖永远等不满，必须靠最长等待强制落盘。
+      for (let index = 0; index < 16; index += 1) {
+        project.commit('edit', value => ({ ...value, createdWith: `tick-${index}` }));
+        await vi.advanceTimersByTimeAsync(1_000);
+      }
+      expect(saveBrowserProjectMock.mock.calls.length).toBeGreaterThanOrEqual(1);
+      // 且最新内容一定已经被写出去过。
+      const lastCall = saveBrowserProjectMock.mock.calls.at(-1)?.[0];
+      expect(lastCall?.createdWith).toBe('tick-14');
+    } finally {
+      scope.stop();
+    }
+  } finally {
+    vi.useRealTimers();
   }
 });
 

@@ -1,0 +1,132 @@
+name: Desktop Release
+
+# 构建 Windows 安装包并发布到 GitHub Releases。
+#
+# 发布后，已安装的客户端会在启动时通过 electron-updater 检查这个 Release，
+# 发现新版本就提示用户更新（提示 → 确认 → 下载 → 备份数据 → 安装）。
+#
+# 触发方式：
+#   1. 手动触发（推荐）：Actions → Desktop Release → Run workflow，填版本号；
+#   2. 推送 tag（形如 desktop-v1.0.1）也会自动跑。
+#
+# 需要的 Secret：GH_TOKEN —— 一个带 repo 权限的 Personal Access Token。
+#   electron-builder 用它上传 Release（内置的 GITHUB_TOKEN 权限通常不够）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本号（留空则自动把当前 patch 号 +1）'
+        required: false
+        default: ''
+      prerelease:
+        description: '标记为预发布（预发布不会被客户端当作更新）'
+        type: boolean
+        required: false
+        default: false
+  push:
+    tags:
+      - 'desktop-v*'
+
+# 同一时间只跑一个发布，避免两个 job 抢着上传同一个 Release。
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # 必须用 Windows：NSIS 安装包与图标处理依赖 Windows 工具链。
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+
+      # 前端依赖在仓库根目录，桌面壳依赖在 desktop-shell/。
+      # 分别按各自的锁文件缓存，命中率更高。
+      - name: Cache frontend node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: frontend-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: frontend-${{ runner.os }}-
+
+      - name: Cache desktop-shell node_modules
+        uses: actions/cache@v4
+        with:
+          path: desktop-shell/node_modules
+          key: shell-${{ runner.os }}-${{ hashFiles('desktop-shell/package-lock.json') }}
+          restore-keys: shell-${{ runner.os }}-
+
+      - name: Install frontend dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install desktop-shell dependencies
+        working-directory: desktop-shell
+        run: npm ci --no-audit --no-fund
+
+      - name: Resolve release version
+        id: version
+        shell: pwsh
+        run: |
+          $requested = "${{ inputs.version }}".Trim()
+          $current = (Get-Content desktop-shell/package.json -Raw | ConvertFrom-Json).version
+
+          if ($requested -ne '') {
+            if ($requested -notmatch '^\d+\.\d+\.\d+$') {
+              throw "版本号格式不对：$requested（应形如 1.0.1）"
+            }
+            $next = $requested
+          } elseif ("${{ github.ref_type }}" -eq 'tag') {
+            # tag 形如 desktop-v1.0.1
+            $next = "${{ github.ref_name }}" -replace '^desktop-v', ''
+          } else {
+            # 默认把 patch 号 +1：必须严格递增，否则客户端不会认为有更新。
+            $parts = $current.Split('.')
+            $next = "$($parts[0]).$($parts[1]).$([int]$parts[2] + 1)"
+          }
+
+          Write-Host "当前版本 $current → 发布版本 $next"
+          "next=$next" >> $env:GITHUB_OUTPUT
+
+      - name: Build frontend (Vite)
+        run: npm run build
+
+      - name: Build installer and publish
+        working-directory: desktop-shell
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # 发布目标写在 desktop-shell/package.json 的 build.publish 里；
+          # 这里不覆盖，避免和仓库里的配置漂移。
+        shell: pwsh
+        run: |
+          if ("${{ secrets.GH_TOKEN }}" -eq '') {
+            throw "缺少 GH_TOKEN secret：请在仓库 Settings → Secrets and variables → Actions 里添加一个带 repo 权限的 PAT。"
+          }
+          # 先把版本号写进 package.json，latest.yml 才会带正确版本。
+          npm version ${{ steps.version.outputs.next }} --no-git-tag-version --allow-same-version
+          npm run package:win -- --publish always
+
+      - name: Summarize
+        shell: pwsh
+        run: |
+          Write-Host "## Desktop Release ${{ steps.version.outputs.next }}" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "已发布到 GitHub Releases。" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
+          Get-ChildItem desktop-shell/release -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notlike '*.blockmap' } |
+            ForEach-Object {
+              Write-Host ("- {0}（{1:N1} MB）" -f $_.Name, ($_.Length / 1MB)) >> $env:GITHUB_STEP_SUMMARY
+            }
+          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "客户端下次启动时会在静默检查中收到更新提示。" >> $env:GITHUB_STEP_SUMMARY

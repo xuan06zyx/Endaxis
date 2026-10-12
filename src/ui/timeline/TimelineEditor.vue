@@ -918,12 +918,22 @@ const publishedGlobalRandomSeed = computed(
   () => publishedSimulation.value?.scenario.battle.random?.globalSeed ?? 0,
 );
 const ids = createProjectDocumentIdAllocator(() => projectSession.snapshot.project);
-const { browserSaveError, projectFileReader, exportProjectFile } = useProjectFileSession(
-  projectSession,
-  {
+const { browserSaveError, projectFileReader, exportProjectFile, flushBrowserSaveAndWait } =
+  useProjectFileSession(projectSession, {
     persistToBrowser: props.browserPersistenceEnabled === true,
-  },
-);
+  });
+/**
+ * 桌面壳关窗前会通过 preload 调用这里，等自动保存真正写进磁盘后才放行关闭。
+ *
+ * 浏览器里 window.EndaxisDesktop 不存在，这段不会生效；网页版仍按原来的
+ * beforeunload 行为工作。
+ */
+const desktopFlushBridge = (
+  window as unknown as {
+    EndaxisDesktop?: { onFlushSaves?: (handler: () => Promise<void>) => void };
+  }
+).EndaxisDesktop;
+desktopFlushBridge?.onFlushSaves?.(() => flushBrowserSaveAndWait());
 watch(browserSaveError, error => {
   if (error !== null) ElMessage.error(`浏览器自动保存失败：${error}`);
 });
