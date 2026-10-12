@@ -107,13 +107,12 @@ jobs:
         run: |
           # 只构建，不发布：发布交给下一步的脚本。
           npm version ${{ steps.version.outputs.next }} --no-git-tag-version --allow-same-version
-          # --publish never 是必须的：package.json 里有 build.publish，
-          # electron-builder 会据此**自动尝试上传**，并在没有 GH_TOKEN 时
-          # 直接让构建失败（实测：安装包已生成，却因 "Cannot cleanup: GitHub
-          # Personal Access Token is not set" 报错退出）。这里禁用它，
-          # 发布统一走串行脚本。注意 publish 配置本身要保留——它决定了
-          # 客户端 app-update.yml 里的更新源地址。
-          npm run package:win -- --publish never
+          # 注意这里**不能**写 `-- --publish never`：npm 会把参数追加到整条脚本链
+          # 末尾，实际传给 generate-icon.mjs，报 "Unknown argument: never"（实测踩过）。
+          # `--publish never` 已经写进 package.json 的 package:win 脚本里。
+          # 它必须存在：package.json 有 build.publish，electron-builder 会据此
+          # 自动尝试上传，取不到 GH_TOKEN 时会让构建直接失败。
+          npm run package:win
 
       - name: Publish release
         working-directory: desktop-shell
