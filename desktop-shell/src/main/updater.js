@@ -170,6 +170,34 @@ function createUpdater({ window, isDevelopment, getStrings }) {
     window.webContents.send(channel, payload);
   };
 
+  /**
+   * 最近一次发出的更新状态，用于重发。
+   *
+   * 为什么要重发：渲染进程里的进度浮层是页面加载完成后才注入的，注入之前发的
+   * 事件没人接。下载进度本来每秒来好几次，重发只是为了让"注入那一刻"立刻
+   * 显示出正确的进度，而不是等到下一次进度事件。
+   */
+  let lastStatus = { state: 'idle' };
+  /** 浮层里错误提示的停留时长：到点自动收起，避免旧错误常驻。 */
+  const ERROR_LINGER_MS = 15_000;
+  let errorShownAt = 0;
+  const publishStatus = payload => {
+    if (payload.state === 'error') errorShownAt = Date.now();
+    lastStatus = payload;
+    send('update:status', payload);
+  };
+  const statusReplayTimer = setInterval(() => {
+    if (lastStatus.state === 'idle') return;
+    // 错误提示只保留一段时间：否则重发会让浮层一直挂着一条旧错误。
+    if (lastStatus.state === 'error' && Date.now() - errorShownAt > ERROR_LINGER_MS) {
+      lastStatus = { state: 'idle' };
+      send('update:status', lastStatus);
+      return;
+    }
+    send('update:status', lastStatus);
+  }, 1000);
+  statusReplayTimer.unref?.();
+
   const setProgressFeedback = fraction => {
     if (window === null || window.isDestroyed()) return;
     if (fraction === null) {
@@ -181,13 +209,13 @@ function createUpdater({ window, isDevelopment, getStrings }) {
 
   autoUpdater.on('checking-for-update', () => {
     state = 'checking';
-    send('update:status', { state });
+    publishStatus({ state });
   });
 
   autoUpdater.on('update-available', info => {
     state = 'available';
     lastVersion = info?.version ?? null;
-    send('update:status', { state, version: lastVersion });
+    publishStatus({ state, version: lastVersion });
     if (updateProbe) return; // 探针模式：不弹窗，交给 checkForUpdatesManually 自动下载。
     void promptForUpdate(info);
   });
@@ -197,7 +225,7 @@ function createUpdater({ window, isDevelopment, getStrings }) {
     // 记一行：静默检查"已是最新"时若不记录，日志里就只剩"检查开始"，
     // 无法区分"检查成功且最新"和"检查压根没跑完"（排查时踩过）。
     trace(`update-not-available（线上最新 ${info?.version ?? '?'}，当前 ${app.getVersion()}）`);
-    send('update:status', { state });
+    publishStatus({ state });
     if (updateProbe) return;
     if (manualCheck) {
       manualCheck = false;
@@ -212,9 +240,11 @@ function createUpdater({ window, isDevelopment, getStrings }) {
   });
 
   autoUpdater.on('error', error => {
-    state = 'idle';
+    // 用 'error' 而不是 'idle'：浮层要显示"更新出错"，置为 idle 会让它直接隐藏，
+    // 用户就完全看不到失败了。停留时间由 ERROR_LINGER_MS 控制。
+    state = 'error';
     lastError = String(error?.message ?? error);
-    send('update:status', { state, error: lastError });
+    publishStatus({ state, error: lastError });
     setProgressFeedback(null);
     if (updateProbe) return;
     if (manualCheck) {
@@ -239,14 +269,24 @@ function createUpdater({ window, isDevelopment, getStrings }) {
       trace(`下载进度 ${percent.toFixed(1)}%`);
     }
     setProgressFeedback(percent / 100);
-    send('update:status', { state, percent });
+    // 带上字节数与速度：界面要显示"当前 / 总量"，只有百分比不够直观，
+    // 速度则用来给用户一个"还要多久"的直觉。
+    publishStatus({
+      state,
+      version: lastVersion,
+      percent,
+      transferred: progress?.transferred ?? null,
+      total: progress?.total ?? null,
+      bytesPerSecond: progress?.bytesPerSecond ?? null,
+    });
   });
 
   autoUpdater.on('update-downloaded', info => {
     state = 'downloaded';
     setProgressFeedback(null);
     lastVersion = info?.version ?? lastVersion;
-    send('update:status', { state, version: lastVersion });
+    // 带上版本号：浮层要显示"1.0.5 已就绪"。
+    publishStatus({ state, version: lastVersion });
     if (updateProbe) return; // 探针模式：不安装，由测试脚本断言后收尾。
     void promptForInstall(info);
   });
@@ -556,6 +596,10 @@ function createUpdater({ window, isDevelopment, getStrings }) {
       });
     },
     getState: () => state,
+    /** 退出前清理重发定时器，避免留下悬空 interval。 */
+    dispose() {
+      clearInterval(statusReplayTimer);
+    },
   };
 }
 

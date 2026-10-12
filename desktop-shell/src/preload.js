@@ -32,6 +32,45 @@ const { contextBridge, ipcRenderer } = require('electron');
 const CHANNEL_FLUSH_REQUEST = 'endaxis:flush-saves';
 const CHANNEL_FLUSH_DONE = 'endaxis:flush-saves-done';
 
+/** 与 src/main/updater.js 里的同名常量必须一致。 */
+const CHANNEL_UPDATE_STATUS = 'update:status';
+
+/** 与 tools/update-overlay.js 约定：浮层把结果写在这里，不暴露任何可调用方法。 */
+const OVERLAY_ROOT_ID = '__endaxis_update_overlay__';
+
+/**
+ * 把更新状态推给页面里的浮层。
+ *
+ * 刻意**不**通过 contextBridge 暴露任何方法：那样页面（也就是上游前端）就能
+ * 调用主进程能力，一旦前端被注入恶意代码即可提权。这里只做单向数据推入——
+ * 把状态写进 DOM 的 data-* 属性再派发一个事件，浮层只管显示，没有任何权力。
+ *
+ * 浮层脚本还没执行时事件会丢，所以主进程每 1 秒重发一次当前状态；
+ * 浮层一出现就会拿到最新值（下载进度变化本来就比这密）。
+ */
+function pushUpdateStatus(payload) {
+  try {
+    const root = document.getElementById(OVERLAY_ROOT_ID);
+    if (root === null) return;
+    // 用 setAttribute 而不是 dataset：contextIsolation 下两个世界共享 DOM，
+    // 属性的读写一定生效，而 dataset 依赖 DOMStringMap 包装对象，跨世界不保险。
+    root.setAttribute('data-version', payload?.version ?? '');
+    root.setAttribute('data-percent', String(payload?.percent ?? ''));
+    root.setAttribute('data-transferred', String(payload?.transferred ?? ''));
+    root.setAttribute('data-total', String(payload?.total ?? ''));
+    root.setAttribute('data-speed', String(payload?.bytesPerSecond ?? ''));
+    root.setAttribute('data-error', payload?.error ?? '');
+    root.setAttribute('data-state', payload?.state ?? 'idle');
+    root.dispatchEvent(new CustomEvent('endaxis:update-status'));
+  } catch {
+    // document 还不存在等情况，忽略即可——主进程会重发。
+  }
+}
+
+ipcRenderer.on(CHANNEL_UPDATE_STATUS, (_event, payload) => {
+  pushUpdateStatus(payload);
+});
+
 /** 由渲染进程（TimelineEditor）注册进来：把排队的保存写落地并等它写完。 */
 let flushHandler = null;
 

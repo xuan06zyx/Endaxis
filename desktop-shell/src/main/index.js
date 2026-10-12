@@ -351,6 +351,7 @@ async function openMainWindow() {
   // 窗口生命周期、外发链接拦截与右键菜单都在这里接线。
   wireWindowLifecycle(window);
   wireContextMenu(window);
+  attachUpdateOverlay(window);
 
   try {
     updater = createUpdater({ window, isDevelopment: IS_DEVELOPMENT });
@@ -400,6 +401,44 @@ async function openMainWindow() {
   }
 
   return window;
+}
+
+/**
+ * 把更新进度浮层注入页面。
+ *
+ * 为什么由主进程注入，而不是让前端自己写：上游前端是"原样保留"的，改动它会让
+ * 以后同步上游时反复冲突。浮层属于桌面壳的能力，就放在壳这一层。
+ *
+ * 为什么用 executeJavaScript 而不是 preload 注入：
+ *   contextIsolation 下 preload 在隔离世界，往页面派发的 CustomEvent 主世界收不到，
+ *   浮层就没法自己监听更新状态。所以 preload 只负责"往共享 DOM 写数据"，
+ *   浮层在主世界读取并渲染。
+ *
+ * 注入必须等页面加载完（document.body 存在）。失败只记诊断，不影响应用使用：
+ * 更新提示退化成原来的弹窗，功能不缺失。
+ */
+function attachUpdateOverlay(window) {
+  const overlayScript = path.join(__dirname, '..', 'renderer', 'update-overlay.js');
+
+  window.webContents.on('did-finish-load', () => {
+    if (!fs.existsSync(overlayScript)) {
+      writeStartupDiagnostic('更新浮层脚本缺失', overlayScript);
+      return;
+    }
+    let source = '';
+    try {
+      source = fs.readFileSync(overlayScript, 'utf8');
+    } catch (error) {
+      writeStartupDiagnostic('读取更新浮层脚本失败', error?.stack ?? String(error));
+      return;
+    }
+    // 包一层 IIFE 并吞掉异常：浮层出问题绝不能影响页面本身。
+    window.webContents
+      .executeJavaScript(`(() => { try { ${source} } catch (e) {} })();`, true)
+      .catch(error => {
+        writeStartupDiagnostic('注入更新浮层失败', error?.stack ?? String(error));
+      });
+  });
 }
 
 function wireWindowLifecycle(window) {
