@@ -23,9 +23,9 @@
     "verify:port-conflict": "node scripts/launch.mjs tools/verify-port-conflict.js",
     "diagnose": "node scripts/launch.mjs tools/diagnose-boot.js",
     "dev": "node scripts/dev.mjs",
-    "dist": "npm run build:web && npm run prepare:dist && npm run prepare:runtime && npm run icon && electron-builder --win --x64",
-    "dist:dir": "npm run build:web && npm run prepare:dist && npm run prepare:runtime && npm run icon && electron-builder --win --x64 --dir",
-    "package:win": "npm run prepare:dist && npm run prepare:runtime && npm run icon && electron-builder --win --x64"
+    "dist": "npm run build:web && npm run prepare:dist && npm run prepare:runtime && npm run icon && electron-builder --win --x64 --publish never",
+    "dist:dir": "npm run build:web && npm run prepare:dist && npm run prepare:runtime && npm run icon && electron-builder --win --x64 --dir --publish never",
+    "package:win": "npm run prepare:dist && npm run prepare:runtime && npm run icon && electron-builder --win --x64 --publish never"
   },
   "devDependencies": {
     "electron": "^44.7.0",
