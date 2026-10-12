@@ -107,7 +107,13 @@ jobs:
         run: |
           # 只构建，不发布：发布交给下一步的脚本。
           npm version ${{ steps.version.outputs.next }} --no-git-tag-version --allow-same-version
-          npm run package:win
+          # --publish never 是必须的：package.json 里有 build.publish，
+          # electron-builder 会据此**自动尝试上传**，并在没有 GH_TOKEN 时
+          # 直接让构建失败（实测：安装包已生成，却因 "Cannot cleanup: GitHub
+          # Personal Access Token is not set" 报错退出）。这里禁用它，
+          # 发布统一走串行脚本。注意 publish 配置本身要保留——它决定了
+          # 客户端 app-update.yml 里的更新源地址。
+          npm run package:win -- --publish never
 
       - name: Publish release
         working-directory: desktop-shell
