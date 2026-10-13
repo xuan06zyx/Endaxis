@@ -6,6 +6,27 @@
 
 > ⚠️ **注意**：本项目是一个粉丝自制工具，目前处于开发阶段。
 
+> 本仓库是 [Lieyuan621/Endaxis](https://github.com/Lieyuan621/Endaxis) 的 fork，
+> 在同步上游代码的基础上**额外做了一层 Electron 桌面壳**，用于以 Windows 应用形式
+> 离线使用与自动更新。上游前端代码基本原样保留，可直接跟随上游更新；
+> 桌面壳源码在 [`desktop-shell/`](desktop-shell/)，说明见
+> [desktop-shell/DESKTOP.md](desktop-shell/DESKTOP.md)。
+>
+> 如果你只是想在浏览器里用，请直接用下面的在线体验地址，不需要本仓库的桌面版。
+
+## 桌面版（Windows）
+
+从 [Releases](https://github.com/xuan06zyx/Endaxis/releases/latest) 下载
+`Endaxis-Setup-x.y.z-x64.exe` 安装即可。安装包**未做代码签名**，首次运行
+Windows SmartScreen 会提示"未知发布者"，需点"仍要运行"。
+
+- 项目数据保存在本机（`%APPDATA%\endaxis-desktop`），**离线可用**
+- 关闭程序时会把排队中的编辑写入磁盘，不会丢最后一次改动
+- 启动时自动检查更新；更新前自动备份项目数据
+- 无法直连 GitHub 时可在「帮助 → 检查更新」里**测速并选择镜像站**
+- 关于固定端口、数据位置、更新与发布流程，见
+  [desktop-shell/DESKTOP.md](desktop-shell/DESKTOP.md)
+
 ## 在线体验
 
 **项目已部署，点击下方链接即可直接使用：**
