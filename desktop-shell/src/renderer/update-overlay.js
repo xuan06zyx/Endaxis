@@ -242,6 +242,11 @@
     } else if (state === 'error') {
       bar.style.width = '100%';
       bar.style.background = 'linear-gradient(90deg, #d9534f, #f08b88)';
+    } else if (state === 'up-to-date') {
+      // 已是最新：用整条绿条表示"检查完毕、无需操作"。
+      // 这里不能沿用"半条蓝渐变"——那看起来像下载卡在一半，会误导用户。
+      bar.style.width = '100%';
+      bar.style.background = 'linear-gradient(90deg, #35c07a, #7ee2ab)';
     } else {
       // 检查/准备阶段：不确定进度，用半条渐变表示"在动"。
       bar.style.width = '35%';
