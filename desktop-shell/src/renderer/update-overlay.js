@@ -131,10 +131,23 @@
   // ── 渲染 ─────────────────────────────────────────────────────────────
   const STATE_TEXT = {
     checking: '正在检查更新…',
-    available: '发现新版本，准备下载…',
+    available: '发现新版本，可在「帮助 → 检查更新」中下载。',
     downloading: '正在下载更新…',
     downloaded: '更新已就绪，重启后安装。',
+    'up-to-date': '已是最新版本。',
     error: '更新出错',
+  };
+
+  /**
+   * 停留时长：这些是"播报完就该消失"的状态。
+   *
+   * 检查更新的结果是**告知性**的，不该在右下角长期占位——用户看一眼就够，
+   * 之后要能安心操作。下载/下载完成则必须一直显示（它们需要用户关注）。
+   */
+  const TRANSIENT_MS = {
+    checking: Infinity, // 由主进程在得到结果后替换掉，不自行超时
+    'up-to-date': 6_000,
+    available: 15_000,
   };
 
   /** 字节数转成 MB / KB，保留一位小数。 */
@@ -169,7 +182,9 @@
     const speed = Number.parseFloat(root.getAttribute('data-speed') ?? '');
     const error = root.getAttribute('data-error') ?? '';
 
-    if (state === 'idle' || state === 'up-to-date') {
+    // idle 才隐藏。检查中/已是最新等"播报型"状态也要显示——用户明确要求
+    // 打开程序后能在右下角看到正在检查、以及检查结果。
+    if (state === 'idle') {
       root.style.display = 'none';
       return;
     }
@@ -179,6 +194,28 @@
     }
     root.style.display = 'block';
 
+    // 播报型状态到点自动收起；下载/完成/出错保持显示。
+    const transient = TRANSIENT_MS[state];
+    if (Number.isFinite(transient)) {
+      const shownAt = Number.parseInt(root.getAttribute('data-shown-at') ?? '0', 10);
+      const stamp = Number.isFinite(shownAt) && shownAt > 0 ? shownAt : Date.now();
+      if (root.getAttribute('data-shown-at') === null) {
+        root.setAttribute('data-shown-at', String(stamp));
+      }
+      if (Date.now() - stamp > transient) {
+        root.style.display = 'none';
+        return;
+      }
+      setTimeout(
+        () => {
+          if (root.getAttribute('data-state') === state) render();
+        },
+        transient - (Date.now() - stamp) + 50,
+      );
+    } else {
+      root.removeAttribute('data-shown-at');
+    }
+
     const percent = Number.isFinite(percentRaw) ? Math.min(100, Math.max(0, percentRaw)) : null;
 
     // 标题随状态给对方一个明确的"在做什么"。
@@ -187,7 +224,11 @@
         ? `下载更新 ${percent.toFixed(0)}%`
         : state === 'downloaded'
           ? `更新已就绪${version ? ` · ${version}` : ''}`
-          : '软件更新';
+          : state === 'up-to-date'
+            ? '已是最新版本'
+            : state === 'checking'
+              ? '正在检查更新'
+              : '软件更新';
 
     message.textContent = STATE_TEXT[state] ?? '';
     if (state === 'error' && error.length > 0) message.textContent = `更新出错：${error}`;
@@ -224,6 +265,10 @@
     } else if (state === 'downloaded') {
       detailLeft.textContent = formatBytes(total) ?? '下载完成';
       detailRight.textContent = '可关闭程序后自动安装';
+    } else if (state === 'up-to-date') {
+      // 检查结果也要给一个明确的"什么时候看的"信息，否则用户不确定是不是刚查的。
+      detailLeft.textContent = version ? `版本 ${version}` : '';
+      detailRight.textContent = '刚刚检查';
     } else {
       detailLeft.textContent = '';
       detailRight.textContent = '';

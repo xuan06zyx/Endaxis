@@ -14,6 +14,7 @@ const {
 const { attachCloseFlush } = require('./closeCoordinator');
 const { cleanupOrphanedStorage } = require('./storageMigration');
 const { buildApplicationMenu } = require('./menu');
+const { openSourceWindow, disposeSourceWindow } = require('./sourceWindow');
 const { startStaticServer, resolveFixedPort, PortUnavailableError } = require('./server');
 const { createUpdater } = require('./updater');
 const {
@@ -366,7 +367,16 @@ async function openMainWindow() {
       window,
       isDevelopment: IS_DEVELOPMENT,
       websiteUrl: WEBSITE_URL,
-      onCheckForUpdates: () => updater?.checkForUpdatesManually(),
+      // 打开"检查更新"窗口，而不是直接开始检查：用户可能要先切镜像站。
+      // 无法直连 GitHub 的用户如果一进来就自动检查，只会白等一次超时。
+      onCheckForUpdates: () => {
+        if (updater === null) return;
+        try {
+          openSourceWindow({ updater, parent: window });
+        } catch (error) {
+          writeStartupDiagnostic('打开检查更新窗口失败', error?.stack ?? String(error));
+        }
+      },
     }),
   );
 

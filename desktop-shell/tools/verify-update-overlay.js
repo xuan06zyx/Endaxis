@@ -99,6 +99,25 @@ app.whenReady().then(async () => {
     const idle = await window.webContents.executeJavaScript(READ_STATE, true);
     record(idle.display === 'none', `idle 状态应隐藏（实际 display=${idle.display}）`);
 
+    // ── 检查中：启动后应能看到（用户明确要求右下角提示）─────────────
+    await window.webContents.executeJavaScript(pushScript({ state: 'checking' }), true);
+    const checking = await window.webContents.executeJavaScript(READ_STATE, true);
+    const checkingText = (checking.texts ?? []).join(' | ');
+    console.log(`${PREFIX}检查中文案：${checkingText}`);
+    record(checking.display === 'block', '检查中也应显示（启动后右下角提示）');
+    record(checkingText.includes('正在检查更新'), '检查中文案正确');
+
+    // ── 已是最新：应显示结果，且是"播报型"（会自动收起）────────────
+    await window.webContents.executeJavaScript(
+      pushScript({ state: 'up-to-date', version: '1.0.6' }),
+      true,
+    );
+    const upToDate = await window.webContents.executeJavaScript(READ_STATE, true);
+    const upToDateText = (upToDate.texts ?? []).join(' | ');
+    console.log(`${PREFIX}已最新文案：${upToDateText}`);
+    record(upToDate.display === 'block', '检查结果也应显示在右下角');
+    record(upToDateText.includes('已是最新版本'), '结果文案正确');
+
     // ── 下载中：进度条 + 当前/总量 + 速度 ─────────────────────────────
     await window.webContents.executeJavaScript(
       pushScript({

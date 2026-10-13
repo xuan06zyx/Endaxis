@@ -4,6 +4,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { app, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
+const {
+  MIRRORS,
+  MIRROR_LIST_URL,
+  DEFAULT_MIRROR_ID,
+  applyMirror,
+  findMirror,
+} = require('./mirrors');
+const { testMirrors } = require('./mirrorSpeedTest');
+const { readPreferences, writePreferences } = require('./preferences');
 
 /**
  * 更新链路的落盘日志。
@@ -32,6 +41,30 @@ let traceStarted = false;
 
 /** 探针模式开关（模块级常量，任何地方都读同一个值）。 */
 const UPDATE_PROBE_ENABLED = process.env.ENDAXIS_UPDATE_PROBE === '1';
+
+/**
+ * Release 坐标（owner/repo），来自打包时写入的 `resources/app-update.yml`。
+ *
+ * 为什么读它而不是写死：更新源由 package.json 的 build.publish 决定，
+ * 这里跟着走就不会出现"改了发布目标、代码却还指着旧仓库"的漂移。
+ * 读不到时回退到默认值，保证功能整体不至于不可用。
+ */
+function resolveReleaseCoordinates() {
+  const fallback = { owner: 'xuan06zyx', repo: 'Endaxis' };
+  try {
+    const raw = fs.readFileSync(path.join(process.resourcesPath, 'app-update.yml'), 'utf8');
+    const owner = /^owner:\s*(\S+)/m.exec(raw)?.[1];
+    const repo = /^repo:\s*(\S+)/m.exec(raw)?.[1];
+    if (owner !== undefined && repo !== undefined) return { owner, repo };
+  } catch {
+    // 开发模式或配置缺失：用默认值。
+  }
+  return fallback;
+}
+
+const RELEASE_COORDINATES = resolveReleaseCoordinates();
+const RELEASE_OWNER = RELEASE_COORDINATES.owner;
+const RELEASE_REPO = RELEASE_COORDINATES.repo;
 
 /**
  * 自动更新。
@@ -145,6 +178,17 @@ function createUpdater({ window, isDevelopment, getStrings }) {
   let lastVersion = null;
   let lastError = null;
   let lastLoggedPercent = -1;
+
+  /**
+   * 当前选中的更新源镜像。
+   *
+   * 默认直连 GitHub。用户可在"检查更新"窗口里测速后切换；选择会写进配置文件，
+   * 下次启动沿用（无法直连 GitHub 的用户不该每次都要手动切）。
+   */
+  let selectedMirror = findMirror(readPreferences().mirrorId) ?? findMirror(DEFAULT_MIRROR_ID);
+  /** 最近一次测速结果，供窗口展示；null 表示还没测过。 */
+  let lastSpeedTest = null;
+  let speedTestInFlight = null;
 
   /**
    * 更新探针：`npm run verify:update` 用。
@@ -490,75 +534,219 @@ function createUpdater({ window, isDevelopment, getStrings }) {
     return report;
   }
 
+  /** 与主进程其它地方一致的 UA，便于对方识别来源。 */
+  function userAgent() {
+    return `EndaxisDesktop/${app.getVersion()}`;
+  }
+
+  /** 把 tag（可能是 v1.0.1 / 1.0.1 / desktop-v1.0.1）规整成 1.0.1。 */
+  function normalizeVersion(value) {
+    const match = /(\d+)\.(\d+)\.(\d+)/.exec(value ?? '');
+    return match === null ? null : `${match[1]}.${match[2]}.${match[3]}`;
+  }
+
+  /** 简易 semver 比较：仅比较数字段，足够判断"有没有更新"。 */
+  function compareVersions(left, right) {
+    const toNumbers = value => value.split('.').map(part => Number.parseInt(part, 10));
+    const a = toNumbers(left);
+    const b = toNumbers(right);
+    for (let index = 0; index < 3; index += 1) {
+      if (a[index] !== b[index]) return a[index] > b[index] ? 1 : -1;
+    }
+    return 0;
+  }
+
+  /** releaseNotes 里可能带 HTML，展示前去掉标签。 */
+  function stripHtml(value) {
+    return value.replace(/<[^>]*>/g, '').replace(/\n{3,}/g, '\n\n');
+  }
+
   /**
-   * API 被限流时，改用 Releases 的 Atom feed 判断有没有新版本。
+   * 查线上最新版本号。**不依赖 electron-updater 内部的 API 调用**。
    *
-   * electron-updater 走 api.github.com，而**匿名请求只有 60 次/小时**，共享出口
-   * IP（公司/校园网/运营商 NAT）很容易打满，表现为"检查更新静默失败"，用户
-   * 完全看不出原因。这个 feed 没有限流、同样不需要凭据；代价是只有版本号，
-   * 没有 sha512——真正的下载与校验仍由 electron-updater 负责。
+   * 为什么自己查：electron-updater 固定走 api.github.com，既受匿名限流
+   * （60 次/小时）又不支持走镜像；而"换镜像"恰恰是本项目要支持的场景
+   * （无法直连 GitHub 的用户）。自己查之后，镜像选择对"查版本"和"下载"
+   * 两条路都生效。
    *
-   * @returns {Promise<boolean>} 是否成功给出结论（已弹窗）
+   * 尝试顺序：先问支持 API 代理的镜像（每个都试，避免单点故障），
+   * 再退到直连的 Releases Atom feed（实测没有镜像支持 atom，全是 403/404）。
+   *
+   * @returns {Promise<{version: string, source: string}|null>}
+   */
+  async function discoverLatestVersion() {
+    const releaseApiUrl = `https://api.github.com/repos/${RELEASE_OWNER}/${RELEASE_REPO}/releases/latest`;
+
+    for (const mirror of MIRRORS) {
+      if (!mirror.supportsApi) continue;
+      try {
+        const response = await fetch(applyMirror(releaseApiUrl, mirror), {
+          headers: { Accept: 'application/vnd.github+json', 'User-Agent': userAgent() },
+        });
+        if (!response.ok) {
+          trace(`查版本失败（${mirror.id}）：HTTP ${response.status}`);
+          continue;
+        }
+        const payload = await response.json();
+        const version = normalizeVersion(payload?.tag_name ?? payload?.name ?? '');
+        if (version === null) continue;
+        trace(`查版本成功（${mirror.id}）：${version}`);
+        return { version, source: mirror.id };
+      } catch (error) {
+        trace(`查版本异常（${mirror.id}）：${error?.message ?? error}`);
+      }
+    }
+
+    // 直连 Atom feed 兜底。
+    try {
+      const feed = `https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases.atom`;
+      const response = await fetch(feed, {
+        headers: { Accept: 'application/atom+xml', 'User-Agent': userAgent() },
+      });
+      if (response.ok) {
+        const xml = await response.text();
+        const tag = /<entry>[\s\S]*?<title>([^<]+)<\/title>/.exec(xml)?.[1]?.trim() ?? null;
+        const version = normalizeVersion(tag);
+        if (version !== null) {
+          trace(`查版本成功（atom feed）：${version}`);
+          return { version, source: 'atom' };
+        }
+      }
+    } catch (error) {
+      trace(`atom feed 查版本异常：${error?.message ?? error}`);
+    }
+
+    trace('查版本失败：所有镜像与 feed 都不可用');
+    return null;
+  }
+
+  /**
+   * 把 electron-updater 的下载源指到"最新版本所在的目录"，并带上镜像前缀。
+   *
+   * generic provider 会在给定 URL 下找 `latest.yml` 与安装包，所以 base 必须
+   * 精确到 `.../releases/download/v<版本>/`，不能只给 releases 页。
+   *
+   * @param {object|null} mirror
+   * @returns {Promise<{ok: boolean, version?: string}>}
+   */
+  async function pointFeedAtLatest(mirror) {
+    const discovered = await discoverLatestVersion();
+    if (discovered === null) return { ok: false };
+    const directory = `https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/v${discovered.version}/`;
+    const feedUrl = applyMirror(directory, mirror);
+    autoUpdater.setFeedURL({ provider: 'generic', url: feedUrl });
+    trace(`下载源指向 ${feedUrl}（版本来源于 ${discovered.source}）`);
+    return { ok: true, version: discovered.version };
+  }
+
+  /**
+   * 测速：并发测所有镜像对**最新安装包**的下载表现。
+   *
+   * 用真实发布资产而不是 ping：用户关心的是"从哪个源下 117 MB 更快"，
+   * 反代站常见"握手快但限速"，只看延迟会选错。
+   */
+  async function runSpeedTest() {
+    if (speedTestInFlight !== null) return speedTestInFlight;
+    speedTestInFlight = (async () => {
+      const discovered = await discoverLatestVersion();
+      const version = discovered?.version ?? normalizeVersion(app.getVersion()) ?? '0.0.0';
+      const assetUrl =
+        `https://github.com/${RELEASE_OWNER}/${RELEASE_REPO}/releases/download/` +
+        `v${version}/Endaxis-Setup-${version}-x64.exe`;
+      trace(`开始测速，样本 v${version}`);
+      const results = await testMirrors(MIRRORS, assetUrl);
+      lastSpeedTest = { at: Date.now(), version, results };
+      for (const result of results) {
+        trace(
+          `测速 ${result.id}：ok=${result.ok} ttfb=${result.ttfbMs ?? '-'}ms ` +
+            `speed=${result.speedBps === null ? '-' : `${Math.round(result.speedBps / 1024)}KB/s`}` +
+            `${result.error === null ? '' : ` 错误=${result.error}`}`,
+        );
+      }
+      return results;
+    })();
+    try {
+      return await speedTestInFlight;
+    } finally {
+      speedTestInFlight = null;
+    }
+  }
+
+  /**
+   * 切换更新源镜像并持久化。
+   *
+   * 持久化是必须的：无法直连 GitHub 的用户如果每次开程序都要手动切一次，
+   * 等于这个功能没做。
+   */
+  function selectMirror(mirrorId) {
+    const mirror = findMirror(mirrorId);
+    if (mirror === null) return { ok: false };
+    selectedMirror = mirror;
+    writePreferences({ mirrorId: mirror.id });
+    trace(`更新源已切换为 ${mirror.name}`);
+    return { ok: true, mirror: { id: mirror.id, name: mirror.name } };
+  }
+
+  /** 供界面读取的完整状态（镜像列表 + 选中项 + 上次测速 + 官方发布页）。 */
+  function describeSources() {
+    return {
+      currentVersion: app.getVersion(),
+      mirrors: MIRRORS.map(mirror => ({
+        id: mirror.id,
+        name: mirror.name,
+        description: mirror.description,
+        supportsApi: mirror.supportsApi,
+      })),
+      selectedId: selectedMirror?.id ?? DEFAULT_MIRROR_ID,
+      speedTest: lastSpeedTest,
+      listUrl: MIRROR_LIST_URL,
+    };
+  }
+
+  /**
+   * electron-updater 检查失败时的兜底：自己查版本并给出结论。
+   *
+   * 典型触发场景是 api.github.com 匿名限流（60 次/小时，共享出口 IP 很容易
+   * 打满），表现为"检查更新静默失败"，用户完全看不出原因。
+   *
+   * @returns {Promise<boolean>} 是否成功给出结论
    */
   async function recoverFromApiRateLimit() {
-    const feed = resolveReleaseFeedUrl();
-    if (feed === null) return false;
-
-    let latestTag = null;
-    try {
-      const response = await fetch(feed, {
-        headers: {
-          Accept: 'application/atom+xml',
-          'User-Agent': `EndaxisDesktop/${app.getVersion()}`,
-        },
-      });
-      if (!response.ok) return false;
-      const xml = await response.text();
-      // feed 按时间倒序，取第一个 entry 的 title 作为最新 tag。
-      latestTag = /<entry>[\s\S]*?<title>([^<]+)<\/title>/.exec(xml)?.[1]?.trim() ?? null;
-    } catch {
-      return false;
-    }
-    if (latestTag === null) return false;
-
-    const latestVersion = normalizeVersion(latestTag);
+    const discovered = await discoverLatestVersion();
     const currentVersion = normalizeVersion(app.getVersion());
-    if (latestVersion === null || currentVersion === null) return false;
+    if (discovered === null || currentVersion === null) return false;
 
-    const isNewer = compareVersions(latestVersion, currentVersion) > 0;
-    trace(`限流回退：feed 最新 ${latestTag}，当前 ${currentVersion}，有更新=${isNewer}`);
+    const isNewer = compareVersions(discovered.version, currentVersion) > 0;
+    trace(`兜底结论：最新 ${discovered.version}，当前 ${currentVersion}，有更新=${isNewer}`);
 
-    if (isNewer) {
-      await dialog.showMessageBox(window, {
+    if (!isNewer) {
+      publishStatus({ state: 'up-to-date', version: currentVersion });
+      return true;
+    }
+
+    // 有新版本：把下载源指过去，然后按正常流程（用户确认后）下载。
+    lastVersion = discovered.version;
+    await pointFeedAtLatest(selectedMirror);
+    publishStatus({ state: 'available', version: discovered.version });
+    if (manualCheck) {
+      manualCheck = false;
+      const { response } = await dialog.showMessageBox(window, {
         type: 'info',
         title: text().availableTitle,
-        message: text().availableBody(latestTag, app.getVersion()),
+        message: text().availableBody(discovered.version, app.getVersion()),
         detail: text().rateLimitedHint,
-        buttons: [text().later],
+        buttons: [text().download, text().later],
+        defaultId: 0,
+        cancelId: 1,
         noLink: true,
       });
-    } else {
-      await dialog.showMessageBox(window, {
-        type: 'info',
-        title: text().upToDateTitle,
-        message: text().upToDateBody(app.getVersion()),
-        buttons: [text().ok ?? 'OK'],
-        noLink: true,
-      });
+      if (response === 0) await downloadUpdate();
     }
     return true;
   }
 
   return {
-    /**
-     * 手动检查（菜单触发），会给出明确反馈。
-     *
-     * electron-updater 走 api.github.com，而**匿名请求只有 60 次/小时**，共享出口
-     * IP（公司/校园网/运营商 NAT）很容易打满，表现为"检查更新静默失败"——用户
-     * 完全看不出原因。所以这里在它失败后回退到 Releases 的 Atom feed：
-     * 那个端点没有限流，且同样不需要凭据，只是没有 sha512（那条校验仍由
-     * electron-updater 在真正下载时负责）。
-     */
+    /** 手动检查（菜单触发），会给出明确反馈。 */
     checkForUpdatesManually() {
       if (isDevelopment) {
         void dialog.showMessageBox(window, {
@@ -571,14 +759,12 @@ function createUpdater({ window, isDevelopment, getStrings }) {
         return;
       }
       manualCheck = true;
-      autoUpdater.checkForUpdates().catch(async error => {
-        // error 事件已经处理过提示；这里只补一次"限流时改走 feed"的机会。
+      autoUpdater.checkForUpdates().catch(async () => {
         const recovered = await recoverFromApiRateLimit();
         if (recovered) manualCheck = false;
-        void error;
       });
     },
-    /** 启动后静默检查：失败不打扰用户。 */
+    /** 启动后静默检查：失败不打扰用户，结果只走右下角浮层。 */
     checkForUpdatesSilently() {
       trace(`checkForUpdatesSilently: isDevelopment=${isDevelopment} updateProbe=${updateProbe}`);
       if (isDevelopment) return;
@@ -591,80 +777,81 @@ function createUpdater({ window, isDevelopment, getStrings }) {
         return;
       }
       manualCheck = false;
-      autoUpdater.checkForUpdates().catch(() => {
-        // 静默检查失败就算了，用户可用菜单手动检查。
-      });
+      // 先把下载源指到最新版本目录（走当前镜像），再做常规检查。
+      void (async () => {
+        publishStatus({ state: 'checking' });
+        const pointed = await pointFeedAtLatest(selectedMirror);
+        if (!pointed.ok) {
+          // 查不到版本时仍让 electron-updater 试一次（可能直连可用）。
+          trace('未能预先定位版本目录，回退到 electron-updater 默认检查');
+        }
+        autoUpdater.checkForUpdates().catch(error => {
+          // 静默检查失败就算了，用户可用菜单手动检查。
+          trace(`静默检查失败：${error?.message ?? error}`);
+          publishStatus({ state: 'idle' });
+        });
+      })();
     },
     getState: () => state,
+    /** 界面用：镜像列表、当前选择、上次测速结果、官方地址发布页。 */
+    describeSources,
+    /** 界面用：切换更新源镜像（会持久化）。 */
+    selectMirror,
+    /** 界面用：主动测速（并发测所有镜像的下载表现）。 */
+    runSpeedTest,
+    /** 界面用：镜像列表、当前选择、上次测速结果。 */
+    describeSources,
+    /** 界面用：切换镜像。 */
+    selectMirror,
+    /** 界面用：主动测速。 */
+    runSpeedTest,
+    /** 界面用：查询最新版本（不下载）。 */
+    async queryLatest() {
+      const discovered = await discoverLatestVersion();
+      const current = normalizeVersion(app.getVersion());
+      if (discovered === null) return { ok: false };
+      return {
+        ok: true,
+        latest: discovered.version,
+        current,
+        source: discovered.source,
+        hasUpdate: current !== null && compareVersions(discovered.version, current) > 0,
+      };
+    },
+    /** 界面用：开始下载（用户确认后）。 */
+    async startDownload() {
+      const pointed = await pointFeedAtLatest(selectedMirror);
+      if (!pointed.ok) return { ok: false, reason: 'discover-failed' };
+      publishStatus({ state: 'downloading', version: pointed.version, percent: 0 });
+      await downloadUpdate();
+      return { ok: true, version: pointed.version };
+    },
+    /** 界面用：下载完成后重启安装。 */
+    installNow() {
+      state = 'idle';
+      const backup = backupUserData();
+      trace(`手动安装：备份 ok=${backup.ok} reason=${backup.reason ?? '-'}`);
+      void dialog
+        .showMessageBox(window, {
+          type: backup.ok || backup.reason === 'no-data' ? 'info' : 'warning',
+          title: text().installTitle,
+          message:
+            backup.ok && backup.directory
+              ? text().backedUp(backup.directory)
+              : text().installBody(lastVersion ?? ''),
+          buttons: [text().installNow],
+          noLink: true,
+        })
+        .then(() => {
+          setImmediate(() => autoUpdater.quitAndInstall(false, true));
+        });
+      return { ok: true };
+    },
     /** 退出前清理重发定时器，避免留下悬空 interval。 */
     dispose() {
       clearInterval(statusReplayTimer);
     },
   };
-}
-
-/** 统计备份目录里的文件数，供探针确认备份不是空的。 */
-function countFiles(directory) {
-  let count = 0;
-  const walk = current => {
-    let entries;
-    try {
-      entries = fs.readdirSync(current, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      const full = path.join(current, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else count += 1;
-    }
-  };
-  walk(directory);
-  return count;
-}
-
-/** releaseNotes 里可能带 HTML，弹窗里展示前去掉标签。 */
-function stripHtml(value) {
-  return value.replace(/<[^>]*>/g, '').replace(/\n{3,}/g, '\n\n');
-}
-
-/**
- * 拼出 Releases 的 Atom feed 地址。
- *
- * 优先用环境变量覆盖（自建源场景），否则读 electron-builder 写进包的
- * `app-update.yml` 里的 owner/repo。
- */
-function resolveReleaseFeedUrl() {
-  const override = process.env.ENDAXIS_UPDATE_URL?.trim();
-  if (override) return `${override.replace(/\/$/, '')}/releases.atom`;
-
-  try {
-    const configPath = path.join(process.resourcesPath, 'app-update.yml');
-    const config = fs.readFileSync(configPath, 'utf8');
-    const owner = /^owner:\s*(\S+)/m.exec(config)?.[1];
-    const repo = /^repo:\s*(\S+)/m.exec(config)?.[1];
-    if (owner && repo) return `https://github.com/${owner}/${repo}/releases.atom`;
-  } catch {
-    // 读不到配置就没有回退可用。
-  }
-  return null;
-}
-
-/** 把 tag（可能是 v1.0.1 / 1.0.1 / desktop-v1.0.1）规整成 1.0.1。 */
-function normalizeVersion(value) {
-  const match = /(\d+)\.(\d+)\.(\d+)/.exec(value ?? '');
-  return match === null ? null : `${match[1]}.${match[2]}.${match[3]}`;
-}
-
-/** 简易 semver 比较：仅比较数字段，足够判断"有没有更新"。 */
-function compareVersions(left, right) {
-  const toNumbers = value => value.split('.').map(part => Number.parseInt(part, 10));
-  const a = toNumbers(left);
-  const b = toNumbers(right);
-  for (let index = 0; index < 3; index += 1) {
-    if (a[index] !== b[index]) return a[index] > b[index] ? 1 : -1;
-  }
-  return 0;
 }
 
 /**

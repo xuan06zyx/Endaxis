@@ -7,7 +7,7 @@
   "license": "MIT",
   "main": "src/main/index.js",
   "scripts": {
-    "check": "node --check src/main/index.js && node --check src/main/server.js && node --check src/main/menu.js && node --check src/main/windowState.js && node --check src/main/config.js && node --check src/main/updater.js && node --check src/main/storageMigration.js && node --check src/main/closeCoordinator.js && node --check src/preload.js && node --check src/main/strings.js",
+    "check": "node --check src/main/index.js && node --check src/main/server.js && node --check src/main/menu.js && node --check src/main/windowState.js && node --check src/main/config.js && node --check src/main/updater.js && node --check src/main/mirrors.js && node --check src/main/mirrorSpeedTest.js && node --check src/main/preferences.js && node --check src/main/sourceWindow.js && node --check src/main/storageMigration.js && node --check src/main/closeCoordinator.js && node --check src/preload.js && node --check src/main/strings.js && node --check src/renderer/update-overlay.js",
     "build:web": "npm --prefix ../Endaxis run build",
     "prepare:dist": "node scripts/prepare-dist.mjs",
     "prepare:runtime": "node scripts/prepare-runtime-deps.mjs",

@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>检查更新</title>
+    <!--
+      更新源选择窗口。
+
+      为什么单独开一个窗口而不是复用主窗口的浮层：这里要放"镜像列表 + 测速结果 +
+      测速按钮 + 检查更新按钮"，是**用户主动操作**的地方；主窗口那个浮层只做
+      "不打扰人"的进度展示。两者职责不同，不该混在一起。
+
+      安全：本窗口 nodeIntegration=false、contextIsolation=true，只通过
+      source-preload.js 暴露的一组白名单方法访问主进程。
+    -->
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #1b1d21;
+        --panel: #23262c;
+        --border: #33373f;
+        --text: #e8eaed;
+        --muted: #9aa0a6;
+        --accent: #4c8dff;
+        --ok: #35c07a;
+        --warn: #d9534f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 18px;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          13px/1.6 'Microsoft YaHei',
+          'Segoe UI',
+          system-ui,
+          sans-serif;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .sub {
+        color: var(--muted);
+        margin-bottom: 14px;
+      }
+      .sub b {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 14px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--border);
+      }
+      th {
+        color: var(--muted);
+        font-weight: 500;
+        font-size: 12px;
+      }
+      tbody tr {
+        cursor: pointer;
+      }
+      tbody tr:hover {
+        background: #262a31;
+      }
+      tbody tr.selected {
+        background: #26324a;
+      }
+      tbody tr.selected td:first-child {
+        box-shadow: inset 3px 0 0 var(--accent);
+      }
+
+      .dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 7px;
+        vertical-align: middle;
+      }
+      .dot.unknown {
+        background: #6b7280;
+      }
+      .dot.ok {
+        background: var(--ok);
+      }
+      .dot.bad {
+        background: var(--warn);
+      }
+      .dot.testing {
+        background: var(--accent);
+        animation: pulse 1s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+      .tag {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: #2f333b;
+        color: var(--muted);
+        font-size: 11px;
+        margin-left: 6px;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      button {
+        font: inherit;
+        padding: 8px 14px;
+        border-radius: 7px;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+      }
+      button:hover:not(:disabled) {
+        background: #2b2f36;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        font-weight: 600;
+      }
+      button.primary:hover:not(:disabled) {
+        background: #3f7ce8;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+
+      #status {
+        margin-top: 14px;
+        padding: 11px 13px;
+        border-radius: 8px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        display: none;
+      }
+      #status.show {
+        display: block;
+      }
+      #status.error {
+        border-color: #5a2f2e;
+        background: #2a1f1f;
+      }
+      #status.ok {
+        border-color: #2c5a44;
+        background: #1e2a24;
+      }
+
+      .footnote {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .footnote a {
+        color: var(--accent);
+      }
+      .progress {
+        height: 6px;
+        border-radius: 999px;
+        background: #2f333b;
+        overflow: hidden;
+        margin-top: 9px;
+        display: none;
+      }
+      .progress.show {
+        display: block;
+      }
+      .progress > i {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #4c8dff, #7bd0ff);
+        transition: width 0.3s ease-out;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>检查更新</h1>
+    <div class="sub">
+      当前版本 <b id="currentVersion">—</b> · 选择下载源后可先测速再检查更新。 无法直连 GitHub
+      时请选择镜像站。
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 34%">下载源</th>
+          <th style="width: 15%">延迟</th>
+          <th style="width: 20%">下载速度</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody id="mirrorRows"></tbody>
+    </table>
+
+    <div class="actions">
+      <button id="testButton">测速</button>
+      <button id="checkButton" class="primary">检查更新</button>
+      <span id="hint" class="muted"></span>
+    </div>
+
+    <div id="status"></div>
+    <div class="progress" id="progress"><i id="progressBar"></i></div>
+
+    <div class="footnote">
+      镜像站为第三方公共反代，可用地址会变动。若全部失效，可到
+      <a href="#" id="listLink">GitHub Proxy 最新地址发布</a> 查询。
+    </div>
+
+    <script src="source-window.js"></script>
+  </body>
+</html>
