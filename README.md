@@ -6,6 +6,20 @@
 
 > ⚠️ **注意**：本项目是一个粉丝自制工具，目前处于开发阶段。
 
+> 🤖 **关于 AI 参与**
+>
+> 本仓库中**桌面版部分的代码与文档均由 AI 编写**（上游排轴工具本身是人工开发的原项目）。
+> 包括 `desktop-shell/` 全部源码、GitHub Actions 发布工作流、以及桌面版相关文档与验证工具。
+>
+> - **模型**：DeepSeek-V41-Flash（DeepSeek Harness）
+> - **推理等级**：Max
+> - **人工负责的部分**：需求定义、方向决策，以及每一次改动的最终验收
+>
+> 以上两项取自 AI 运行环境的界面显示，而非模型自述——模型无法从内部可靠地判断
+> 自己被以何种配置运行。桌面版代码经过自动化测试与实测验证（见
+> [desktop-shell/DESKTOP.md](desktop-shell/DESKTOP.md) 的「验证工具」一节），
+> 但**请自行判断是否适合你的使用场景**。
+
 > 本仓库是 [Lieyuan621/Endaxis](https://github.com/Lieyuan621/Endaxis) 的 fork，
 > 在同步上游代码的基础上**额外做了一层 Electron 桌面壳**，用于以 Windows 应用形式
 > 离线使用与自动更新。上游前端代码基本原样保留，可直接跟随上游更新；
@@ -19,6 +33,12 @@
 从 [Releases](https://github.com/xuan06zyx/Endaxis/releases/latest) 下载
 `Endaxis-Setup-x.y.z-x64.exe` 安装即可。安装包**未做代码签名**，首次运行
 Windows SmartScreen 会提示"未知发布者"，需点"仍要运行"。
+
+> **Release 里有三个文件，只需要下载 `.exe` 那个。**
+> 另外两个（`latest.yml`、`.blockmap`）是给客户端自动更新用的，不是给人双击的——
+> 但它们**必须一并存在**，否则应用收不到更新提醒。
+> 三者各自的作用、缺失后果与校验方式见
+> [desktop-shell/docs/RELEASE-ASSETS.md](desktop-shell/docs/RELEASE-ASSETS.md)。
 
 - 项目数据保存在本机（`%APPDATA%\endaxis-desktop`），**离线可用**
 - 关闭程序时会把排队中的编辑写入磁盘，不会丢最后一次改动
