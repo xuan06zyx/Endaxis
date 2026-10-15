@@ -54,26 +54,27 @@ function createSession() {
       const state = step.state;
       const actions: ActionSequenceExecutionHost = {
         canExecute: () => true,
-        execute: () => {
+        executeStep: () => {
           state.calls.push('execute');
           state.skill.hasOutputDamageBattle = true;
           return true;
         },
-        tick: () => {
+        tickStep: () => {
           state.calls.push('tick');
         },
-        reset: () => {},
-        end: () => {
+        resetStep: () => {},
+        endStep: () => {
           state.calls.push('actionEnd');
         },
       };
       const timeline: TimelineActionExecutionHost = {
         execute: () => {
-          executeActionSequence(state.sequence, {}, actions);
+          executeActionSequence(state.sequence.entries.entries(), {}, actions);
         },
-        tick: (_index, delta) => tickActionSequence(state.sequence, delta, actions),
-        end: () => endActionSequence(state.sequence, actions),
-        reset: () => resetActionSequence(state.sequence, actions),
+        tick: (_index, delta) =>
+          tickActionSequence(state.sequence.entries.entries(), delta, {}, actions),
+        end: () => endActionSequence(state.sequence.entries.entries(), {}, actions),
+        reset: () => resetActionSequence(state.sequence.entries.entries(), {}, actions),
         started: () => {
           state.calls.push('timelineStart');
         },
@@ -83,7 +84,7 @@ function createSession() {
       };
       const end = () =>
         endSkillExecution(state.skill, {
-          endTimeline: frame => endTimelineActions(state.timeline, program, frame, timeline),
+          endTimeline: frame => endTimelineActions(state.timeline, program, frame, timeline, {}),
           finishAttached: () => {
             state.calls.push('buffsEnd');
           },
@@ -107,7 +108,7 @@ function createSession() {
             state.skill.nonReturnedSpCost = 20;
           },
           tickTimeline: (frame, seconds) =>
-            tickTimelineActions(state.timeline, program, frame, seconds, timeline),
+            tickTimelineActions(state.timeline, program, frame, seconds, timeline, {}),
         });
       if (input === 'start') {
         beginSkillCast(state.skill, 0, () => state.nextCastId++);

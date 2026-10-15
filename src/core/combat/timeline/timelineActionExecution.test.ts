@@ -49,27 +49,34 @@ function createSession() {
       const state = step.state;
       const sequenceHost = (action: number): ActionSequenceExecutionHost => ({
         canExecute: () => true,
-        execute: index => {
+        executeStep: index => {
           state.calls.push(`execute:${action}:${index}`);
-          if (input.interrupt) endTimelineActions(state.timeline, program, input.frame, host);
+          if (input.interrupt) endTimelineActions(state.timeline, program, input.frame, host, {});
           return true;
         },
-        reset: () => {},
-        tick: index => {
+        resetStep: () => {},
+        tickStep: index => {
           state.calls.push(`tick:${action}:${index}`);
         },
-        end: index => {
+        endStep: index => {
           state.calls.push(`end:${action}:${index}`);
         },
       });
       const host: TimelineActionExecutionHost = {
         execute: index => {
-          executeActionSequence(state.sequences[index]!, {}, sequenceHost(index));
+          executeActionSequence(state.sequences[index]!.entries.entries(), {}, sequenceHost(index));
         },
-        reset: index => resetActionSequence(state.sequences[index]!, sequenceHost(index)),
+        reset: index =>
+          resetActionSequence(state.sequences[index]!.entries.entries(), {}, sequenceHost(index)),
         tick: (index, delta) =>
-          tickActionSequence(state.sequences[index]!, delta, sequenceHost(index)),
-        end: index => endActionSequence(state.sequences[index]!, sequenceHost(index)),
+          tickActionSequence(
+            state.sequences[index]!.entries.entries(),
+            delta,
+            {},
+            sequenceHost(index),
+          ),
+        end: index =>
+          endActionSequence(state.sequences[index]!.entries.entries(), {}, sequenceHost(index)),
         started: (index, frame) => {
           state.calls.push(`started:${index}:${frame}`);
         },
@@ -78,8 +85,8 @@ function createSession() {
         },
       };
       if (input.jump !== undefined) {
-        jumpToTimelineActions(state.timeline, program, input.jump, input.frame, host);
-      } else tickTimelineActions(state.timeline, program, input.frame, 1, host);
+        jumpToTimelineActions(state.timeline, program, input.jump, input.frame, host, {});
+      } else tickTimelineActions(state.timeline, program, input.frame, 1, host, {});
     },
   );
 }

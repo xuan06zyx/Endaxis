@@ -188,7 +188,10 @@ function wrapMacroHost(
   };
 }
 
-export class ActionGraphExecution extends CombatStep {
+export class ActionGraphExecution
+  extends CombatStep
+  implements ActionSequenceExecutionHost<GraphNodeBinding>
+{
   readonly runtimeState: ActionGraphExecutionState;
   // 生命周期对象随实例保持稳定，枚举时复用绑定与状态的配对，不逐帧分配包装。
   readonly #bindings = new Map<string, [GraphNodeBinding, ActionStepState]>();
@@ -437,54 +440,69 @@ export class ActionGraphExecution extends CombatStep {
       const selected = data.selection.activeBranch;
       if (selected !== null && (!data.branches.has(selected) || !Number.isInteger(selected)))
         throw new Error(`missing selected graph branch: ${id}`);
-      const branchHost = (context: CombatExecutionContext): BranchActionHost => ({
-        execute: index => branch(index).tryExecute(context),
-        tick: (index, delta) => branch(index).tick(delta, context),
-        end: index => branch(index).end(context),
-        reset: index => branch(index).reset(context),
-      });
+      const branchHost: BranchActionHost = {
+        execute: (index, context) => branch(index).tryExecute(context),
+        tick: (index, delta, context) => branch(index).tick(delta, context),
+        end: (index, context) => branch(index).end(context),
+        reset: (index, context) => branch(index).reset(context),
+      };
+      let execute: GraphNodeBinding['execute'];
+      if (action.kind === 'switch') {
+        const switchHost = {
+          ...branchHost,
+          choice: () => this.host.value(action.parameters.choice),
+          value: (index: number) => this.host.value(action.options[index]!.value),
+        };
+        execute = context =>
+          executeSwitchAction(
+            data.selection,
+            entries.length,
+            action.parameters.alwaysNext,
+            switchHost,
+            context,
+          );
+      } else {
+        const conditionalHost = {
+          ...branchHost,
+          evaluate: (context: CombatExecutionContext) =>
+            action.kind === 'ifElse'
+              ? branch(2).executeInstant(context)
+              : this.host.evaluate(action.parameters.condition),
+        };
+        execute = context =>
+          executeConditionalAction(
+            data.selection,
+            action.whenFalse !== undefined,
+            action.parameters.alwaysNext === true,
+            conditionalHost,
+            context,
+          );
+      }
       binding = {
         data,
-        execute: context =>
-          action.kind === 'switch'
-            ? executeSwitchAction(data.selection, entries.length, action.parameters.alwaysNext, {
-                ...branchHost(context),
-                choice: () => this.host.value(action.parameters.choice),
-                value: index => this.host.value(action.options[index]!.value),
-              })
-            : executeConditionalAction(
-                data.selection,
-                action.whenFalse !== undefined,
-                action.parameters.alwaysNext === true,
-                {
-                  ...branchHost(context),
-                  evaluate: () =>
-                    action.kind === 'ifElse'
-                      ? branch(2).executeInstant(context)
-                      : this.host.evaluate(action.parameters.condition),
-                },
-              ),
+        execute,
         reset: context => {
           if (action.kind === 'ifElse') branch(2).reset(context);
           return action.kind === 'switch'
-            ? resetSwitchAction(entries.length, branchHost(context))
+            ? resetSwitchAction(entries.length, branchHost, context)
             : resetConditionalAction(
                 data.selection,
                 action.whenFalse !== undefined,
-                branchHost(context),
+                branchHost,
+                context,
               );
         },
         tick: (delta, context) => {
           if (action.kind === 'ifElse') {
             branch(0).tick(delta, context);
             branch(1).tick(delta, context);
-          } else tickBranchAction(data.selection, delta, branchHost(context));
+          } else tickBranchAction(data.selection, delta, branchHost, context);
         },
         end: context => {
           if (action.kind === 'ifElse') {
             branch(0).end(context);
             branch(1).end(context);
-          } else endBranchAction(data.selection, branchHost(context));
+          } else endBranchAction(data.selection, branchHost, context);
         },
       };
     } else if (action.kind === 'listenForCombatEvents') {
@@ -1003,25 +1021,33 @@ export class ActionGraphExecution extends CombatStep {
       : { ...context, sequence: this.host.executionPolicy };
   }
 
-  #executionHost(context: CombatExecutionContext): ActionSequenceExecutionHost<GraphNodeBinding> {
-    return {
-      canExecute: () => this.host.canExecute(),
-      execute: binding => binding.execute(context),
-      reset: (binding, reason) =>
-        binding.reset(reason === undefined ? context : { ...context, resetReason: reason }),
-      tick: (binding, dt) => binding.tick(dt, context),
-      end: binding => binding.end(context),
-    };
+  canExecute(): boolean {
+    return this.host.canExecute();
+  }
+
+  executeStep(binding: GraphNodeBinding, context: CombatExecutionContext): boolean {
+    return binding.execute(context);
+  }
+
+  resetStep(
+    binding: GraphNodeBinding,
+    context: CombatExecutionContext,
+    reason?: 'normal' | 'afterInstant',
+  ): void {
+    binding.reset(reason === undefined ? context : { ...context, resetReason: reason });
+  }
+
+  tickStep(binding: GraphNodeBinding, deltaTime: number, context: CombatExecutionContext): void {
+    binding.tick(deltaTime, context);
+  }
+
+  endStep(binding: GraphNodeBinding, context: CombatExecutionContext): void {
+    binding.end(context);
   }
 
   tryExecute(context: CombatExecutionContext, resetAfterExecute = false): boolean {
     context = this.#executionContext(context);
-    return executeActionSequence(
-      { entries: { entries: () => this.#entries(true, true) } },
-      context,
-      this.#executionHost(context),
-      resetAfterExecute,
-    );
+    return executeActionSequence(this.#entries(true, true), context, this, resetAfterExecute);
   }
 
   executeInstant(context: CombatExecutionContext): boolean {
@@ -1033,26 +1059,16 @@ export class ActionGraphExecution extends CombatStep {
   reset(context: CombatExecutionContext): void {
     context = this.#executionContext(context);
     this.runtimeState.closed = false;
-    resetActionSequence(
-      { entries: { entries: () => this.#entries(true, false) } },
-      this.#executionHost(context),
-    );
+    resetActionSequence(this.#entries(true, false), context, this);
     this.runtimeState.closed = false;
   }
   tick(deltaTime: number, context: CombatExecutionContext): void {
     context = this.#executionContext(context);
-    tickActionSequence(
-      { entries: { entries: () => this.#entries(false, false) } },
-      deltaTime,
-      this.#executionHost(context),
-    );
+    tickActionSequence(this.#entries(false, false), deltaTime, context, this);
   }
   end(context: CombatExecutionContext): void {
     context = this.#executionContext(context);
     this.runtimeState.closed = true;
-    endActionSequence(
-      { entries: { entries: () => this.#entries(false, false) } },
-      this.#executionHost(context),
-    );
+    endActionSequence(this.#entries(false, false), context, this);
   }
 }

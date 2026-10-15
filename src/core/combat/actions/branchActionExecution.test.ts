@@ -44,42 +44,62 @@ function createSession(kind: 'switch' | 'conditional') {
       const state = step.state;
       const sequenceHost = (branch: number): ActionSequenceExecutionHost => ({
         canExecute: () => true,
-        execute: () => {
+        executeStep: () => {
           state.calls.push(`execute:${branch}`);
           return true;
         },
-        tick: () => {
+        tickStep: () => {
           state.calls.push(`tick:${branch}`);
         },
-        end: () => {
+        endStep: () => {
           state.calls.push(`end:${branch}`);
         },
-        reset: () => {
+        resetStep: () => {
           state.calls.push(`reset:${branch}`);
         },
       });
       const host: BranchActionHost = {
-        execute: index => executeActionSequence(state.sequences[index]!, {}, sequenceHost(index)),
+        execute: index =>
+          executeActionSequence(state.sequences[index]!.entries.entries(), {}, sequenceHost(index)),
         tick: (index, delta) =>
-          tickActionSequence(state.sequences[index]!, delta, sequenceHost(index)),
-        end: index => endActionSequence(state.sequences[index]!, sequenceHost(index)),
-        reset: index => resetActionSequence(state.sequences[index]!, sequenceHost(index)),
+          tickActionSequence(
+            state.sequences[index]!.entries.entries(),
+            delta,
+            {},
+            sequenceHost(index),
+          ),
+        end: index =>
+          endActionSequence(state.sequences[index]!.entries.entries(), {}, sequenceHost(index)),
+        reset: index =>
+          resetActionSequence(state.sequences[index]!.entries.entries(), {}, sequenceHost(index)),
       };
-      if (input === 'tick') tickBranchAction(state.branch, 1, host);
+      if (input === 'tick') tickBranchAction(state.branch, 1, host, {});
       else if (input === 'reset') {
-        if (kind === 'switch') resetSwitchAction(2, host);
-        else resetConditionalAction(state.branch, true, host);
+        if (kind === 'switch') resetSwitchAction(2, host, {});
+        else resetConditionalAction(state.branch, true, host, {});
       } else if (kind === 'switch') {
-        executeSwitchAction(state.branch, 2, false, {
-          ...host,
-          choice: () => input,
-          value: index => index,
-        });
+        executeSwitchAction(
+          state.branch,
+          2,
+          false,
+          {
+            ...host,
+            choice: () => input,
+            value: index => index,
+          },
+          {},
+        );
       } else {
-        executeConditionalAction(state.branch, true, false, {
-          ...host,
-          evaluate: () => input === 0,
-        });
+        executeConditionalAction(
+          state.branch,
+          true,
+          false,
+          {
+            ...host,
+            evaluate: () => input === 0,
+          },
+          {},
+        );
       }
     },
   );
