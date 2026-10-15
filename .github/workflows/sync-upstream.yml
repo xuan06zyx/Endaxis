@@ -1,0 +1,135 @@
+name: Sync Upstream
+
+# 每天检查上游仓库是否有新提交，有就自动合并、验证、提升版本号并触发一次发布。
+#
+# 设计取舍（都是踩过坑之后的决定）：
+#
+# 1. **冲突时不硬来**。桌面壳对上游源码有 3 处补丁，上游一旦改动这些文件就可能
+#    冲突。脚本会中止合并、保持工作区干净，并开一个 issue 说明冲突文件，
+#    而不是留下半个合并状态或强行发布一个坏版本。
+#
+# 2. **不只看 Git 的退出码**。Git 可能给出"自动合并成功"但结果在语义上是错的
+#    （补丁调用的代码被上游挪走了）。所以 scripts/sync-upstream.ps1 在合并后
+#    会逐条断言补丁符号仍然存在，缺了就报错退出。
+#
+# 3. **验证不过就不发布**。合并后跑补丁单元测试与类型检查，任一失败就开 issue。
+#    自动发布的前提是自动验证，否则等于把未经检查的代码推给所有用户。
+#
+# 4. **发布复用同一个发布工作流**，推 tag 触发，避免两套构建逻辑漂移。
+
+on:
+  schedule:
+    # 每天 20:00 UTC（北京时间次日 04:00）。上游作者多在晚间提交，
+    # 这个时间点能让用户早上起来就看到更新。
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: '版本号提升方式'
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+        required: false
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout fork branch
+        uses: actions/checkout@v4
+        with:
+          # 显式指定：默认分支改动过，且同步必须落在承载桌面壳的分支上。
+          ref: refactor/v3
+          fetch-depth: 0
+          # 用内置 token 推送合并结果（不需要额外的 PAT）。
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Configure git identity
+        run: |
+          git config user.name 'endaxis-sync'
+          git config user.email 'endaxis-sync@users.noreply.github.com'
+
+      - name: Sync upstream
+        id: sync
+        shell: pwsh
+        run: |
+          ./desktop-shell/scripts/sync-upstream.ps1 -Apply -Bump ${{ inputs.bump || 'patch' }}
+
+      - name: Install frontend dependencies
+        if: steps.sync.outputs.synced == 'true'
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify desktop-shell patches still hold
+        if: steps.sync.outputs.synced == 'true'
+        run: npx vitest run src/ui/timeline/projectFileSession.test.ts
+
+      - name: Type-check
+        if: steps.sync.outputs.synced == 'true'
+        run: npx vue-tsc --noEmit --project tsconfig.app.json --incremental false
+
+      - name: Push merged branch
+        if: steps.sync.outputs.synced == 'true'
+        run: git push origin HEAD:refactor/v3
+
+      - name: Publish release for the synced version
+        if: steps.sync.outputs.synced == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        shell: pwsh
+        run: |
+          if ("${{ secrets.GH_TOKEN }}" -eq '') {
+            # 没有 PAT 也能同步，只是不发版。这不是错误，但要让人知道。
+            Write-Host '::warning::未配置 GH_TOKEN，本次只同步代码，未发布 Release'
+            exit 0
+          }
+          $version = '${{ steps.sync.outputs.next }}'
+          git tag "desktop-v$version"
+          git push origin "desktop-v$version"
+          Write-Host "已推送 tag desktop-v$version，发布工作流将接手构建。"
+
+      - name: Open issue when sync needs a human
+        if: failure() && steps.sync.outcome != 'skipped'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          # 不用 here-string：它要求内容顶格，而 YAML 块标量要求所有行都有缩进，
+          # 两者不兼容（实测第一条无缩进的行会直接让 YAML 解析失败）。
+          # 用字符串数组拼接，既满足缩进又能自由换行。
+          $title = "上游同步需要人工处理（$(Get-Date -Format 'yyyy-MM-dd')）"
+          $body = @(
+            '自动同步上游时失败，**未发布任何版本**。',
+            '',
+            '失败日志：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+            '',
+            '常见原因：',
+            '',
+            '- **上游改动了桌面壳补丁所在文件**（projectFileSession.ts / TimelineEditor.vue）',
+            '  产生冲突。需人工合并并确认三处补丁仍在：防抖合并、关窗落盘桥接、路由启用持久化。',
+            '- **补丁符号消失**：Git 自动合并成功，但上游挪走了补丁依赖的代码。',
+            '- **验证未通过**：补丁单元测试或类型检查失败，通常是上游行为变更导致。',
+            '',
+            '处理完后可本地跑 desktop-shell/scripts/sync-upstream.ps1 复现同一套逻辑。'
+          ) -join "`n"
+          gh issue create --title $title --body $body --label 'sync'
+          if ($LASTEXITCODE -ne 0) {
+            # 标签可能不存在；不带标签重试，保证 issue 一定开出来。
+            gh issue create --title $title --body $body
+          }
