@@ -44,9 +44,21 @@ git remote remove upstream 2>$null | Out-Null
 git remote add upstream $UpstreamUrl
 # 一次性抓全部分支到 remote-tracking refs。不要依赖 FETCH_HEAD：
 # 它会被后续任何一次 fetch 覆盖，用它做比较会得到前后不一致的结果（踩过）。
-git fetch --quiet upstream '+refs/heads/*:refs/remotes/upstream/*'
+git fetch upstream '+refs/heads/*:refs/remotes/upstream/*' 2>&1 | ForEach-Object { "  $($_)" }
+$fetchExit = $LASTEXITCODE
 $trackedRef = "upstream/$UpstreamBranch"
-$upstreamHead = (git rev-parse $trackedRef).Trim()
+
+# 关键：必须确认 ref 真的存在。
+# `git rev-parse <不存在的 ref>` 会**原样回显参数**而不报错，于是下面所有比较都会
+# 变成"没有新提交" —— 网络故障就被伪装成"已是最新"。这正是本次要消灭的静默故障。
+$upstreamHead = (git rev-parse --verify --quiet $trackedRef 2>$null)
+if ($fetchExit -ne 0 -or [string]::IsNullOrWhiteSpace($upstreamHead)) {
+  Write-Host "::error::无法获取上游 $UpstreamBranch（fetch 退出码 $fetchExit，ref $trackedRef 不存在）"
+  Write-Host '  可能原因：网络不可达、仓库地址错误，或上游已删除该分支。'
+  Write-Host '  明确失败，而不是当作"已是最新"继续。'
+  if ($env:GITHUB_OUTPUT) { Add-Content -Path $env:GITHUB_OUTPUT -Value 'synced=false' }
+  exit 1
+}
 Write-Host "  上游 $UpstreamBranch = $($upstreamHead.Substring(0,8))"
 
 Write-Host '=== 1b. 检查上游是不是换了活跃分支 ==='
