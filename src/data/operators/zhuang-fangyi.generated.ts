@@ -228,7 +228,7 @@ export const zhuangFangyiChr_0030_zhuangfy_attack2ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'createSpatialPointTargets_16' },
           whenFalse: { $sequence: 'createSpatialPointTargets_16' },
         },
@@ -238,11 +238,21 @@ export const zhuangFangyiChr_0030_zhuangfy_attack2ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'createSpatialPointTargets_4' },
           whenFalse: { $sequence: 'createSpatialPointTargets_4' },
         },
         next: null,
+      },
+    },
+    dataNodes: {
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
       },
     },
   },
@@ -374,11 +384,17 @@ export const zhuangFangyiChr_0030_zhuangfy_attack3ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'createSpatialPointTargets_4' },
           whenFalse: { $sequence: 'createSpatialPointTargets_4' },
         },
         next: null,
+      },
+    },
+    dataNodes: {
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
       },
     },
   },
@@ -462,11 +478,17 @@ export const zhuangFangyiChr_0030_zhuangfy_attack4ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'createSpatialPointTargets_7' },
           whenFalse: { $sequence: 'createSpatialPointTargets_7' },
         },
         next: null,
+      },
+    },
+    dataNodes: {
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
       },
     },
   },
@@ -538,20 +560,6 @@ export const zhuangFangyiChr_0030_zhuangfy_attack5ActionGraph = {
         },
         next: 'createSpatialPointTargets_16',
       },
-      checkCondition_8: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
-      checkCondition_13: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       reachSkillOperableBoundary_19: {
         action: {
           kind: 'reachSkillOperableBoundary',
@@ -563,7 +571,7 @@ export const zhuangFangyiChr_0030_zhuangfy_attack5ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'createSpatialPointTargets_17' },
           whenFalse: { $sequence: 'createSpatialPointTargets_17' },
         },
@@ -573,7 +581,7 @@ export const zhuangFangyiChr_0030_zhuangfy_attack5ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_8' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'ifElse_opt1' },
           whenFalse: { $sequence: 'createSpatialPointTargets_17' },
         },
@@ -583,7 +591,7 @@ export const zhuangFangyiChr_0030_zhuangfy_attack5ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_13' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'ifElse_opt2' },
           whenFalse: { $sequence: 'createSpatialPointTargets_17' },
         },
@@ -592,6 +600,10 @@ export const zhuangFangyiChr_0030_zhuangfy_attack5ActionGraph = {
     },
     dataNodes: {
       data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_2: {
         type: 'boolean',
         expression: {
           kind: 'targetDistance',
@@ -603,7 +615,7 @@ export const zhuangFangyiChr_0030_zhuangfy_attack5ActionGraph = {
           containsHittableObject: true,
         },
       },
-      data_2: {
+      data_3: {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
@@ -653,6 +665,1072 @@ export const zhuangFangyiChr_0030_zhuangfy_attack5: SkillDefinition = {
   levelSource: 'basicAttack',
   nativeSkillType: 'attack',
   actionGraph: zhuangFangyiChr_0030_zhuangfy_attack5ActionGraph,
+};
+
+export const zhuangFangyiChr_0030_zhuangfy_attack1_ultActionGraph = {
+  main: {
+    nodes: {
+      holdBuffsById_1: {
+        action: {
+          kind: 'holdBuffsById',
+          parameters: { target: 'caster', buffIds: ['buff_chr_0030_zhuangfy_ult_base'] },
+        },
+        next: null,
+      },
+      modifyActionValue_8: {
+        action: {
+          kind: 'modifyActionValue',
+          parameters: {
+            key: 'target_in_range',
+            operation: 'assign',
+            value: { kind: 'constant', value: 1 },
+          },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_9: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: {
+              kind: 'fixedPoint',
+              owner: { kind: 'owner' },
+              directionTarget: { kind: 'inputTarget' },
+              center: { kind: 'inputTarget' },
+            },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_1_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: 'modifyActionValue_8',
+      },
+      spawnAbilityEntity_7: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: { kind: 'source' },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_1_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      ifElse_12: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_7' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_9' },
+        },
+        next: null,
+      },
+      ifElse_11: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_9' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_7' },
+        },
+        next: null,
+      },
+      ifElse_13: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
+          whenTrue: { $sequence: 'ifElse_11' },
+          whenFalse: { $sequence: 'ifElse_12' },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_19: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: {
+              kind: 'fixedPoint',
+              owner: { kind: 'owner' },
+              directionTarget: { kind: 'inputTarget' },
+              center: { kind: 'inputTarget' },
+            },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_2_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_18: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: { kind: 'source' },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_2_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      ifElse_22: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_18' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_19' },
+        },
+        next: null,
+      },
+      ifElse_21: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_6' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_19' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_18' },
+        },
+        next: null,
+      },
+      ifElse_23: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_7' },
+          whenTrue: { $sequence: 'ifElse_21' },
+          whenFalse: { $sequence: 'ifElse_22' },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_29: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: {
+              kind: 'fixedPoint',
+              owner: { kind: 'owner' },
+              directionTarget: { kind: 'inputTarget' },
+              center: { kind: 'inputTarget' },
+            },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_3_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_28: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: { kind: 'source' },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_3_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      ifElse_32: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_8' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_28' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_29' },
+        },
+        next: null,
+      },
+      ifElse_31: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_9' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_29' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_28' },
+        },
+        next: null,
+      },
+      ifElse_33: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_10' },
+          whenTrue: { $sequence: 'ifElse_31' },
+          whenFalse: { $sequence: 'ifElse_32' },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_39: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: {
+              kind: 'fixedPoint',
+              owner: { kind: 'owner' },
+              directionTarget: { kind: 'inputTarget' },
+              center: { kind: 'inputTarget' },
+            },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_4_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_38: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: { kind: 'source' },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_4_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      ifElse_42: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_11' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_38' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_39' },
+        },
+        next: null,
+      },
+      ifElse_41: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_12' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_39' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_38' },
+        },
+        next: null,
+      },
+      ifElse_43: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_13' },
+          whenTrue: { $sequence: 'ifElse_41' },
+          whenFalse: { $sequence: 'ifElse_42' },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_45: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: { skillIds: ['chr_0030_zhuangfy_attack2_ult'] },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_46: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: { skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
+        },
+        next: null,
+      },
+    },
+    dataNodes: {
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_2: {
+        type: 'boolean',
+        expression: {
+          kind: 'targetDistance',
+          source: { kind: 'owner' },
+          target: { kind: 'fixed', target: 'enemy' },
+          distance: 12,
+          lessThan: true,
+          includeTargetRadius: true,
+          containsHittableObject: true,
+        },
+      },
+      data_3: {
+        type: 'boolean',
+        expression: {
+          kind: 'entityCountCompare',
+          target: { kind: 'fixed', target: 'enemy' },
+          containsHittableTarget: true,
+          excludeDeadEntity: false,
+          operator: 'greaterOrEqual',
+          value: 1,
+        },
+      },
+      data_4: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_5: {
+        type: 'number',
+        expression: { kind: 'blackboard', key: 'target_in_range', fallback: 0 },
+      },
+      data_6: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_5' },
+          operator: 'equal',
+          right: { kind: 'constant', value: 1 },
+        },
+      },
+      data_7: {
+        type: 'boolean',
+        expression: {
+          kind: 'entityCountCompare',
+          target: { kind: 'fixed', target: 'enemy' },
+          containsHittableTarget: true,
+          excludeDeadEntity: false,
+          operator: 'greaterOrEqual',
+          value: 1,
+        },
+      },
+      data_8: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_9: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_5' },
+          operator: 'equal',
+          right: { kind: 'constant', value: 1 },
+        },
+      },
+      data_10: {
+        type: 'boolean',
+        expression: {
+          kind: 'entityCountCompare',
+          target: { kind: 'fixed', target: 'enemy' },
+          containsHittableTarget: true,
+          excludeDeadEntity: false,
+          operator: 'greaterOrEqual',
+          value: 1,
+        },
+      },
+      data_11: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_12: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_5' },
+          operator: 'equal',
+          right: { kind: 'constant', value: 1 },
+        },
+      },
+      data_13: {
+        type: 'boolean',
+        expression: {
+          kind: 'entityCountCompare',
+          target: { kind: 'fixed', target: 'enemy' },
+          containsHittableTarget: true,
+          excludeDeadEntity: false,
+          operator: 'greaterOrEqual',
+          value: 1,
+        },
+      },
+    },
+  },
+  macros: {},
+} as const satisfies ActionGraphResourceDefinition;
+
+export const zhuangFangyiChr_0030_zhuangfy_attack1_ult: SkillDefinition = {
+  key: 'chr_0030_zhuangfy_attack1_ult',
+  element: 'electric',
+  blackboard: {
+    atk_scale: [0.67, 0.73, 0.8, 0.86, 0.93, 1, 1.06, 1.13, 1.2, 1.28, 1.38, 1.5],
+    target_in_range: 0,
+  },
+  timelineBlockFrames: 22,
+  naturalDurationFrames: 160,
+  exclusiveFrame: 135,
+  offsetRecordFrame: 14,
+  inputWindows: {
+    commandMappings: [
+      {
+        startFrame: 0,
+        endFrame: 60,
+        input: 'basicAttack',
+        targetSkillId: 'chr_0030_zhuangfy_attack2_ult',
+      },
+    ],
+    allowedNextSkills: [
+      { startFrame: 22, endFrame: 60, skillIds: ['chr_0030_zhuangfy_attack2_ult'] },
+      { startFrame: 60, endFrame: 135, skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
+    ],
+  },
+  costFrame: 0,
+  scheduledSequences: [
+    { startFrame: 0, endFrame: 22, sequence: { $sequence: 'holdBuffsById_1' } },
+    { startFrame: 12, endFrame: 13, sequence: { $sequence: 'ifElse_13' } },
+    { startFrame: 13, endFrame: 14, sequence: { $sequence: 'ifElse_23' } },
+    { startFrame: 14, endFrame: 15, sequence: { $sequence: 'ifElse_33' } },
+    { startFrame: 15, endFrame: 16, sequence: { $sequence: 'ifElse_43' } },
+    { startFrame: 22, endFrame: 60, sequence: { $sequence: 'reachSkillOperableBoundary_45' } },
+    { startFrame: 60, endFrame: 135, sequence: { $sequence: 'reachSkillOperableBoundary_46' } },
+  ],
+  defaultTarget: 'enemy',
+  timelineContinuationSkillId: 'chr_0030_zhuangfy_attack2_ult',
+  skillType: 'basicAttack',
+  levelSource: 'ultimate',
+  nativeSkillType: 'attack',
+  actionGraph: zhuangFangyiChr_0030_zhuangfy_attack1_ultActionGraph,
+};
+
+export const zhuangFangyiChr_0030_zhuangfy_attack2_ultActionGraph = {
+  main: {
+    nodes: {
+      modifyActionValue_7: {
+        action: {
+          kind: 'modifyActionValue',
+          parameters: {
+            key: 'target_in_range',
+            operation: 'assign',
+            value: { kind: 'constant', value: 1 },
+          },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_8: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: {
+              kind: 'fixedPoint',
+              owner: { kind: 'owner' },
+              directionTarget: { kind: 'inputTarget' },
+              center: { kind: 'inputTarget' },
+            },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_1_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: 'modifyActionValue_7',
+      },
+      spawnAbilityEntity_6: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: { kind: 'source' },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_1_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      ifElse_11: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_6' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_8' },
+        },
+        next: null,
+      },
+      ifElse_10: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_8' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_6' },
+        },
+        next: null,
+      },
+      ifElse_12: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
+          whenTrue: { $sequence: 'ifElse_10' },
+          whenFalse: { $sequence: 'ifElse_11' },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_18: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: {
+              kind: 'fixedPoint',
+              owner: { kind: 'owner' },
+              directionTarget: { kind: 'inputTarget' },
+              center: { kind: 'inputTarget' },
+            },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_2_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_17: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: { kind: 'source' },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_2_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      ifElse_21: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_17' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_18' },
+        },
+        next: null,
+      },
+      ifElse_20: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_6' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_18' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_17' },
+        },
+        next: null,
+      },
+      ifElse_22: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_7' },
+          whenTrue: { $sequence: 'ifElse_20' },
+          whenFalse: { $sequence: 'ifElse_21' },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_28: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: {
+              kind: 'fixedPoint',
+              owner: { kind: 'owner' },
+              directionTarget: { kind: 'inputTarget' },
+              center: { kind: 'inputTarget' },
+            },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_3_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_27: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: { kind: 'source' },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_3_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      ifElse_31: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_8' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_27' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_28' },
+        },
+        next: null,
+      },
+      ifElse_30: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_9' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_28' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_27' },
+        },
+        next: null,
+      },
+      ifElse_32: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_10' },
+          whenTrue: { $sequence: 'ifElse_30' },
+          whenFalse: { $sequence: 'ifElse_31' },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_38: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: {
+              kind: 'fixedPoint',
+              owner: { kind: 'owner' },
+              directionTarget: { kind: 'inputTarget' },
+              center: { kind: 'inputTarget' },
+            },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_4_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_37: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: { kind: 'source' },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack1_ult_4_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
+          },
+        },
+        next: null,
+      },
+      ifElse_41: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_11' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_37' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_38' },
+        },
+        next: null,
+      },
+      ifElse_40: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_12' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_38' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_37' },
+        },
+        next: null,
+      },
+      ifElse_42: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_13' },
+          whenTrue: { $sequence: 'ifElse_40' },
+          whenFalse: { $sequence: 'ifElse_41' },
+        },
+        next: null,
+      },
+      holdBuffsById_44: {
+        action: {
+          kind: 'holdBuffsById',
+          parameters: { target: 'caster', buffIds: ['buff_chr_0030_zhuangfy_ult_base'] },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_45: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: { skillIds: ['chr_0030_zhuangfy_attack3_ult'] },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_46: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: { skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
+        },
+        next: null,
+      },
+    },
+    dataNodes: {
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_2: {
+        type: 'boolean',
+        expression: {
+          kind: 'targetDistance',
+          source: { kind: 'owner' },
+          target: { kind: 'fixed', target: 'enemy' },
+          distance: 12,
+          lessThan: true,
+          includeTargetRadius: true,
+          containsHittableObject: true,
+        },
+      },
+      data_3: {
+        type: 'boolean',
+        expression: {
+          kind: 'entityCountCompare',
+          target: { kind: 'fixed', target: 'enemy' },
+          containsHittableTarget: true,
+          excludeDeadEntity: false,
+          operator: 'greaterOrEqual',
+          value: 1,
+        },
+      },
+      data_4: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_5: {
+        type: 'number',
+        expression: { kind: 'blackboard', key: 'target_in_range', fallback: 0 },
+      },
+      data_6: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_5' },
+          operator: 'equal',
+          right: { kind: 'constant', value: 1 },
+        },
+      },
+      data_7: {
+        type: 'boolean',
+        expression: {
+          kind: 'entityCountCompare',
+          target: { kind: 'fixed', target: 'enemy' },
+          containsHittableTarget: true,
+          excludeDeadEntity: false,
+          operator: 'greaterOrEqual',
+          value: 1,
+        },
+      },
+      data_8: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_9: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_5' },
+          operator: 'equal',
+          right: { kind: 'constant', value: 1 },
+        },
+      },
+      data_10: {
+        type: 'boolean',
+        expression: {
+          kind: 'entityCountCompare',
+          target: { kind: 'fixed', target: 'enemy' },
+          containsHittableTarget: true,
+          excludeDeadEntity: false,
+          operator: 'greaterOrEqual',
+          value: 1,
+        },
+      },
+      data_11: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_12: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_5' },
+          operator: 'equal',
+          right: { kind: 'constant', value: 1 },
+        },
+      },
+      data_13: {
+        type: 'boolean',
+        expression: {
+          kind: 'entityCountCompare',
+          target: { kind: 'fixed', target: 'enemy' },
+          containsHittableTarget: true,
+          excludeDeadEntity: false,
+          operator: 'greaterOrEqual',
+          value: 1,
+        },
+      },
+    },
+  },
+  macros: {},
+} as const satisfies ActionGraphResourceDefinition;
+
+export const zhuangFangyiChr_0030_zhuangfy_attack2_ult: SkillDefinition = {
+  key: 'chr_0030_zhuangfy_attack2_ult',
+  element: 'electric',
+  blackboard: {
+    atk_scale: [0.94, 1.03, 1.12, 1.22, 1.31, 1.4, 1.5, 1.59, 1.68, 1.8, 1.94, 2.1],
+    target_in_range: 0,
+  },
+  timelineBlockFrames: 27,
+  naturalDurationFrames: 155,
+  exclusiveFrame: 120,
+  offsetRecordFrame: 12,
+  inputWindows: {
+    commandMappings: [
+      {
+        startFrame: 0,
+        endFrame: 60,
+        input: 'basicAttack',
+        targetSkillId: 'chr_0030_zhuangfy_attack3_ult',
+      },
+    ],
+    allowedNextSkills: [
+      { startFrame: 27, endFrame: 60, skillIds: ['chr_0030_zhuangfy_attack3_ult'] },
+      { startFrame: 60, endFrame: 120, skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
+    ],
+  },
+  costFrame: 0,
+  scheduledSequences: [
+    { startFrame: 10, endFrame: 11, sequence: { $sequence: 'ifElse_12' } },
+    { startFrame: 11, endFrame: 12, sequence: { $sequence: 'ifElse_22' } },
+    { startFrame: 12, endFrame: 13, sequence: { $sequence: 'ifElse_32' } },
+    { startFrame: 13, endFrame: 14, sequence: { $sequence: 'ifElse_42' } },
+    { startFrame: 0, endFrame: 17, sequence: { $sequence: 'holdBuffsById_44' } },
+    { startFrame: 27, endFrame: 60, sequence: { $sequence: 'reachSkillOperableBoundary_45' } },
+    { startFrame: 60, endFrame: 120, sequence: { $sequence: 'reachSkillOperableBoundary_46' } },
+  ],
+  defaultTarget: 'enemy',
+  timelineContinuationSkillId: 'chr_0030_zhuangfy_attack3_ult',
+  skillType: 'basicAttack',
+  levelSource: 'ultimate',
+  nativeSkillType: 'attack',
+  actionGraph: zhuangFangyiChr_0030_zhuangfy_attack2_ultActionGraph,
+};
+
+export const zhuangFangyiChr_0030_zhuangfy_attack3_ultActionGraph = {
+  main: {
+    nodes: {
+      spawnAbilityEntity_6: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: {
+              kind: 'fixedPoint',
+              owner: { kind: 'owner' },
+              directionTarget: { kind: 'source' },
+              center: { kind: 'inputTarget' },
+            },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack3_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack3_ult_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            saveToContextKey: 'thunder',
+          },
+        },
+        next: null,
+      },
+      spawnAbilityEntity_5: {
+        action: {
+          kind: 'spawnAbilityEntity',
+          parameters: {
+            bornAt: { kind: 'source' },
+            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack3_ult',
+            childSkillId: 'chr_0030_zhuangfy_attack3_ult_abilityrange',
+            inheritActionBlackboard: true,
+            dieWhenSourceDies: false,
+            target: 'enemy',
+            saveToContextKey: 'thunder',
+          },
+        },
+        next: null,
+      },
+      ifElse_9: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_5' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_6' },
+        },
+        next: null,
+      },
+      ifElse_8: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
+          whenTrue: { $sequence: 'spawnAbilityEntity_6' },
+          whenFalse: { $sequence: 'spawnAbilityEntity_5' },
+        },
+        next: null,
+      },
+      ifElse_10: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
+          whenTrue: { $sequence: 'ifElse_8' },
+          whenFalse: { $sequence: 'ifElse_9' },
+        },
+        next: null,
+      },
+      applyBuff_11: {
+        action: {
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_chr_0030_zhuangfy_attack3_ult_cancel' }],
+            targets: { kind: 'context', key: 'thunder' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+            finishByAction: true,
+            inheritToNextSkillIds: ['chr_0030_zhuangfy_attack1_ult'],
+          },
+        },
+        next: null,
+      },
+      holdBuffsById_12: {
+        action: {
+          kind: 'holdBuffsById',
+          parameters: { target: 'caster', buffIds: ['buff_chr_0030_zhuangfy_ult_base'] },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_13: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: { skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
+        },
+        next: null,
+      },
+    },
+    dataNodes: {
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_2: {
+        type: 'boolean',
+        expression: {
+          kind: 'targetDistance',
+          source: { kind: 'owner' },
+          target: { kind: 'fixed', target: 'enemy' },
+          distance: 12,
+          lessThan: true,
+          includeTargetRadius: true,
+          containsHittableObject: true,
+        },
+      },
+      data_3: {
+        type: 'boolean',
+        expression: {
+          kind: 'entityCountCompare',
+          target: { kind: 'fixed', target: 'enemy' },
+          containsHittableTarget: true,
+          excludeDeadEntity: false,
+          operator: 'greaterOrEqual',
+          value: 1,
+        },
+      },
+    },
+  },
+  macros: {},
+} as const satisfies ActionGraphResourceDefinition;
+
+export const zhuangFangyiChr_0030_zhuangfy_attack3_ult: SkillDefinition = {
+  key: 'chr_0030_zhuangfy_attack3_ult',
+  element: 'electric',
+  blackboard: {
+    atb: 20,
+    atk_scale: [1.34, 1.47, 1.6, 1.74, 1.87, 2, 2.14, 2.27, 2.4, 2.57, 2.77, 3],
+    poise: 18,
+  },
+  timelineBlockFrames: 60,
+  naturalDurationFrames: 179,
+  exclusiveFrame: 140,
+  offsetRecordFrame: 33,
+  inputWindows: {
+    commandMappings: [
+      {
+        startFrame: 0,
+        endFrame: 140,
+        input: 'basicAttack',
+        targetSkillId: 'chr_0030_zhuangfy_attack1_ult',
+      },
+    ],
+    allowedNextSkills: [
+      { startFrame: 60, endFrame: 140, skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
+    ],
+  },
+  costFrame: 0,
+  scheduledSequences: [
+    { startFrame: 3, endFrame: 6, sequence: { $sequence: 'ifElse_10' } },
+    { startFrame: 3, endFrame: 179, sequence: { $sequence: 'applyBuff_11' } },
+    { startFrame: 0, endFrame: 35, sequence: { $sequence: 'holdBuffsById_12' } },
+    { startFrame: 60, endFrame: 140, sequence: { $sequence: 'reachSkillOperableBoundary_13' } },
+  ],
+  defaultTarget: 'enemy',
+  timelineContinuationSkillId: 'chr_0030_zhuangfy_attack1_ult',
+  skillType: 'basicAttack',
+  levelSource: 'ultimate',
+  nativeSkillType: 'attack',
+  actionGraph: zhuangFangyiChr_0030_zhuangfy_attack3_ultActionGraph,
 };
 
 export const zhuangFangyiChr_0030_zhuangfy_power_attackActionGraph = {
@@ -744,6 +1822,7 @@ export const zhuangFangyiChr_0030_zhuangfy_power_attack: SkillDefinition = {
   naturalDurationFrames: 153,
   exclusiveFrame: 45,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       {
@@ -773,13 +1852,6 @@ export const zhuangFangyiChr_0030_zhuangfy_power_attack: SkillDefinition = {
 export const zhuangFangyiChr_0030_zhuangfy_plunging_attack_endActionGraph = {
   main: {
     nodes: {
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       interruptCurrentSkill_4: {
         action: { kind: 'interruptCurrentSkill', parameters: { targets: { kind: 'owner' } } },
         next: null,
@@ -788,7 +1860,7 @@ export const zhuangFangyiChr_0030_zhuangfy_plunging_attack_endActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'interruptCurrentSkill_4' },
           whenFalse: { $sequence: null },
         },
@@ -843,7 +1915,7 @@ export const zhuangFangyiChr_0030_zhuangfy_plunging_attack_endActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: null },
           whenFalse: { $sequence: 'findOwnerSpawnedAbilityEntities_13' },
         },
@@ -868,14 +1940,26 @@ export const zhuangFangyiChr_0030_zhuangfy_plunging_attack_endActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0030_zhuangfy_ult_base'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0030_zhuangfy_ult_base'],
         },
       },
       data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
+      data_4: {
+        type: 'boolean',
+        expression: {
+          kind: 'buffIdStackCompare',
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0030_zhuangfy_ult_base'],
+        },
+      },
     },
   },
   macros: {},
@@ -957,13 +2041,6 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_10: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       spawnAbilityEntity_39: {
         action: {
           kind: 'spawnAbilityEntity',
@@ -984,20 +2061,6 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
             operation: 'add',
             value: { kind: 'constant', value: 1 },
           },
-        },
-        next: null,
-      },
-      checkCondition_16: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-        },
-        next: null,
-      },
-      checkCondition_18: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
         },
         next: null,
       },
@@ -1064,18 +2127,11 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
                         },
                         next: null,
                       },
-                      checkCondition_7: {
-                        action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-                        },
-                        next: null,
-                      },
                       ifElse_opt1: {
                         action: {
                           kind: 'ifElse',
                           parameters: { alwaysNext: true },
-                          condition: { $sequence: null },
+                          condition: { kind: 'conditionNode', nodeId: 'data_3' },
                           whenTrue: { $sequence: 'spawnAbilityEntity_6' },
                           whenFalse: { $sequence: 'spawnAbilityEntity_6' },
                         },
@@ -1103,7 +2159,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
                         action: {
                           kind: 'ifElse',
                           parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_7' },
+                          condition: { kind: 'conditionNode', nodeId: 'data_6' },
                           whenTrue: { $sequence: 'pickContextTarget_opt3' },
                           whenFalse: { $sequence: 'ifElse_opt1' },
                         },
@@ -1112,7 +2168,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
                       checkCondition_opt5: {
                         action: {
                           kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
+                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_7' } },
                         },
                         next: 'ifElse_opt4',
                       },
@@ -1141,23 +2197,27 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
                         expression: { kind: 'blackboard', key: 'remain_sword_limit' },
                       },
                       data_3: {
-                        type: 'number',
-                        expression: { kind: 'blackboard', key: 'swordsForLimit', fallback: 0 },
+                        type: 'boolean',
+                        expression: { kind: 'checkActionResult', action: { $sequence: null } },
                       },
                       data_4: {
                         type: 'number',
-                        expression: { kind: 'blackboard', key: 'remain_sword_limit', fallback: 0 },
+                        expression: { kind: 'blackboard', key: 'swordsForLimit', fallback: 0 },
                       },
                       data_5: {
+                        type: 'number',
+                        expression: { kind: 'blackboard', key: 'remain_sword_limit', fallback: 0 },
+                      },
+                      data_6: {
                         type: 'boolean',
                         expression: {
                           kind: 'actionValueCompare',
-                          left: { kind: 'valueNode', nodeId: 'data_3' },
+                          left: { kind: 'valueNode', nodeId: 'data_4' },
                           operator: 'greaterOrEqual',
-                          right: { kind: 'valueNode', nodeId: 'data_4' },
+                          right: { kind: 'valueNode', nodeId: 'data_5' },
                         },
                       },
-                      data_6: {
+                      data_7: {
                         type: 'boolean',
                         expression: {
                           kind: 'entityCountCompare',
@@ -1184,7 +2244,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
           kind: 'createSpatialPointTargets',
           parameters: {
             saveToContextKey: 'swordPos',
-            count: { kind: 'valueNode', nodeId: 'data_7' },
+            count: { kind: 'valueNode', nodeId: 'data_2' },
           },
         },
         next: 'launchProjectile_32',
@@ -1193,7 +2253,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_18' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'modifyActionValue_17' },
           whenFalse: { $sequence: null },
         },
@@ -1203,7 +2263,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_16' },
+          condition: { kind: 'conditionNode', nodeId: 'data_6' },
           whenTrue: { $sequence: 'modifyActionValue_17' },
           whenFalse: { $sequence: null },
         },
@@ -1215,15 +2275,8 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
           parameters: {
             key: 'sword_gene_num',
             operation: 'assign',
-            value: { kind: 'valueNode', nodeId: 'data_8' },
+            value: { kind: 'valueNode', nodeId: 'data_7' },
           },
-        },
-        next: null,
-      },
-      checkCondition_12: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_11' } },
         },
         next: null,
       },
@@ -1232,7 +2285,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_12' },
+            amount: { kind: 'valueNode', nodeId: 'data_8' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -1246,7 +2299,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_12' },
+          condition: { kind: 'conditionNode', nodeId: 'data_11' },
           whenTrue: { $sequence: null },
           whenFalse: { $sequence: 'modifyActionValue_13' },
         },
@@ -1269,7 +2322,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
           parameters: {
             key: 'sword_gene_num',
             operation: 'add',
-            value: { kind: 'valueNode', nodeId: 'data_13' },
+            value: { kind: 'valueNode', nodeId: 'data_12' },
           },
         },
         next: 'modifyActionValue_27',
@@ -1303,18 +2356,11 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         },
         next: 'finishBuffsByTag_29',
       },
-      checkCondition_20: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_14' } },
-        },
-        next: null,
-      },
       ifElse_37: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_20' },
+          condition: { kind: 'conditionNode', nodeId: 'data_13' },
           whenTrue: { $sequence: 'readBuffBlackboard_30' },
           whenFalse: { $sequence: 'ifElse_35' },
         },
@@ -1332,18 +2378,11 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         },
         next: 'ifElse_37',
       },
-      checkCondition_36: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_15' } },
-        },
-        next: null,
-      },
       ifElse_40: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_36' },
+          condition: { kind: 'conditionNode', nodeId: 'data_14' },
           whenTrue: { $sequence: 'applyBuff_38' },
           whenFalse: { $sequence: 'spawnAbilityEntity_39' },
         },
@@ -1353,7 +2392,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_10' },
+          condition: { kind: 'conditionNode', nodeId: 'data_15' },
           whenTrue: { $sequence: 'finishBuffsById_11' },
           whenFalse: { $sequence: null },
         },
@@ -1391,7 +2430,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
             key: 'atk_up_final',
             operation: 'multiply',
             left: { kind: 'valueNode', nodeId: 'data_16' },
-            right: { kind: 'valueNode', nodeId: 'data_13' },
+            right: { kind: 'valueNode', nodeId: 'data_12' },
           },
         },
         next: 'applyBuff_43',
@@ -1431,18 +2470,11 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         },
         next: 'modifyActionValue_46',
       },
-      checkCondition_42: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_19' } },
-        },
-        next: null,
-      },
       ifElse_48: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_42' },
+          condition: { kind: 'conditionNode', nodeId: 'data_19' },
           whenTrue: { $sequence: 'calculateActionValue_47' },
           whenFalse: { $sequence: null },
         },
@@ -1524,16 +2556,9 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_22' },
           whenTrue: { $sequence: 'applyBuff_52' },
           whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
-      checkCondition_53: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'constant', value: true } },
         },
         next: null,
       },
@@ -1541,40 +2566,9 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_53' },
+          condition: { kind: 'constant', value: true },
           whenTrue: { $sequence: 'applyBuff_52' },
           whenFalse: { $sequence: 'ifElse_55' },
-        },
-        next: null,
-      },
-      ifElse_61: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_20' },
-          whenTrue: { $sequence: null },
-          whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
-      checkCondition_62: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_22' } },
-        },
-        next: 'ifElse_61',
-      },
-      checkCondition_64: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_23' } },
-        },
-        next: null,
-      },
-      checkCondition_63: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_24' } },
         },
         next: null,
       },
@@ -1582,7 +2576,10 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         action: {
           kind: 'anyCondition',
           parameters: {},
-          conditions: [{ $sequence: 'checkCondition_63' }, { $sequence: 'checkCondition_64' }],
+          conditions: [
+            { kind: 'conditionNode', nodeId: 'data_23' },
+            { kind: 'conditionNode', nodeId: 'data_24' },
+          ],
         },
         next: null,
       },
@@ -1590,7 +2587,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 116 },
-          condition: { $sequence: 'anyCondition_65' },
+          condition: { kind: 'conditionNode', nodeId: 'data_25' },
         },
         next: null,
       },
@@ -1600,49 +2597,42 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'abilityEntityRemainingDurationCompare',
+          target: { kind: 'inputTarget' },
           operator: 'less',
           value: { kind: 'constant', value: 3 },
         },
       },
-      data_2: {
+      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'sword_gene_num' } },
+      data_3: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0030_zhuangfy_normal_skill_trigger_sword'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0030_zhuangfy_potential1_more_sword'],
         },
-      },
-      data_3: {
-        type: 'number',
-        expression: { kind: 'blackboard', key: 'EntityBB_SwordNum', fallback: 0 },
       },
       data_4: {
         type: 'number',
-        expression: { kind: 'blackboard', key: 'free_sword_limit', fallback: 0 },
+        expression: { kind: 'blackboard', key: 'EntityBB_SwordNum', fallback: 0 },
       },
       data_5: {
-        type: 'boolean',
-        expression: {
-          kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_3' },
-          operator: 'less',
-          right: { kind: 'valueNode', nodeId: 'data_4' },
-        },
+        type: 'number',
+        expression: { kind: 'blackboard', key: 'free_sword_limit', fallback: 0 },
       },
       data_6: {
         type: 'boolean',
         expression: {
-          kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0030_zhuangfy_potential1_more_sword'],
-          operator: 'greaterOrEqual',
-          value: { kind: 'constant', value: 1 },
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_4' },
+          operator: 'less',
+          right: { kind: 'valueNode', nodeId: 'data_5' },
         },
       },
-      data_7: { type: 'number', expression: { kind: 'blackboard', key: 'sword_gene_num' } },
-      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'max_conduct_sword' } },
+      data_7: { type: 'number', expression: { kind: 'blackboard', key: 'max_conduct_sword' } },
+      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'atb_return' } },
       data_9: {
         type: 'number',
         expression: { kind: 'blackboard', key: 'sword_gene_num', fallback: 0 },
@@ -1660,20 +2650,20 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
           right: { kind: 'valueNode', nodeId: 'data_10' },
         },
       },
-      data_12: { type: 'number', expression: { kind: 'blackboard', key: 'atb_return' } },
-      data_13: { type: 'number', expression: { kind: 'blackboard', key: 'conductCnt' } },
-      data_14: {
+      data_12: { type: 'number', expression: { kind: 'blackboard', key: 'conductCnt' } },
+      data_13: {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'enemy',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/SpellStatus/Conduct'],
+          target: { kind: 'fixed', target: 'enemy' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/SpellStatus/Conduct'],
         },
       },
-      data_15: {
+      data_14: {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
@@ -1684,6 +2674,17 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
           value: 1,
         },
       },
+      data_15: {
+        type: 'boolean',
+        expression: {
+          kind: 'buffIdStackCompare',
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0030_zhuangfy_normal_skill_trigger_sword'],
+        },
+      },
       data_16: { type: 'number', expression: { kind: 'blackboard', key: 'atk_up_per_conduct' } },
       data_17: { type: 'number', expression: { kind: 'blackboard', key: 'swordTriggerInterval' } },
       data_18: { type: 'number', expression: { kind: 'blackboard', key: 'EntityBB_SwordNum' } },
@@ -1691,7 +2692,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_3' },
+          left: { kind: 'valueNode', nodeId: 'data_4' },
           operator: 'greaterOrEqual',
           right: { kind: 'constant', value: 1 },
         },
@@ -1707,35 +2708,35 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skillActionGraph = {
           value: 1,
         },
       },
-      data_21: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_21: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
       data_22: {
         type: 'boolean',
-        expression: {
-          kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
-          containsHittableTarget: false,
-          excludeDeadEntity: false,
-          operator: 'greaterOrEqual',
-          value: 1,
-        },
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
       },
       data_23: {
         type: 'boolean',
         expression: {
-          kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_3' },
-          operator: 'equal',
-          right: { kind: 'constant', value: 0 },
+          kind: 'timedMarkerPresent',
+          target: { kind: 'owner' },
+          returnTrueIfNotExists: false,
+          markerId: 'skillEnd',
         },
       },
       data_24: {
         type: 'boolean',
         expression: {
-          kind: 'timedMarkerPresent',
-          returnTrueIfNotExists: false,
-          target: 'caster',
-          markerId: 'skillEnd',
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_4' },
+          operator: 'equal',
+          right: { kind: 'constant', value: 0 },
         },
+      },
+      data_25: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: 'anyCondition_65' } },
       },
     },
   },
@@ -1765,6 +2766,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill: SkillDefinition = {
   naturalDurationFrames: 290,
   exclusiveFrame: 135,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       {
@@ -1803,7 +2805,6 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill: SkillDefinition = {
     { startFrame: 123, endFrame: 126, sequence: { $sequence: 'checkCondition_51' } },
     { startFrame: 6, endFrame: 7, sequence: { $sequence: 'ifElse_56' } },
     { startFrame: 123, endFrame: 126, sequence: { $sequence: 'checkCondition_51' } },
-    { startFrame: 0, endFrame: 15, sequence: { $sequence: 'checkCondition_62' } },
     { startFrame: 16, endFrame: 116, sequence: { $sequence: 'jumpTimeline_66' } },
   ],
   smartTarget: 'enemy',
@@ -1848,18 +2849,11 @@ const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraphCallback1 = {
           },
           next: null,
         },
-        checkCondition_7: {
-          action: {
-            kind: 'checkCondition',
-            parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-          },
-          next: null,
-        },
         ifElse_opt1: {
           action: {
             kind: 'ifElse',
             parameters: { alwaysNext: true },
-            condition: { $sequence: null },
+            condition: { kind: 'conditionNode', nodeId: 'data_3' },
             whenTrue: { $sequence: 'spawnAbilityEntity_6' },
             whenFalse: { $sequence: 'spawnAbilityEntity_6' },
           },
@@ -1887,7 +2881,7 @@ const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraphCallback1 = {
           action: {
             kind: 'ifElse',
             parameters: { alwaysNext: true },
-            condition: { $sequence: 'checkCondition_7' },
+            condition: { kind: 'conditionNode', nodeId: 'data_6' },
             whenTrue: { $sequence: 'pickContextTarget_opt3' },
             whenFalse: { $sequence: 'ifElse_opt1' },
           },
@@ -1896,7 +2890,7 @@ const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraphCallback1 = {
         checkCondition_opt5: {
           action: {
             kind: 'checkCondition',
-            parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
+            parameters: { condition: { kind: 'conditionNode', nodeId: 'data_7' } },
           },
           next: 'ifElse_opt4',
         },
@@ -1919,23 +2913,27 @@ const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraphCallback1 = {
         data_1: { type: 'number', expression: { kind: 'blackboard', key: 'sword_duration' } },
         data_2: { type: 'number', expression: { kind: 'blackboard', key: 'remain_sword_limit' } },
         data_3: {
-          type: 'number',
-          expression: { kind: 'blackboard', key: 'swordsForLimit', fallback: 0 },
+          type: 'boolean',
+          expression: { kind: 'checkActionResult', action: { $sequence: null } },
         },
         data_4: {
           type: 'number',
-          expression: { kind: 'blackboard', key: 'remain_sword_limit', fallback: 0 },
+          expression: { kind: 'blackboard', key: 'swordsForLimit', fallback: 0 },
         },
         data_5: {
+          type: 'number',
+          expression: { kind: 'blackboard', key: 'remain_sword_limit', fallback: 0 },
+        },
+        data_6: {
           type: 'boolean',
           expression: {
             kind: 'actionValueCompare',
-            left: { kind: 'valueNode', nodeId: 'data_3' },
+            left: { kind: 'valueNode', nodeId: 'data_4' },
             operator: 'greaterOrEqual',
-            right: { kind: 'valueNode', nodeId: 'data_4' },
+            right: { kind: 'valueNode', nodeId: 'data_5' },
           },
         },
-        data_6: {
+        data_7: {
           type: 'boolean',
           expression: {
             kind: 'entityCountCompare',
@@ -2015,20 +3013,6 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         },
         next: null,
       },
-      checkCondition_21: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
-        },
-        next: null,
-      },
-      checkCondition_23: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-        },
-        next: null,
-      },
       applyBuff_36: {
         action: {
           kind: 'applyBuff',
@@ -2065,7 +3049,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
           kind: 'createSpatialPointTargets',
           parameters: {
             saveToContextKey: 'swordPos',
-            count: { kind: 'valueNode', nodeId: 'data_6' },
+            count: { kind: 'valueNode', nodeId: 'data_2' },
           },
         },
         next: 'launchProjectile_37',
@@ -2074,7 +3058,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_23' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'modifyActionValue_22' },
           whenFalse: { $sequence: null },
         },
@@ -2084,7 +3068,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_21' },
+          condition: { kind: 'conditionNode', nodeId: 'data_6' },
           whenTrue: { $sequence: 'modifyActionValue_22' },
           whenFalse: { $sequence: null },
         },
@@ -2101,19 +3085,12 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         },
         next: null,
       },
-      checkCondition_17: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_10' } },
-        },
-        next: null,
-      },
       changeResource_30: {
         action: {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_11' },
+            amount: { kind: 'valueNode', nodeId: 'data_8' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -2127,7 +3104,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_17' },
+          condition: { kind: 'conditionNode', nodeId: 'data_11' },
           whenTrue: { $sequence: null },
           whenFalse: { $sequence: 'modifyActionValue_18' },
         },
@@ -2184,18 +3161,11 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         },
         next: 'finishBuffsByTag_34',
       },
-      checkCondition_25: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_13' } },
-        },
-        next: null,
-      },
       ifElse_43: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_25' },
+          condition: { kind: 'conditionNode', nodeId: 'data_13' },
           whenTrue: { $sequence: 'readBuffBlackboard_35' },
           whenFalse: { $sequence: 'ifElse_40' },
         },
@@ -2250,16 +3220,9 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_23' },
+          condition: { kind: 'conditionNode', nodeId: 'data_14' },
           whenTrue: { $sequence: 'createSpatialPointTargets_13' },
           whenFalse: { $sequence: 'createSpatialPointTargets_16' },
-        },
-        next: null,
-      },
-      checkCondition_41: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_14' } },
         },
         next: null,
       },
@@ -2267,7 +3230,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_41' },
+          condition: { kind: 'conditionNode', nodeId: 'data_15' },
           whenTrue: { $sequence: 'ifElse_42' },
           whenFalse: { $sequence: 'ifElse_43' },
         },
@@ -2285,18 +3248,11 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         },
         next: 'ifElse_45',
       },
-      checkCondition_44: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_15' } },
-        },
-        next: null,
-      },
       ifElse_48: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_44' },
+          condition: { kind: 'conditionNode', nodeId: 'data_16' },
           whenTrue: { $sequence: 'applyBuff_46' },
           whenFalse: { $sequence: 'spawnAbilityEntity_47' },
         },
@@ -2318,16 +3274,9 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_17' },
           whenTrue: { $sequence: 'applyBuff_49' },
           whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
-      checkCondition_50: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'constant', value: true } },
         },
         next: null,
       },
@@ -2335,7 +3284,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_50' },
+          condition: { kind: 'constant', value: true },
           whenTrue: { $sequence: 'applyBuff_49' },
           whenFalse: { $sequence: 'ifElse_52' },
         },
@@ -2350,7 +3299,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
             childSkillId: 'chr_0030_zhuangfy_normal_skill_ult_abilityrange',
             inheritActionBlackboard: true,
             dieWhenSourceDies: true,
-            blackboardAssignments: { EntityBB_SwordNum: { kind: 'valueNode', nodeId: 'data_16' } },
+            blackboardAssignments: { EntityBB_SwordNum: { kind: 'valueNode', nodeId: 'data_18' } },
           },
         },
         next: null,
@@ -2369,7 +3318,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
             key: 'atk_up_final',
             operation: 'multiply',
             left: { kind: 'valueNode', nodeId: 'data_12' },
-            right: { kind: 'valueNode', nodeId: 'data_17' },
+            right: { kind: 'valueNode', nodeId: 'data_19' },
           },
         },
         next: 'createSpatialPointTargets_55',
@@ -2377,29 +3326,18 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
       checkCondition_58: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_18' } },
-        },
-        next: 'finishBuffsById_14',
-      },
-      checkCondition_60: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_19' } },
-        },
-        next: null,
-      },
-      checkCondition_59: {
-        action: {
-          kind: 'checkCondition',
           parameters: { condition: { kind: 'conditionNode', nodeId: 'data_20' } },
         },
-        next: null,
+        next: 'finishBuffsById_14',
       },
       anyCondition_61: {
         action: {
           kind: 'anyCondition',
           parameters: {},
-          conditions: [{ $sequence: 'checkCondition_59' }, { $sequence: 'checkCondition_60' }],
+          conditions: [
+            { kind: 'conditionNode', nodeId: 'data_21' },
+            { kind: 'conditionNode', nodeId: 'data_22' },
+          ],
         },
         next: null,
       },
@@ -2407,7 +3345,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 100 },
-          condition: { $sequence: 'anyCondition_61' },
+          condition: { kind: 'conditionNode', nodeId: 'data_23' },
         },
         next: null,
       },
@@ -2418,103 +3356,101 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
         },
         next: null,
       },
-      ifElse_opt1: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_25' },
-          whenTrue: { $sequence: null },
-          whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
-      checkCondition_opt2: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_21' } },
-        },
-        next: 'ifElse_opt1',
-      },
     },
     dataNodes: {
       data_1: {
         type: 'boolean',
         expression: {
           kind: 'abilityEntityRemainingDurationCompare',
+          target: { kind: 'inputTarget' },
           operator: 'less',
           value: { kind: 'constant', value: 3 },
         },
       },
-      data_2: {
-        type: 'number',
-        expression: { kind: 'blackboard', key: 'EntityBB_SwordNum', fallback: 0 },
-      },
+      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'sword_gene_num' } },
       data_3: {
-        type: 'number',
-        expression: { kind: 'blackboard', key: 'free_sword_limit', fallback: 0 },
-      },
-      data_4: {
-        type: 'boolean',
-        expression: {
-          kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_2' },
-          operator: 'less',
-          right: { kind: 'valueNode', nodeId: 'data_3' },
-        },
-      },
-      data_5: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0030_zhuangfy_potential1_more_sword'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0030_zhuangfy_potential1_more_sword'],
         },
       },
-      data_6: { type: 'number', expression: { kind: 'blackboard', key: 'sword_gene_num' } },
-      data_7: { type: 'number', expression: { kind: 'blackboard', key: 'max_conduct_sword' } },
-      data_8: {
+      data_4: {
         type: 'number',
-        expression: { kind: 'blackboard', key: 'sword_gene_num', fallback: 0 },
+        expression: { kind: 'blackboard', key: 'EntityBB_SwordNum', fallback: 0 },
       },
-      data_9: {
+      data_5: {
         type: 'number',
-        expression: { kind: 'blackboard', key: 'max_conduct_sword', fallback: 0 },
+        expression: { kind: 'blackboard', key: 'free_sword_limit', fallback: 0 },
       },
-      data_10: {
+      data_6: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_8' },
-          operator: 'lessOrEqual',
-          right: { kind: 'valueNode', nodeId: 'data_9' },
+          left: { kind: 'valueNode', nodeId: 'data_4' },
+          operator: 'less',
+          right: { kind: 'valueNode', nodeId: 'data_5' },
         },
       },
-      data_11: { type: 'number', expression: { kind: 'blackboard', key: 'atb_return' } },
+      data_7: { type: 'number', expression: { kind: 'blackboard', key: 'max_conduct_sword' } },
+      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'atb_return' } },
+      data_9: {
+        type: 'number',
+        expression: { kind: 'blackboard', key: 'sword_gene_num', fallback: 0 },
+      },
+      data_10: {
+        type: 'number',
+        expression: { kind: 'blackboard', key: 'max_conduct_sword', fallback: 0 },
+      },
+      data_11: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_9' },
+          operator: 'lessOrEqual',
+          right: { kind: 'valueNode', nodeId: 'data_10' },
+        },
+      },
       data_12: { type: 'number', expression: { kind: 'blackboard', key: 'conductCnt' } },
       data_13: {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'enemy',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/SpellStatus/Conduct'],
+          target: { kind: 'fixed', target: 'enemy' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/SpellStatus/Conduct'],
         },
       },
       data_14: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0030_zhuangfy_ult_skill_free'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0030_zhuangfy_potential1_more_sword'],
         },
       },
       data_15: {
+        type: 'boolean',
+        expression: {
+          kind: 'buffIdStackCompare',
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0030_zhuangfy_ult_skill_free'],
+        },
+      },
+      data_16: {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
@@ -2525,46 +3461,44 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ultActionGraph = {
           value: 1,
         },
       },
-      data_16: { type: 'number', expression: { kind: 'blackboard', key: 'EntityBB_SwordNum' } },
-      data_17: { type: 'number', expression: { kind: 'blackboard', key: 'atk_up_per_conduct' } },
-      data_18: {
+      data_17: {
         type: 'boolean',
-        expression: {
-          kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0030_zhuangfy_ult_skill_free'],
-          operator: 'greaterOrEqual',
-          value: { kind: 'constant', value: 1 },
-        },
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
       },
-      data_19: {
-        type: 'boolean',
-        expression: {
-          kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_2' },
-          operator: 'equal',
-          right: { kind: 'constant', value: 0 },
-        },
-      },
+      data_18: { type: 'number', expression: { kind: 'blackboard', key: 'EntityBB_SwordNum' } },
+      data_19: { type: 'number', expression: { kind: 'blackboard', key: 'atk_up_per_conduct' } },
       data_20: {
         type: 'boolean',
         expression: {
-          kind: 'timedMarkerPresent',
-          returnTrueIfNotExists: false,
-          target: 'caster',
-          markerId: 'skillEnd',
+          kind: 'buffIdStackCompare',
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0030_zhuangfy_ult_skill_free'],
         },
       },
       data_21: {
         type: 'boolean',
         expression: {
-          kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
-          containsHittableTarget: false,
-          excludeDeadEntity: false,
-          operator: 'greaterOrEqual',
-          value: 1,
+          kind: 'timedMarkerPresent',
+          target: { kind: 'owner' },
+          returnTrueIfNotExists: false,
+          markerId: 'skillEnd',
         },
+      },
+      data_22: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_4' },
+          operator: 'equal',
+          right: { kind: 'constant', value: 0 },
+        },
+      },
+      data_23: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: 'anyCondition_61' } },
       },
     },
   },
@@ -2592,6 +3526,7 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ult: SkillDefinition = {
   naturalDurationFrames: 210,
   exclusiveFrame: 143,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       {
@@ -2614,7 +3549,6 @@ export const zhuangFangyiChr_0030_zhuangfy_normal_skill_ult: SkillDefinition = {
     { startFrame: 15, endFrame: 18, sequence: { $sequence: 'calculateActionValue_56' } },
     { startFrame: 100, endFrame: 103, sequence: { $sequence: 'checkCondition_58' } },
     { startFrame: 16, endFrame: 100, sequence: { $sequence: 'jumpTimeline_62' } },
-    { startFrame: 0, endFrame: 15, sequence: { $sequence: 'checkCondition_opt2' } },
     { startFrame: 0, endFrame: 18, sequence: { $sequence: 'holdBuffsById_70' } },
   ],
   smartTarget: 'enemy',
@@ -2644,13 +3578,6 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_2: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       modifyActionValue_3: {
         action: {
           kind: 'modifyActionValue',
@@ -2662,13 +3589,6 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_4: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
       modifyActionValue_5: {
         action: {
           kind: 'modifyActionValue',
@@ -2677,13 +3597,6 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skillActionGraph = {
             operation: 'assign',
             value: { kind: 'constant', value: 4 },
           },
-        },
-        next: null,
-      },
-      checkCondition_6: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
         },
         next: null,
       },
@@ -2708,7 +3621,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_4' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'modifyActionValue_5' },
           whenFalse: { $sequence: null },
         },
@@ -2718,7 +3631,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_2' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'modifyActionValue_3' },
           whenFalse: { $sequence: null },
         },
@@ -2730,7 +3643,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skillActionGraph = {
           parameters: {
             key: 'conductCnt',
             operation: 'assign',
-            value: { kind: 'valueNode', nodeId: 'data_5' },
+            value: { kind: 'valueNode', nodeId: 'data_4' },
           },
         },
         next: 'ifElse_9',
@@ -2754,7 +3667,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_6' },
+          condition: { kind: 'conditionNode', nodeId: 'data_5' },
           whenTrue: { $sequence: 'readBuffStackCount_11' },
           whenFalse: { $sequence: null },
         },
@@ -2780,7 +3693,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skillActionGraph = {
             key: 'usp_extra',
             operation: 'multiply',
             left: { kind: 'valueNode', nodeId: 'data_6' },
-            right: { kind: 'valueNode', nodeId: 'data_5' },
+            right: { kind: 'valueNode', nodeId: 'data_4' },
           },
         },
         next: 'changeResource_13',
@@ -2802,7 +3715,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_8' },
           whenTrue: { $sequence: 'changeResource_15' },
           whenFalse: { $sequence: null },
         },
@@ -2841,10 +3754,10 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skillActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'electric',
-            attackScale: { kind: 'valueNode', nodeId: 'data_8' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_9' },
             tags: ['comboSkill'],
             features: ['canBreakWeakness'],
-            stagger: { kind: 'valueNode', nodeId: 'data_9' },
+            stagger: { kind: 'valueNode', nodeId: 'data_10' },
           },
         },
         next: 'finishBuffsByTag_18',
@@ -2852,45 +3765,51 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skillActionGraph = {
     },
     dataNodes: {
       data_1: {
-        type: 'boolean',
-        expression: {
-          kind: 'buffStackCompare',
-          target: 'enemy',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/SpellStatus/Conduct'],
-          operator: 'greaterOrEqual',
-          value: { kind: 'constant', value: 1 },
-        },
-      },
-      data_2: {
         type: 'number',
         expression: { kind: 'blackboard', key: 'conductCnt', fallback: 0 },
       },
-      data_3: {
+      data_2: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_2' },
+          left: { kind: 'valueNode', nodeId: 'data_1' },
           operator: 'greater',
           right: { kind: 'constant', value: 4 },
         },
       },
-      data_4: {
+      data_3: {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'enemy',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/SpellInflict/PulseInflict'],
+          target: { kind: 'fixed', target: 'enemy' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/SpellStatus/Conduct'],
         },
       },
-      data_5: { type: 'number', expression: { kind: 'blackboard', key: 'inflictCnt' } },
+      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'inflictCnt' } },
+      data_5: {
+        type: 'boolean',
+        expression: {
+          kind: 'buffStackCompare',
+          target: { kind: 'fixed', target: 'enemy' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/SpellInflict/PulseInflict'],
+        },
+      },
       data_6: { type: 'number', expression: { kind: 'blackboard', key: 'usp_extra' } },
       data_7: { type: 'number', expression: { kind: 'blackboard', key: 'usp' } },
-      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
-      data_9: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
+      data_8: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_9: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
+      data_10: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
     },
   },
   macros: {},
@@ -2911,6 +3830,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill: SkillDefinition = {
   naturalDurationFrames: 210,
   exclusiveFrame: 60,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       {
@@ -2961,13 +3881,6 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill_ultActionGraph = {
         },
         next: null,
       },
-      checkCondition_2: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       modifyActionValue_3: {
         action: {
           kind: 'modifyActionValue',
@@ -2979,13 +3892,6 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill_ultActionGraph = {
         },
         next: null,
       },
-      checkCondition_4: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
       modifyActionValue_5: {
         action: {
           kind: 'modifyActionValue',
@@ -2994,13 +3900,6 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill_ultActionGraph = {
             operation: 'assign',
             value: { kind: 'constant', value: 4 },
           },
-        },
-        next: null,
-      },
-      checkCondition_6: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
         },
         next: null,
       },
@@ -3025,7 +3924,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill_ultActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_4' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'modifyActionValue_5' },
           whenFalse: { $sequence: null },
         },
@@ -3035,7 +3934,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill_ultActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_2' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'modifyActionValue_3' },
           whenFalse: { $sequence: null },
         },
@@ -3047,7 +3946,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill_ultActionGraph = {
           parameters: {
             key: 'conductCnt',
             operation: 'assign',
-            value: { kind: 'valueNode', nodeId: 'data_5' },
+            value: { kind: 'valueNode', nodeId: 'data_4' },
           },
         },
         next: 'ifElse_9',
@@ -3071,7 +3970,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill_ultActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_6' },
+          condition: { kind: 'conditionNode', nodeId: 'data_5' },
           whenTrue: { $sequence: 'readBuffStackCount_11' },
           whenFalse: { $sequence: null },
         },
@@ -3202,8 +4101,8 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill_ultActionGraph = {
                         type: 'boolean',
                         expression: {
                           kind: 'timedMarkerPresent',
+                          target: { kind: 'fixed', target: 'enemy' },
                           returnTrueIfNotExists: true,
-                          target: 'enemy',
                           markerId: 'zhuangfy_combo_ult_tar',
                         },
                       },
@@ -3227,41 +4126,43 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill_ultActionGraph = {
     },
     dataNodes: {
       data_1: {
-        type: 'boolean',
-        expression: {
-          kind: 'buffStackCompare',
-          target: 'enemy',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/SpellStatus/Conduct'],
-          operator: 'greaterOrEqual',
-          value: { kind: 'constant', value: 1 },
-        },
-      },
-      data_2: {
         type: 'number',
         expression: { kind: 'blackboard', key: 'conductCnt', fallback: 0 },
       },
-      data_3: {
+      data_2: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_2' },
+          left: { kind: 'valueNode', nodeId: 'data_1' },
           operator: 'greater',
           right: { kind: 'constant', value: 4 },
         },
       },
-      data_4: {
+      data_3: {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'enemy',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/SpellInflict/PulseInflict'],
+          target: { kind: 'fixed', target: 'enemy' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/SpellStatus/Conduct'],
         },
       },
-      data_5: { type: 'number', expression: { kind: 'blackboard', key: 'inflictCnt' } },
+      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'inflictCnt' } },
+      data_5: {
+        type: 'boolean',
+        expression: {
+          kind: 'buffStackCompare',
+          target: { kind: 'fixed', target: 'enemy' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/SpellInflict/PulseInflict'],
+        },
+      },
       data_6: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
       data_7: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
     },
@@ -3282,6 +4183,7 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill_ult: SkillDefinition = {
   naturalDurationFrames: 197,
   exclusiveFrame: 30,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       {
@@ -3315,13 +4217,6 @@ export const zhuangFangyiChr_0030_zhuangfy_combo_skill_ult: SkillDefinition = {
 export const zhuangFangyiChr_0030_zhuangfy_ultimate_skillActionGraph = {
   main: {
     nodes: {
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       applyBuff_2: {
         action: {
           kind: 'applyBuff',
@@ -3338,7 +4233,7 @@ export const zhuangFangyiChr_0030_zhuangfy_ultimate_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'applyBuff_2' },
           whenFalse: { $sequence: null },
         },
@@ -3418,7 +4313,7 @@ export const zhuangFangyiChr_0030_zhuangfy_ultimate_skillActionGraph = {
             priority: 10,
             curve: { kind: 'named', key: 'RESETto1' },
             finishByAction: false,
-            targets: ['caster'],
+            targets: [{ kind: 'owner' }],
           },
         },
         next: null,
@@ -3458,10 +4353,11 @@ export const zhuangFangyiChr_0030_zhuangfy_ultimate_skillActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0030_zhuangfy_potential5_vfx'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0030_zhuangfy_potential5_vfx'],
         },
       },
     },
@@ -3536,1015 +4432,6 @@ export const zhuangFangyiChr_0030_zhuangfy_ultimate_skill_end: SkillDefinition =
   nativeSkillType: 'normalSkill',
 };
 
-export const zhuangFangyiChr_0030_zhuangfy_attack1_ultActionGraph = {
-  main: {
-    nodes: {
-      holdBuffsById_1: {
-        action: {
-          kind: 'holdBuffsById',
-          parameters: { target: 'caster', buffIds: ['buff_chr_0030_zhuangfy_ult_base'] },
-        },
-        next: null,
-      },
-      modifyActionValue_8: {
-        action: {
-          kind: 'modifyActionValue',
-          parameters: {
-            key: 'target_in_range',
-            operation: 'assign',
-            value: { kind: 'constant', value: 1 },
-          },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_9: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: {
-              kind: 'fixedPoint',
-              owner: { kind: 'owner' },
-              directionTarget: { kind: 'inputTarget' },
-              center: { kind: 'inputTarget' },
-            },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_1_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: 'modifyActionValue_8',
-      },
-      spawnAbilityEntity_7: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: { kind: 'source' },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_1_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      checkCondition_6: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
-      ifElse_12: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_6' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_7' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_9' },
-        },
-        next: null,
-      },
-      checkCondition_2: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
-      ifElse_11: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_2' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_9' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_7' },
-        },
-        next: null,
-      },
-      checkCondition_10: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
-      ifElse_13: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_10' },
-          whenTrue: { $sequence: 'ifElse_11' },
-          whenFalse: { $sequence: 'ifElse_12' },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_19: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: {
-              kind: 'fixedPoint',
-              owner: { kind: 'owner' },
-              directionTarget: { kind: 'inputTarget' },
-              center: { kind: 'inputTarget' },
-            },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_2_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_18: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: { kind: 'source' },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_2_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      ifElse_22: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_6' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_18' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_19' },
-        },
-        next: null,
-      },
-      checkCondition_14: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-        },
-        next: null,
-      },
-      ifElse_21: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_14' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_19' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_18' },
-        },
-        next: null,
-      },
-      ifElse_23: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_10' },
-          whenTrue: { $sequence: 'ifElse_21' },
-          whenFalse: { $sequence: 'ifElse_22' },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_29: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: {
-              kind: 'fixedPoint',
-              owner: { kind: 'owner' },
-              directionTarget: { kind: 'inputTarget' },
-              center: { kind: 'inputTarget' },
-            },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_3_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_28: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: { kind: 'source' },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_3_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      ifElse_32: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_6' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_28' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_29' },
-        },
-        next: null,
-      },
-      ifElse_31: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_14' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_29' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_28' },
-        },
-        next: null,
-      },
-      ifElse_33: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_10' },
-          whenTrue: { $sequence: 'ifElse_31' },
-          whenFalse: { $sequence: 'ifElse_32' },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_39: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: {
-              kind: 'fixedPoint',
-              owner: { kind: 'owner' },
-              directionTarget: { kind: 'inputTarget' },
-              center: { kind: 'inputTarget' },
-            },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_4_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_38: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: { kind: 'source' },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_4_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      ifElse_42: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_6' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_38' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_39' },
-        },
-        next: null,
-      },
-      ifElse_41: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_14' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_39' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_38' },
-        },
-        next: null,
-      },
-      ifElse_43: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_10' },
-          whenTrue: { $sequence: 'ifElse_41' },
-          whenFalse: { $sequence: 'ifElse_42' },
-        },
-        next: null,
-      },
-      reachSkillOperableBoundary_45: {
-        action: {
-          kind: 'reachSkillOperableBoundary',
-          parameters: { skillIds: ['chr_0030_zhuangfy_attack2_ult'] },
-        },
-        next: null,
-      },
-      reachSkillOperableBoundary_46: {
-        action: {
-          kind: 'reachSkillOperableBoundary',
-          parameters: { skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
-        },
-        next: null,
-      },
-    },
-    dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_2: {
-        type: 'boolean',
-        expression: {
-          kind: 'targetDistance',
-          source: { kind: 'owner' },
-          target: { kind: 'fixed', target: 'enemy' },
-          distance: 12,
-          lessThan: true,
-          includeTargetRadius: true,
-          containsHittableObject: true,
-        },
-      },
-      data_3: {
-        type: 'boolean',
-        expression: {
-          kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
-          containsHittableTarget: true,
-          excludeDeadEntity: false,
-          operator: 'greaterOrEqual',
-          value: 1,
-        },
-      },
-      data_4: {
-        type: 'number',
-        expression: { kind: 'blackboard', key: 'target_in_range', fallback: 0 },
-      },
-      data_5: {
-        type: 'boolean',
-        expression: {
-          kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_4' },
-          operator: 'equal',
-          right: { kind: 'constant', value: 1 },
-        },
-      },
-    },
-  },
-  macros: {},
-} as const satisfies ActionGraphResourceDefinition;
-
-export const zhuangFangyiChr_0030_zhuangfy_attack1_ult: SkillDefinition = {
-  key: 'chr_0030_zhuangfy_attack1_ult',
-  element: 'electric',
-  blackboard: {
-    atb: 0,
-    atk_scale: [0.67, 0.73, 0.8, 0.86, 0.93, 1, 1.06, 1.13, 1.2, 1.28, 1.38, 1.5],
-    target_in_range: 0,
-  },
-  timelineBlockFrames: 22,
-  naturalDurationFrames: 160,
-  exclusiveFrame: 135,
-  offsetRecordFrame: 14,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 0,
-        endFrame: 60,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0030_zhuangfy_attack2_ult',
-      },
-    ],
-    allowedNextSkills: [
-      { startFrame: 22, endFrame: 60, skillIds: ['chr_0030_zhuangfy_attack2_ult'] },
-      { startFrame: 60, endFrame: 135, skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
-    ],
-  },
-  costFrame: 0,
-  scheduledSequences: [
-    { startFrame: 0, endFrame: 22, sequence: { $sequence: 'holdBuffsById_1' } },
-    { startFrame: 12, endFrame: 13, sequence: { $sequence: 'ifElse_13' } },
-    { startFrame: 13, endFrame: 14, sequence: { $sequence: 'ifElse_23' } },
-    { startFrame: 14, endFrame: 15, sequence: { $sequence: 'ifElse_33' } },
-    { startFrame: 15, endFrame: 16, sequence: { $sequence: 'ifElse_43' } },
-    { startFrame: 22, endFrame: 60, sequence: { $sequence: 'reachSkillOperableBoundary_45' } },
-    { startFrame: 60, endFrame: 135, sequence: { $sequence: 'reachSkillOperableBoundary_46' } },
-  ],
-  defaultTarget: 'enemy',
-  timelineContinuationSkillId: 'chr_0030_zhuangfy_attack2_ult',
-  skillType: 'basicAttack',
-  levelSource: 'ultimate',
-  nativeSkillType: 'attack',
-  actionGraph: zhuangFangyiChr_0030_zhuangfy_attack1_ultActionGraph,
-};
-
-export const zhuangFangyiChr_0030_zhuangfy_attack2_ultActionGraph = {
-  main: {
-    nodes: {
-      modifyActionValue_7: {
-        action: {
-          kind: 'modifyActionValue',
-          parameters: {
-            key: 'target_in_range',
-            operation: 'assign',
-            value: { kind: 'constant', value: 1 },
-          },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_8: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: {
-              kind: 'fixedPoint',
-              owner: { kind: 'owner' },
-              directionTarget: { kind: 'inputTarget' },
-              center: { kind: 'inputTarget' },
-            },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_1_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: 'modifyActionValue_7',
-      },
-      spawnAbilityEntity_6: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: { kind: 'source' },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_1_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      checkCondition_5: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
-      ifElse_11: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_5' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_6' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_8' },
-        },
-        next: null,
-      },
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
-      ifElse_10: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_8' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_6' },
-        },
-        next: null,
-      },
-      checkCondition_9: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
-      ifElse_12: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_9' },
-          whenTrue: { $sequence: 'ifElse_10' },
-          whenFalse: { $sequence: 'ifElse_11' },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_18: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: {
-              kind: 'fixedPoint',
-              owner: { kind: 'owner' },
-              directionTarget: { kind: 'inputTarget' },
-              center: { kind: 'inputTarget' },
-            },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_2_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_17: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: { kind: 'source' },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_2_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      ifElse_21: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_5' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_17' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_18' },
-        },
-        next: null,
-      },
-      checkCondition_13: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-        },
-        next: null,
-      },
-      ifElse_20: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_13' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_18' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_17' },
-        },
-        next: null,
-      },
-      ifElse_22: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_9' },
-          whenTrue: { $sequence: 'ifElse_20' },
-          whenFalse: { $sequence: 'ifElse_21' },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_28: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: {
-              kind: 'fixedPoint',
-              owner: { kind: 'owner' },
-              directionTarget: { kind: 'inputTarget' },
-              center: { kind: 'inputTarget' },
-            },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_3_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_27: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: { kind: 'source' },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_3_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      ifElse_31: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_5' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_27' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_28' },
-        },
-        next: null,
-      },
-      ifElse_30: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_13' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_28' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_27' },
-        },
-        next: null,
-      },
-      ifElse_32: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_9' },
-          whenTrue: { $sequence: 'ifElse_30' },
-          whenFalse: { $sequence: 'ifElse_31' },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_38: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: {
-              kind: 'fixedPoint',
-              owner: { kind: 'owner' },
-              directionTarget: { kind: 'inputTarget' },
-              center: { kind: 'inputTarget' },
-            },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_4_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_37: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: { kind: 'source' },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack1_ult_4_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            stringBlackboardAssignments: { EntityBB_hitedMark: 'attack1UltHitMark' },
-          },
-        },
-        next: null,
-      },
-      ifElse_41: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_5' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_37' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_38' },
-        },
-        next: null,
-      },
-      ifElse_40: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_13' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_38' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_37' },
-        },
-        next: null,
-      },
-      ifElse_42: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_9' },
-          whenTrue: { $sequence: 'ifElse_40' },
-          whenFalse: { $sequence: 'ifElse_41' },
-        },
-        next: null,
-      },
-      holdBuffsById_44: {
-        action: {
-          kind: 'holdBuffsById',
-          parameters: { target: 'caster', buffIds: ['buff_chr_0030_zhuangfy_ult_base'] },
-        },
-        next: null,
-      },
-      reachSkillOperableBoundary_45: {
-        action: {
-          kind: 'reachSkillOperableBoundary',
-          parameters: { skillIds: ['chr_0030_zhuangfy_attack3_ult'] },
-        },
-        next: null,
-      },
-      reachSkillOperableBoundary_46: {
-        action: {
-          kind: 'reachSkillOperableBoundary',
-          parameters: { skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
-        },
-        next: null,
-      },
-    },
-    dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_2: {
-        type: 'boolean',
-        expression: {
-          kind: 'targetDistance',
-          source: { kind: 'owner' },
-          target: { kind: 'fixed', target: 'enemy' },
-          distance: 12,
-          lessThan: true,
-          includeTargetRadius: true,
-          containsHittableObject: true,
-        },
-      },
-      data_3: {
-        type: 'boolean',
-        expression: {
-          kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
-          containsHittableTarget: true,
-          excludeDeadEntity: false,
-          operator: 'greaterOrEqual',
-          value: 1,
-        },
-      },
-      data_4: {
-        type: 'number',
-        expression: { kind: 'blackboard', key: 'target_in_range', fallback: 0 },
-      },
-      data_5: {
-        type: 'boolean',
-        expression: {
-          kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_4' },
-          operator: 'equal',
-          right: { kind: 'constant', value: 1 },
-        },
-      },
-    },
-  },
-  macros: {},
-} as const satisfies ActionGraphResourceDefinition;
-
-export const zhuangFangyiChr_0030_zhuangfy_attack2_ult: SkillDefinition = {
-  key: 'chr_0030_zhuangfy_attack2_ult',
-  element: 'electric',
-  blackboard: {
-    atk_scale: [0.94, 1.03, 1.12, 1.22, 1.31, 1.4, 1.5, 1.59, 1.68, 1.8, 1.94, 2.1],
-    target_in_range: 0,
-  },
-  timelineBlockFrames: 27,
-  naturalDurationFrames: 155,
-  exclusiveFrame: 120,
-  offsetRecordFrame: 12,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 0,
-        endFrame: 60,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0030_zhuangfy_attack3_ult',
-      },
-    ],
-    allowedNextSkills: [
-      { startFrame: 27, endFrame: 60, skillIds: ['chr_0030_zhuangfy_attack3_ult'] },
-      { startFrame: 60, endFrame: 120, skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
-    ],
-  },
-  costFrame: 0,
-  scheduledSequences: [
-    { startFrame: 10, endFrame: 11, sequence: { $sequence: 'ifElse_12' } },
-    { startFrame: 11, endFrame: 12, sequence: { $sequence: 'ifElse_22' } },
-    { startFrame: 12, endFrame: 13, sequence: { $sequence: 'ifElse_32' } },
-    { startFrame: 13, endFrame: 14, sequence: { $sequence: 'ifElse_42' } },
-    { startFrame: 0, endFrame: 17, sequence: { $sequence: 'holdBuffsById_44' } },
-    { startFrame: 27, endFrame: 60, sequence: { $sequence: 'reachSkillOperableBoundary_45' } },
-    { startFrame: 60, endFrame: 120, sequence: { $sequence: 'reachSkillOperableBoundary_46' } },
-  ],
-  defaultTarget: 'enemy',
-  timelineContinuationSkillId: 'chr_0030_zhuangfy_attack3_ult',
-  skillType: 'basicAttack',
-  levelSource: 'ultimate',
-  nativeSkillType: 'attack',
-  actionGraph: zhuangFangyiChr_0030_zhuangfy_attack2_ultActionGraph,
-};
-
-export const zhuangFangyiChr_0030_zhuangfy_attack3_ultActionGraph = {
-  main: {
-    nodes: {
-      spawnAbilityEntity_6: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: {
-              kind: 'fixedPoint',
-              owner: { kind: 'owner' },
-              directionTarget: { kind: 'source' },
-              center: { kind: 'inputTarget' },
-            },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack3_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack3_ult_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            saveToContextKey: 'thunder',
-          },
-        },
-        next: null,
-      },
-      spawnAbilityEntity_5: {
-        action: {
-          kind: 'spawnAbilityEntity',
-          parameters: {
-            bornAt: { kind: 'source' },
-            abilityEntityId: 'abilityentity_chr_0030_zhuangfy_attack3_ult',
-            childSkillId: 'chr_0030_zhuangfy_attack3_ult_abilityrange',
-            inheritActionBlackboard: true,
-            dieWhenSourceDies: false,
-            target: 'enemy',
-            saveToContextKey: 'thunder',
-          },
-        },
-        next: null,
-      },
-      checkCondition_4: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
-      ifElse_9: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_4' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_5' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_6' },
-        },
-        next: null,
-      },
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
-      ifElse_8: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
-          whenTrue: { $sequence: 'spawnAbilityEntity_6' },
-          whenFalse: { $sequence: 'spawnAbilityEntity_5' },
-        },
-        next: null,
-      },
-      checkCondition_7: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
-      ifElse_10: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_7' },
-          whenTrue: { $sequence: 'ifElse_8' },
-          whenFalse: { $sequence: 'ifElse_9' },
-        },
-        next: null,
-      },
-      applyBuff_11: {
-        action: {
-          kind: 'applyBuff',
-          parameters: {
-            buffs: [{ buffId: 'buff_chr_0030_zhuangfy_attack3_ult_cancel' }],
-            targets: { kind: 'context', key: 'thunder' },
-            source: { kind: 'source' },
-            inheritSourceSkillCastInfo: true,
-            finishByAction: true,
-            inheritToNextSkillIds: ['chr_0030_zhuangfy_attack1_ult'],
-          },
-        },
-        next: null,
-      },
-      holdBuffsById_12: {
-        action: {
-          kind: 'holdBuffsById',
-          parameters: { target: 'caster', buffIds: ['buff_chr_0030_zhuangfy_ult_base'] },
-        },
-        next: null,
-      },
-      reachSkillOperableBoundary_13: {
-        action: {
-          kind: 'reachSkillOperableBoundary',
-          parameters: { skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
-        },
-        next: null,
-      },
-    },
-    dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_2: {
-        type: 'boolean',
-        expression: {
-          kind: 'targetDistance',
-          source: { kind: 'owner' },
-          target: { kind: 'fixed', target: 'enemy' },
-          distance: 12,
-          lessThan: true,
-          includeTargetRadius: true,
-          containsHittableObject: true,
-        },
-      },
-      data_3: {
-        type: 'boolean',
-        expression: {
-          kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
-          containsHittableTarget: true,
-          excludeDeadEntity: false,
-          operator: 'greaterOrEqual',
-          value: 1,
-        },
-      },
-    },
-  },
-  macros: {},
-} as const satisfies ActionGraphResourceDefinition;
-
-export const zhuangFangyiChr_0030_zhuangfy_attack3_ult: SkillDefinition = {
-  key: 'chr_0030_zhuangfy_attack3_ult',
-  element: 'electric',
-  blackboard: {
-    atb: 20,
-    atk_scale: [1.34, 1.47, 1.6, 1.74, 1.87, 2, 2.14, 2.27, 2.4, 2.57, 2.77, 3],
-    poise: 18,
-  },
-  timelineBlockFrames: 60,
-  naturalDurationFrames: 179,
-  exclusiveFrame: 140,
-  offsetRecordFrame: 33,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 0,
-        endFrame: 140,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0030_zhuangfy_attack1_ult',
-      },
-    ],
-    allowedNextSkills: [
-      { startFrame: 60, endFrame: 140, skillIds: ['chr_0030_zhuangfy_attack1_ult'] },
-    ],
-  },
-  costFrame: 0,
-  scheduledSequences: [
-    { startFrame: 3, endFrame: 6, sequence: { $sequence: 'ifElse_10' } },
-    { startFrame: 3, endFrame: 179, sequence: { $sequence: 'applyBuff_11' } },
-    { startFrame: 0, endFrame: 35, sequence: { $sequence: 'holdBuffsById_12' } },
-    { startFrame: 60, endFrame: 140, sequence: { $sequence: 'reachSkillOperableBoundary_13' } },
-  ],
-  defaultTarget: 'enemy',
-  timelineContinuationSkillId: 'chr_0030_zhuangfy_attack1_ult',
-  skillType: 'basicAttack',
-  levelSource: 'ultimate',
-  nativeSkillType: 'attack',
-  actionGraph: zhuangFangyiChr_0030_zhuangfy_attack3_ultActionGraph,
-};
-
 export const zhuangFangyiChr_0030_zhuangfy_perfect_dodgeActionGraph = {
   main: { nodes: {} },
   macros: {},
@@ -4563,6 +4450,93 @@ export const zhuangFangyiChr_0030_zhuangfy_perfect_dodge: SkillDefinition = {
   skillType: 'dodge',
   nativeSkillType: 'dodge',
   actionGraph: zhuangFangyiChr_0030_zhuangfy_perfect_dodgeActionGraph,
+};
+
+export const zhuangFangyiChr_0030_zhuangfy_plunging_attack_startActionGraph = {
+  main: {
+    nodes: {
+      launchProjectile_1: {
+        action: {
+          kind: 'launchProjectile',
+          parameters: { inheritActionBlackboard: true, finish: 'firstTickBlock' },
+          callbacks: [],
+        },
+        next: null,
+      },
+      physicsCast_3: {
+        action: {
+          kind: 'physicsCast',
+          parameters: {
+            source: { kind: 'source' },
+            startHeightOffset: 0,
+            maxDistance: 100,
+            saveToContextKey: 'hitPos',
+          },
+          whenHit: { $sequence: 'launchProjectile_1' },
+          whenMiss: { $sequence: null },
+        },
+        next: null,
+      },
+      ifElse_4: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
+          whenTrue: { $sequence: null },
+          whenFalse: { $sequence: 'physicsCast_3' },
+        },
+        next: null,
+      },
+      applyBuff_13: {
+        action: {
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_chr_0030_zhuangfy_air_attack_ult_extend_buff' }],
+            targets: { kind: 'source' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+            finishByAction: true,
+            inheritToNextSkillIds: ['chr_0030_zhuangfy_plunging_attack_end'],
+          },
+        },
+        next: null,
+      },
+    },
+    dataNodes: {
+      data_1: {
+        type: 'boolean',
+        expression: {
+          kind: 'buffIdStackCompare',
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0030_zhuangfy_ult_base'],
+        },
+      },
+    },
+  },
+  macros: {},
+} as const satisfies ActionGraphResourceDefinition;
+
+export const zhuangFangyiChr_0030_zhuangfy_plunging_attack_start: SkillDefinition = {
+  key: 'chr_0030_zhuangfy_plunging_attack_start',
+  element: 'physical',
+  blackboard: { atk_scale: 0.25 },
+  timelineBlockFrames: 1501,
+  naturalDurationFrames: 1500,
+  exclusiveFrame: 1500,
+  offsetRecordFrame: 0,
+  costFrame: 0,
+  scheduledSequences: [
+    { startFrame: 10, endFrame: 13, sequence: { $sequence: 'ifElse_4' } },
+    { startFrame: 0, endFrame: 1500, sequence: { $sequence: 'applyBuff_13' } },
+  ],
+  defaultTarget: 'enemy',
+  skillType: 'plungingAttack',
+  nativeSkillType: 'attack',
+  levelSource: 'basicAttack',
+  actionGraph: zhuangFangyiChr_0030_zhuangfy_plunging_attack_startActionGraph,
 };
 
 const zhuangFangyiPassive1ActionGraph = {
@@ -4690,27 +4664,30 @@ const zhuangFangyiComboCondition1ActionGraph = {
     dataNodes: {
       data_1: {
         type: 'boolean',
-        expression: { kind: 'actionInputTargetObjectTypeMatch', objectTypes: ['enemy'] },
+        expression: {
+          kind: 'targetObjectTypeMatch',
+          target: { kind: 'inputTarget' },
+          objectTypes: ['enemy'],
+        },
       },
       data_2: {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'actionInputTarget',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/SpellInflict/PulseInflict'],
+          target: { kind: 'inputTarget' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/SpellInflict/PulseInflict'],
         },
       },
       data_3: {
         type: 'boolean',
         expression: {
-          kind: 'contextTargetIdentityMatch',
-          selection: 'all',
-          contextKey: 'trigger',
-          other: 'controlledOperator',
-          operator: 'equal',
+          kind: 'targetsEqual',
+          first: { kind: 'context', key: 'trigger' },
+          second: { kind: 'mainCharacter' },
         },
       },
       data_4: {
@@ -4778,27 +4755,30 @@ const zhuangFangyiComboCondition2ActionGraph = {
     dataNodes: {
       data_1: {
         type: 'boolean',
-        expression: { kind: 'actionInputTargetObjectTypeMatch', objectTypes: ['enemy'] },
+        expression: {
+          kind: 'targetObjectTypeMatch',
+          target: { kind: 'inputTarget' },
+          objectTypes: ['enemy'],
+        },
       },
       data_2: {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'actionInputTarget',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/SpellInflict/PulseInflict'],
+          target: { kind: 'inputTarget' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/SpellInflict/PulseInflict'],
         },
       },
       data_3: {
         type: 'boolean',
         expression: {
-          kind: 'contextTargetIdentityMatch',
-          selection: 'all',
-          contextKey: 'trigger',
-          other: 'controlledOperator',
-          operator: 'equal',
+          kind: 'targetsEqual',
+          first: { kind: 'context', key: 'trigger' },
+          second: { kind: 'mainCharacter' },
         },
       },
       data_4: {
@@ -4807,13 +4787,7 @@ const zhuangFangyiComboCondition2ActionGraph = {
       },
       data_5: {
         type: 'boolean',
-        expression: {
-          kind: 'contextTargetIdentityMatch',
-          selection: 'first',
-          contextKey: 'trigger',
-          other: 'controlledOperator',
-          operator: 'equal',
-        },
+        expression: { kind: 'checkMainCharacter', target: { kind: 'context', key: 'trigger' } },
       },
     },
   },
@@ -4833,6 +4807,33 @@ const zhuangFangyiComboCondition2: ComboSkillConditionDefinition = {
 const zhuangFangyiBuff1ActionGraph = {
   main: {
     nodes: {
+      holdBuffsById_1: {
+        action: {
+          kind: 'holdBuffsById',
+          parameters: { target: 'caster', buffIds: ['buff_chr_0030_zhuangfy_ult_base'] },
+        },
+        next: null,
+      },
+    },
+  },
+  macros: {},
+} as const satisfies ActionGraphResourceDefinition;
+
+const zhuangFangyiBuff1: SkillBuffDefinition = {
+  stackingType: 'unique',
+  priority: 1,
+  maxStackCount: 1,
+  applyTags: [],
+  extendTags: [],
+  blackboard: {},
+  attributeModifiers: [],
+  lifecycleSequences: { enable: [{ $sequence: 'holdBuffsById_1' }] },
+  actionGraph: zhuangFangyiBuff1ActionGraph,
+};
+
+const zhuangFangyiBuff2ActionGraph = {
+  main: {
+    nodes: {
       finishOwner_1: {
         action: { kind: 'finishOwner', parameters: { targets: { kind: 'owner' } } },
         next: null,
@@ -4842,7 +4843,7 @@ const zhuangFangyiBuff1ActionGraph = {
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff1: SkillBuffDefinition = {
+const zhuangFangyiBuff2: SkillBuffDefinition = {
   stackingType: 'unique',
   priority: 1,
   maxStackCount: 1,
@@ -4857,19 +4858,12 @@ const zhuangFangyiBuff1: SkillBuffDefinition = {
   blackboard: {},
   attributeModifiers: [],
   lifecycleSequences: { finish: [{ $sequence: 'finishOwner_1' }] },
-  actionGraph: zhuangFangyiBuff1ActionGraph,
+  actionGraph: zhuangFangyiBuff2ActionGraph,
 };
 
-const zhuangFangyiBuff2ActionGraph = {
+const zhuangFangyiBuff3ActionGraph = {
   main: {
     nodes: {
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       modifyActionValue_2: {
         action: {
           kind: 'modifyActionValue',
@@ -4881,13 +4875,6 @@ const zhuangFangyiBuff2ActionGraph = {
         },
         next: null,
       },
-      checkCondition_3: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
       modifyActionValue_4: {
         action: {
           kind: 'modifyActionValue',
@@ -4896,13 +4883,6 @@ const zhuangFangyiBuff2ActionGraph = {
             operation: 'assign',
             value: { kind: 'constant', value: 4 },
           },
-        },
-        next: null,
-      },
-      checkCondition_5: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
         },
         next: null,
       },
@@ -4927,7 +4907,7 @@ const zhuangFangyiBuff2ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'modifyActionValue_4' },
           whenFalse: { $sequence: null },
         },
@@ -4937,7 +4917,7 @@ const zhuangFangyiBuff2ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'modifyActionValue_2' },
           whenFalse: { $sequence: null },
         },
@@ -4949,7 +4929,7 @@ const zhuangFangyiBuff2ActionGraph = {
           parameters: {
             key: 'conductCnt',
             operation: 'assign',
-            value: { kind: 'valueNode', nodeId: 'data_5' },
+            value: { kind: 'valueNode', nodeId: 'data_4' },
           },
         },
         next: 'ifElse_8',
@@ -4973,7 +4953,7 @@ const zhuangFangyiBuff2ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_5' },
+          condition: { kind: 'conditionNode', nodeId: 'data_5' },
           whenTrue: { $sequence: 'readBuffStackCount_10' },
           whenFalse: { $sequence: null },
         },
@@ -5023,41 +5003,43 @@ const zhuangFangyiBuff2ActionGraph = {
     },
     dataNodes: {
       data_1: {
-        type: 'boolean',
-        expression: {
-          kind: 'buffStackCompare',
-          target: 'buffOwner',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/SpellStatus/Conduct'],
-          operator: 'greaterOrEqual',
-          value: { kind: 'constant', value: 1 },
-        },
-      },
-      data_2: {
         type: 'number',
         expression: { kind: 'blackboard', key: 'conductCnt', fallback: 0 },
       },
-      data_3: {
+      data_2: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_2' },
+          left: { kind: 'valueNode', nodeId: 'data_1' },
           operator: 'greater',
           right: { kind: 'constant', value: 4 },
         },
       },
-      data_4: {
+      data_3: {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'buffOwner',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/SpellInflict/PulseInflict'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/SpellStatus/Conduct'],
         },
       },
-      data_5: { type: 'number', expression: { kind: 'blackboard', key: 'inflictCnt' } },
+      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'inflictCnt' } },
+      data_5: {
+        type: 'boolean',
+        expression: {
+          kind: 'buffStackCompare',
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/SpellInflict/PulseInflict'],
+        },
+      },
       data_6: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
       data_7: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
     },
@@ -5065,7 +5047,7 @@ const zhuangFangyiBuff2ActionGraph = {
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff2: SkillBuffDefinition = {
+const zhuangFangyiBuff3: SkillBuffDefinition = {
   stackingType: 'unlimited',
   priority: 0,
   maxStackCount: 5,
@@ -5078,19 +5060,12 @@ const zhuangFangyiBuff2: SkillBuffDefinition = {
     { startFrame: 12, endFrame: 15, sequence: { $sequence: 'ifElse_11' } },
     { startFrame: 12, endFrame: 15, sequence: { $sequence: 'dealDamage_14' } },
   ],
-  actionGraph: zhuangFangyiBuff2ActionGraph,
+  actionGraph: zhuangFangyiBuff3ActionGraph,
 };
 
-const zhuangFangyiBuff3ActionGraph = {
+const zhuangFangyiBuff4ActionGraph = {
   main: {
     nodes: {
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       findOwnerSpawnedAbilityEntities_2: {
         action: {
           kind: 'findOwnerSpawnedAbilityEntities',
@@ -5118,7 +5093,7 @@ const zhuangFangyiBuff3ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'findOwnerSpawnedAbilityEntities_2' },
           whenFalse: { $sequence: null },
         },
@@ -5261,7 +5236,7 @@ const zhuangFangyiBuff3ActionGraph = {
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff3: SkillBuffDefinition = {
+const zhuangFangyiBuff4: SkillBuffDefinition = {
   stackingType: 'stack',
   priority: 0,
   maxStackCount: 1,
@@ -5287,10 +5262,10 @@ const zhuangFangyiBuff3: SkillBuffDefinition = {
     trigger: [{ $sequence: 'checkCondition_10' }],
     finish: [{ $sequence: 'mergeContextTargets_12' }],
   },
-  actionGraph: zhuangFangyiBuff3ActionGraph,
+  actionGraph: zhuangFangyiBuff4ActionGraph,
 };
 
-const zhuangFangyiBuff4ActionGraph = {
+const zhuangFangyiBuff5ActionGraph = {
   main: {
     nodes: {
       spawnAbilityEntity_1: {
@@ -5317,7 +5292,7 @@ const zhuangFangyiBuff4ActionGraph = {
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff4: SkillBuffDefinition = {
+const zhuangFangyiBuff5: SkillBuffDefinition = {
   stackingType: 'stack',
   priority: 0,
   maxStackCount: 1,
@@ -5327,10 +5302,10 @@ const zhuangFangyiBuff4: SkillBuffDefinition = {
   blackboard: {},
   attributeModifiers: [],
   lifecycleSequences: { start: [{ $sequence: 'createSpatialPointTargets_2' }] },
-  actionGraph: zhuangFangyiBuff4ActionGraph,
+  actionGraph: zhuangFangyiBuff5ActionGraph,
 };
 
-const zhuangFangyiBuff5ActionGraph = {
+const zhuangFangyiBuff6ActionGraph = {
   main: {
     nodes: {
       modifyActionValue_1: {
@@ -5389,7 +5364,7 @@ const zhuangFangyiBuff5ActionGraph = {
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff5: SkillBuffDefinition = {
+const zhuangFangyiBuff6: SkillBuffDefinition = {
   stackingType: 'unique',
   priority: 0,
   maxStackCount: 1,
@@ -5401,10 +5376,10 @@ const zhuangFangyiBuff5: SkillBuffDefinition = {
   blackboard: { swordsNum: 0 },
   attributeModifiers: [],
   lifecycleSequences: { trigger: [{ $sequence: 'findOwnerSpawnedAbilityEntities_4' }] },
-  actionGraph: zhuangFangyiBuff5ActionGraph,
+  actionGraph: zhuangFangyiBuff6ActionGraph,
 };
 
-const zhuangFangyiBuff6ActionGraph = {
+const zhuangFangyiBuff7ActionGraph = {
   main: {
     nodes: {
       applyBuff_1: {
@@ -5424,7 +5399,7 @@ const zhuangFangyiBuff6ActionGraph = {
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff6: SkillBuffDefinition = {
+const zhuangFangyiBuff7: SkillBuffDefinition = {
   stackingType: 'unique',
   priority: 1,
   maxStackCount: 1,
@@ -5435,10 +5410,10 @@ const zhuangFangyiBuff6: SkillBuffDefinition = {
   abilityEventResponses: [
     { event: 'enterFight', priority: 0, sequence: { $sequence: 'applyBuff_1' } },
   ],
-  actionGraph: zhuangFangyiBuff6ActionGraph,
+  actionGraph: zhuangFangyiBuff7ActionGraph,
 };
 
-const zhuangFangyiBuff7ActionGraph = {
+const zhuangFangyiBuff8ActionGraph = {
   main: {
     nodes: {
       finishBuffsById_1: {
@@ -5471,7 +5446,7 @@ const zhuangFangyiBuff7ActionGraph = {
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff7: SkillBuffDefinition = {
+const zhuangFangyiBuff8: SkillBuffDefinition = {
   stackingType: 'unlimited',
   priority: 1,
   maxStackCount: 9,
@@ -5482,10 +5457,10 @@ const zhuangFangyiBuff7: SkillBuffDefinition = {
   abilityEventResponses: [
     { event: 'skillEnd', priority: 0, sequence: { $sequence: 'checkCondition_2' } },
   ],
-  actionGraph: zhuangFangyiBuff7ActionGraph,
+  actionGraph: zhuangFangyiBuff8ActionGraph,
 };
 
-const zhuangFangyiBuff8ActionGraph = {
+const zhuangFangyiBuff9ActionGraph = {
   main: {
     nodes: {
       checkCondition_1: {
@@ -5501,10 +5476,11 @@ const zhuangFangyiBuff8ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0030_zhuangfy_ult_base'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0030_zhuangfy_ult_base'],
         },
       },
     },
@@ -5512,7 +5488,7 @@ const zhuangFangyiBuff8ActionGraph = {
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff8: SkillBuffDefinition = {
+const zhuangFangyiBuff9: SkillBuffDefinition = {
   stackingType: 'unique',
   priority: 0,
   maxStackCount: 1,
@@ -5535,15 +5511,15 @@ const zhuangFangyiBuff8: SkillBuffDefinition = {
       ],
     },
   ],
-  actionGraph: zhuangFangyiBuff8ActionGraph,
+  actionGraph: zhuangFangyiBuff9ActionGraph,
 };
 
-const zhuangFangyiBuff9ActionGraph = {
+const zhuangFangyiBuff10ActionGraph = {
   main: { nodes: {} },
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff9: SkillBuffDefinition = {
+const zhuangFangyiBuff10: SkillBuffDefinition = {
   stackingType: 'unique',
   priority: 0,
   maxStackCount: 1,
@@ -5551,10 +5527,10 @@ const zhuangFangyiBuff9: SkillBuffDefinition = {
   extendTags: [],
   blackboard: {},
   attributeModifiers: [],
-  actionGraph: zhuangFangyiBuff9ActionGraph,
+  actionGraph: zhuangFangyiBuff10ActionGraph,
 };
 
-const zhuangFangyiBuff10ActionGraph = {
+const zhuangFangyiBuff11ActionGraph = {
   main: {
     nodes: {
       findOwnerSpawnedAbilityEntities_2: {
@@ -5565,13 +5541,6 @@ const zhuangFangyiBuff10ActionGraph = {
             abilityEntityIds: ['abilityentity_chr_0030_zhuangfy_normal_skill_fake_target'],
             owner: { kind: 'source' },
           },
-        },
-        next: null,
-      },
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
         },
         next: null,
       },
@@ -5586,7 +5555,7 @@ const zhuangFangyiBuff10ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'findOwnerSpawnedAbilityEntities_2' },
           whenFalse: { $sequence: null },
         },
@@ -5654,18 +5623,11 @@ const zhuangFangyiBuff10ActionGraph = {
         },
         next: null,
       },
-      checkCondition_13: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_8' } },
-        },
-        next: null,
-      },
       ifElse_18: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_13' },
+          condition: { kind: 'conditionNode', nodeId: 'data_8' },
           whenTrue: { $sequence: 'changeResource_14' },
           whenFalse: { $sequence: null },
         },
@@ -5694,18 +5656,11 @@ const zhuangFangyiBuff10ActionGraph = {
         },
         next: 'ifElse_18',
       },
-      checkCondition_15: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_10' } },
-        },
-        next: null,
-      },
       ifElse_20: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_15' },
+          condition: { kind: 'conditionNode', nodeId: 'data_10' },
           whenTrue: { $sequence: 'dealDamage_17' },
           whenFalse: { $sequence: 'dealDamage_19' },
         },
@@ -5752,18 +5707,11 @@ const zhuangFangyiBuff10ActionGraph = {
         },
         next: null,
       },
-      checkCondition_25: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_13' } },
-        },
-        next: null,
-      },
       ifElse_28: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_25' },
+          condition: { kind: 'conditionNode', nodeId: 'data_13' },
           whenTrue: { $sequence: null },
           whenFalse: { $sequence: 'startTimeDilation_26' },
         },
@@ -5786,7 +5734,7 @@ const zhuangFangyiBuff10ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_13' },
+          condition: { kind: 'conditionNode', nodeId: 'data_14' },
           whenTrue: { $sequence: 'changeResource_29' },
           whenFalse: { $sequence: null },
         },
@@ -5797,10 +5745,10 @@ const zhuangFangyiBuff10ActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'electric',
-            attackScale: { kind: 'valueNode', nodeId: 'data_14' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_15' },
             tags: ['normalSkill'],
             features: ['canBreakWeakness'],
-            stagger: { kind: 'valueNode', nodeId: 'data_15' },
+            stagger: { kind: 'valueNode', nodeId: 'data_16' },
           },
         },
         next: 'ifElse_30',
@@ -5812,7 +5760,7 @@ const zhuangFangyiBuff10ActionGraph = {
             key: 'atk_scale_final',
             operation: 'multiply',
             left: { kind: 'valueNode', nodeId: 'data_9' },
-            right: { kind: 'valueNode', nodeId: 'data_16' },
+            right: { kind: 'valueNode', nodeId: 'data_17' },
           },
         },
         next: 'dealDamage_31',
@@ -5832,14 +5780,14 @@ const zhuangFangyiBuff10ActionGraph = {
       checkCondition_34: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_17' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_18' } },
         },
         next: 'applyBuff_33',
       },
       checkCondition_35: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_18' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_19' } },
         },
         next: 'checkCondition_34',
       },
@@ -5925,12 +5873,25 @@ const zhuangFangyiBuff10ActionGraph = {
       },
       data_13: {
         type: 'boolean',
-        expression: { kind: 'currentSkillTypeIn', target: 'caster', skillTypes: ['battleSkill'] },
+        expression: {
+          kind: 'currentSkillTypeIn',
+          target: { kind: 'source' },
+          skillTypes: ['battleSkill'],
+        },
       },
-      data_14: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_final' } },
-      data_15: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
-      data_16: { type: 'number', expression: { kind: 'blackboard', key: 'final_rate' } },
-      data_17: {
+      data_14: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_2' },
+          operator: 'less',
+          right: { kind: 'valueNode', nodeId: 'data_7' },
+        },
+      },
+      data_15: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_final' } },
+      data_16: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
+      data_17: { type: 'number', expression: { kind: 'blackboard', key: 'final_rate' } },
+      data_18: {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
@@ -5941,7 +5902,7 @@ const zhuangFangyiBuff10ActionGraph = {
           value: 1,
         },
       },
-      data_18: {
+      data_19: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
@@ -5955,7 +5916,7 @@ const zhuangFangyiBuff10ActionGraph = {
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff10: SkillBuffDefinition = {
+const zhuangFangyiBuff11: SkillBuffDefinition = {
   stackingType: 'unlimited',
   priority: 0,
   maxStackCount: 0,
@@ -5980,15 +5941,15 @@ const zhuangFangyiBuff10: SkillBuffDefinition = {
     { startFrame: 3, endFrame: 6, sequence: { $sequence: 'checkCondition_23' } },
     { startFrame: 6, endFrame: 9, sequence: { $sequence: 'checkCondition_35' } },
   ],
-  actionGraph: zhuangFangyiBuff10ActionGraph,
+  actionGraph: zhuangFangyiBuff11ActionGraph,
 };
 
-const zhuangFangyiBuff11ActionGraph = {
+const zhuangFangyiBuff12ActionGraph = {
   main: { nodes: {} },
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff11: SkillBuffDefinition = {
+const zhuangFangyiBuff12: SkillBuffDefinition = {
   stackingType: 'unlimited',
   priority: 1,
   maxStackCount: { blackboardKey: 'max_stack' },
@@ -5997,10 +5958,10 @@ const zhuangFangyiBuff11: SkillBuffDefinition = {
   extendTags: [],
   blackboard: {},
   attributeModifiers: [],
-  actionGraph: zhuangFangyiBuff11ActionGraph,
+  actionGraph: zhuangFangyiBuff12ActionGraph,
 };
 
-const zhuangFangyiBuff12ActionGraph = {
+const zhuangFangyiBuff13ActionGraph = {
   main: {
     nodes: {
       applyBuff_1: {
@@ -6041,7 +6002,7 @@ const zhuangFangyiBuff12ActionGraph = {
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff12: SkillBuffDefinition = {
+const zhuangFangyiBuff13: SkillBuffDefinition = {
   stackingType: 'stack',
   priority: 1,
   maxStackCount: 1,
@@ -6051,15 +6012,15 @@ const zhuangFangyiBuff12: SkillBuffDefinition = {
   blackboard: { base_rate: 0, duration: 0, enhance_rate: 0 },
   attributeModifiers: [],
   lifecycleSequences: { enable: [{ $sequence: 'applyBuff_1' }] },
-  actionGraph: zhuangFangyiBuff12ActionGraph,
+  actionGraph: zhuangFangyiBuff13ActionGraph,
 };
 
-const zhuangFangyiBuff13ActionGraph = {
+const zhuangFangyiBuff14ActionGraph = {
   main: { nodes: {} },
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff13: SkillBuffDefinition = {
+const zhuangFangyiBuff14: SkillBuffDefinition = {
   stackingType: 'unlimited',
   priority: 1,
   maxStackCount: { blackboardKey: 'max_stack' },
@@ -6068,94 +6029,13 @@ const zhuangFangyiBuff13: SkillBuffDefinition = {
   extendTags: [],
   blackboard: {},
   attributeModifiers: [],
-  actionGraph: zhuangFangyiBuff13ActionGraph,
+  actionGraph: zhuangFangyiBuff14ActionGraph,
 };
 
-const zhuangFangyiBuff14ActionGraph = {
+const zhuangFangyiBuff15ActionGraph = {
   main: {
     nodes: {
-      restrictUltimateEnergyRecovery_1: {
-        action: {
-          kind: 'restrictUltimateEnergyRecovery',
-          parameters: {
-            target: 'caster',
-            allowedRecoveryTags: [],
-            clearUltimateEnergyOnEnd: false,
-          },
-        },
-        next: null,
-      },
-      overrideMultiDashLimit_2: {
-        action: {
-          kind: 'overrideMultiDashLimit',
-          parameters: { dashCount: { kind: 'constant', value: -1 } },
-        },
-        next: 'restrictUltimateEnergyRecovery_1',
-      },
-      changePlayerActionMode_3: {
-        action: {
-          kind: 'changePlayerActionMode',
-          parameters: { modeId: 'UltMode', lifetime: 'finishByAction' },
-        },
-        next: 'overrideMultiDashLimit_2',
-      },
-      checkCondition_4: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
-      castSkillDuringAction_5: {
-        action: {
-          kind: 'castSkillDuringAction',
-          parameters: {
-            skillId: 'chr_0030_zhuangfy_ultimate_skill_end',
-            target: 'caster',
-            skipApplyCost: false,
-            inheritSourceSkillCastInfo: false,
-          },
-        },
-        next: null,
-      },
-      changeNativeSkillType_6: {
-        action: {
-          kind: 'changeNativeSkillType',
-          parameters: {
-            targetSkillKey: 'chr_0030_zhuangfy_ultimate_skill_end',
-            nativeSkillType: 'attachSkill',
-          },
-        },
-        next: 'castSkillDuringAction_5',
-      },
-      interruptCurrentSkill_7: {
-        action: { kind: 'interruptCurrentSkill', parameters: { targets: { kind: 'owner' } } },
-        next: null,
-      },
-      adjustSkillCooldown_8: {
-        action: {
-          kind: 'adjustSkillCooldown',
-          parameters: {
-            target: 'caster',
-            skill: { kind: 'type', skillType: 'ultimate' },
-            operation: 'set',
-            basis: 'absoluteSeconds',
-            value: { kind: 'constant', value: 15 },
-          },
-        },
-        next: null,
-      },
-      ifElse_9: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_4' },
-          whenTrue: { $sequence: 'changeNativeSkillType_6' },
-          whenFalse: { $sequence: 'interruptCurrentSkill_7' },
-        },
-        next: 'adjustSkillCooldown_8',
-      },
-      applyBuff_10: {
+      applyBuff_12: {
         action: {
           kind: 'applyBuff',
           parameters: {
@@ -6168,16 +6048,120 @@ const zhuangFangyiBuff14ActionGraph = {
         },
         next: null,
       },
+      finishBuffsById_1: {
+        action: {
+          kind: 'finishBuffsById',
+          parameters: {
+            targets: { kind: 'owner' },
+            finishSource: { kind: 'source' },
+            buffIds: ['buff_chr_0030_zhuangfy_ult_base'],
+            reason: 'other',
+          },
+        },
+        next: null,
+      },
+      listenForTagQuery_2: {
+        action: {
+          kind: 'listenForTagQuery',
+          parameters: {
+            tags: [
+              '3C/Henshin/Interrupt',
+              'GameplayState/Interacting/OnVerticalRope',
+              'GameplayState/Interacting/TyphoeaArchery',
+              'GameplayState/PaintingScroll',
+            ],
+            tagQueryType: 'hasAny',
+            executeOnMatch: true,
+            sequence: { $sequence: 'finishBuffsById_1' },
+          },
+        },
+        next: null,
+      },
+      restrictUltimateEnergyRecovery_3: {
+        action: {
+          kind: 'restrictUltimateEnergyRecovery',
+          parameters: {
+            target: 'caster',
+            allowedRecoveryTags: [],
+            clearUltimateEnergyOnEnd: false,
+          },
+        },
+        next: null,
+      },
+      overrideMultiDashLimit_4: {
+        action: {
+          kind: 'overrideMultiDashLimit',
+          parameters: { dashCount: { kind: 'constant', value: -1 } },
+        },
+        next: 'restrictUltimateEnergyRecovery_3',
+      },
+      changePlayerActionMode_5: {
+        action: {
+          kind: 'changePlayerActionMode',
+          parameters: { modeId: 'UltMode', lifetime: 'finishByAction' },
+        },
+        next: 'overrideMultiDashLimit_4',
+      },
+      interruptCurrentSkill_9: {
+        action: { kind: 'interruptCurrentSkill', parameters: { targets: { kind: 'owner' } } },
+        next: null,
+      },
+      castSkillDuringAction_7: {
+        action: {
+          kind: 'castSkillDuringAction',
+          parameters: {
+            skillId: 'chr_0030_zhuangfy_ultimate_skill_end',
+            target: 'caster',
+            skipApplyCost: false,
+            inheritSourceSkillCastInfo: false,
+          },
+        },
+        next: null,
+      },
+      changeNativeSkillType_8: {
+        action: {
+          kind: 'changeNativeSkillType',
+          parameters: {
+            targetSkillKey: 'chr_0030_zhuangfy_ultimate_skill_end',
+            nativeSkillType: 'attachSkill',
+          },
+        },
+        next: 'castSkillDuringAction_7',
+      },
+      adjustSkillCooldown_10: {
+        action: {
+          kind: 'adjustSkillCooldown',
+          parameters: {
+            target: 'caster',
+            skill: { kind: 'type', skillType: 'ultimate' },
+            operation: 'set',
+            basis: 'absoluteSeconds',
+            value: { kind: 'constant', value: 15 },
+          },
+        },
+        next: null,
+      },
+      ifElse_11: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
+          whenTrue: { $sequence: 'changeNativeSkillType_8' },
+          whenFalse: { $sequence: 'interruptCurrentSkill_9' },
+        },
+        next: 'adjustSkillCooldown_10',
+      },
     },
     dataNodes: {
       data_1: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffOwner',
-          buffIds: ['buff_common_interrupt_henshin_no_exit_effect'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'lessOrEqual',
           value: { kind: 'constant', value: 0 },
+          buffIds: ['buff_common_interrupt_henshin_no_exit_effect'],
         },
       },
     },
@@ -6185,7 +6169,7 @@ const zhuangFangyiBuff14ActionGraph = {
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff14: SkillBuffDefinition = {
+const zhuangFangyiBuff15: SkillBuffDefinition = {
   stackingType: 'stack',
   priority: 1,
   maxStackCount: 1,
@@ -6206,9 +6190,9 @@ const zhuangFangyiBuff14: SkillBuffDefinition = {
     },
   ],
   lifecycleSequences: {
-    start: [{ $sequence: 'applyBuff_10' }],
-    enable: [{ $sequence: 'changePlayerActionMode_3' }],
-    finish: [{ $sequence: 'ifElse_9' }],
+    start: [{ $sequence: 'applyBuff_12' }],
+    enable: [{ $sequence: 'listenForTagQuery_2' }, { $sequence: 'changePlayerActionMode_5' }],
+    finish: [{ $sequence: 'ifElse_11' }],
   },
   skillSlotReplacements: [
     {
@@ -6224,15 +6208,15 @@ const zhuangFangyiBuff14: SkillBuffDefinition = {
       inheritOriginSkillCooldownProgress: true,
     },
   ],
-  actionGraph: zhuangFangyiBuff14ActionGraph,
+  actionGraph: zhuangFangyiBuff15ActionGraph,
 };
 
-const zhuangFangyiBuff15ActionGraph = {
+const zhuangFangyiBuff16ActionGraph = {
   main: { nodes: {} },
   macros: {},
 } as const satisfies ActionGraphResourceDefinition;
 
-const zhuangFangyiBuff15: SkillBuffDefinition = {
+const zhuangFangyiBuff16: SkillBuffDefinition = {
   stackingType: 'unique',
   priority: 1,
   maxStackCount: 0,
@@ -6246,7 +6230,7 @@ const zhuangFangyiBuff15: SkillBuffDefinition = {
   extendTags: [],
   blackboard: {},
   attributeModifiers: [{ attribute: 'AtbCostAddition', slot: 'baseAddition', value: -100 }],
-  actionGraph: zhuangFangyiBuff15ActionGraph,
+  actionGraph: zhuangFangyiBuff16ActionGraph,
 };
 
 export const zhuangFangyi: OperatorDefinition = {
@@ -6268,69 +6252,82 @@ export const zhuangFangyi: OperatorDefinition = {
     baseHealth: [500, 1566, 2689, 3811, 4934, 5495],
   },
   passiveUi: { kind: 'numeric', appearance: 'zhuangFangyiThunder', maximum: 9, activeAt: 9 },
+  skills: [
+    zhuangFangyiChr_0030_zhuangfy_attack1,
+    zhuangFangyiChr_0030_zhuangfy_attack2,
+    zhuangFangyiChr_0030_zhuangfy_attack3,
+    zhuangFangyiChr_0030_zhuangfy_attack4,
+    zhuangFangyiChr_0030_zhuangfy_attack5,
+    zhuangFangyiChr_0030_zhuangfy_attack1_ult,
+    zhuangFangyiChr_0030_zhuangfy_attack2_ult,
+    zhuangFangyiChr_0030_zhuangfy_attack3_ult,
+    zhuangFangyiChr_0030_zhuangfy_power_attack,
+    zhuangFangyiChr_0030_zhuangfy_plunging_attack_end,
+    zhuangFangyiChr_0030_zhuangfy_normal_skill,
+    zhuangFangyiChr_0030_zhuangfy_normal_skill_ult,
+    zhuangFangyiChr_0030_zhuangfy_combo_skill,
+    zhuangFangyiChr_0030_zhuangfy_combo_skill_ult,
+    zhuangFangyiChr_0030_zhuangfy_ultimate_skill,
+    zhuangFangyiChr_0030_zhuangfy_ultimate_skill_end,
+    zhuangFangyiChr_0030_zhuangfy_perfect_dodge,
+    zhuangFangyiChr_0030_zhuangfy_plunging_attack_start,
+  ],
   skillGroups: [
     {
       key: 'basicAttack',
       operationType: 'basicAttack',
-      skills: [
-        zhuangFangyiChr_0030_zhuangfy_attack1,
-        zhuangFangyiChr_0030_zhuangfy_attack2,
-        zhuangFangyiChr_0030_zhuangfy_attack3,
-        zhuangFangyiChr_0030_zhuangfy_attack4,
-        zhuangFangyiChr_0030_zhuangfy_attack5,
+      skillIds: [
+        'chr_0030_zhuangfy_attack1',
+        'chr_0030_zhuangfy_attack2',
+        'chr_0030_zhuangfy_attack3',
+        'chr_0030_zhuangfy_attack4',
+        'chr_0030_zhuangfy_attack5',
       ],
     },
-    {
-      key: 'finisher',
-      operationType: 'finisher',
-      skills: zhuangFangyiChr_0030_zhuangfy_power_attack,
-    },
+    { key: 'finisher', operationType: 'finisher', skillIds: ['chr_0030_zhuangfy_power_attack'] },
     {
       key: 'plungingAttack',
       operationType: 'plungingAttack',
-      skills: zhuangFangyiChr_0030_zhuangfy_plunging_attack_end,
+      skillIds: ['chr_0030_zhuangfy_plunging_attack_end'],
     },
     {
       key: 'battleSkill',
       operationType: 'battleSkill',
-      skills: zhuangFangyiChr_0030_zhuangfy_normal_skill,
+      skillIds: ['chr_0030_zhuangfy_normal_skill'],
     },
     {
       key: 'enhancedBattleSkill',
       operationType: 'battleSkill',
       nameKey: 'skillNames.enhanced',
-      skills: zhuangFangyiChr_0030_zhuangfy_normal_skill_ult,
+      skillIds: ['chr_0030_zhuangfy_normal_skill_ult'],
     },
-    {
-      key: 'comboSkill',
-      operationType: 'comboSkill',
-      skills: zhuangFangyiChr_0030_zhuangfy_combo_skill,
-    },
+    { key: 'comboSkill', operationType: 'comboSkill', skillIds: ['chr_0030_zhuangfy_combo_skill'] },
     {
       key: 'enhancedComboSkill',
       operationType: 'comboSkill',
       nameKey: 'skillNames.enhanced',
-      skills: zhuangFangyiChr_0030_zhuangfy_combo_skill_ult,
+      skillIds: ['chr_0030_zhuangfy_combo_skill_ult'],
     },
-    {
-      key: 'ultimate',
-      operationType: 'ultimate',
-      skills: zhuangFangyiChr_0030_zhuangfy_ultimate_skill,
-      replacementSkills: [zhuangFangyiChr_0030_zhuangfy_ultimate_skill_end],
-      replacementSkillPlacements: { chr_0030_zhuangfy_ultimate_skill_end: 'internal' },
-    },
+    { key: 'ultimate', operationType: 'ultimate', skillIds: ['chr_0030_zhuangfy_ultimate_skill'] },
     {
       key: 'enhancedBasicAttack',
       operationType: 'basicAttack',
       nameKey: 'skillNames.enhanced',
-      skills: [
-        zhuangFangyiChr_0030_zhuangfy_attack1_ult,
-        zhuangFangyiChr_0030_zhuangfy_attack2_ult,
-        zhuangFangyiChr_0030_zhuangfy_attack3_ult,
+      skillIds: [
+        'chr_0030_zhuangfy_attack1_ult',
+        'chr_0030_zhuangfy_attack2_ult',
+        'chr_0030_zhuangfy_attack3_ult',
       ],
     },
   ],
-  dodgeSkill: zhuangFangyiChr_0030_zhuangfy_perfect_dodge,
+  dodgeSkillId: 'chr_0030_zhuangfy_perfect_dodge',
+  plungingAttack: {
+    startSkillId: 'chr_0030_zhuangfy_plunging_attack_start',
+    endSkillId: 'chr_0030_zhuangfy_plunging_attack_end',
+    startDurationSeconds: 0.73,
+    endDurationSeconds: 1.267,
+    downSpeed: 200,
+  },
   dashBuffs: [
     { buffId: 'buff_common_dash', blackboard: { dodgeSkillId: 'chr_0030_zhuangfy_perfect_dodge' } },
   ],
@@ -6493,24 +6490,26 @@ export const zhuangFangyi: OperatorDefinition = {
   entityBlackboard: { EntityBB_SwordNum: 0 },
   passiveSkills: [zhuangFangyiPassive1],
   buffDefinitions: {
-    buff_chr_0030_zhuangfy_attack3_ult_cancel: zhuangFangyiBuff1,
-    buff_chr_0030_zhuangfy_combo_skill_ring_hit: zhuangFangyiBuff2,
-    buff_chr_0030_zhuangfy_normal_skill_trigger_sword: zhuangFangyiBuff3,
-    buff_chr_0030_zhuangfy_normal_skill_trigger_sword_tar: zhuangFangyiBuff4,
-    buff_chr_0030_zhuangfy_passive_check_sword: zhuangFangyiBuff5,
-    buff_chr_0030_zhuangfy_potential1: zhuangFangyiBuff6,
-    buff_chr_0030_zhuangfy_potential1_more_sword: zhuangFangyiBuff7,
-    buff_chr_0030_zhuangfy_potential5: zhuangFangyiBuff8,
-    buff_chr_0030_zhuangfy_potential5_vfx: zhuangFangyiBuff9,
-    buff_chr_0030_zhuangfy_sword_triggerd: zhuangFangyiBuff10,
-    buff_chr_0030_zhuangfy_talent1: zhuangFangyiBuff11,
-    buff_chr_0030_zhuangfy_talent1_base: zhuangFangyiBuff12,
-    buff_chr_0030_zhuangfy_talent1_mark: zhuangFangyiBuff13,
-    buff_chr_0030_zhuangfy_ult_base: zhuangFangyiBuff14,
-    buff_chr_0030_zhuangfy_ult_skill_free: zhuangFangyiBuff15,
+    buff_chr_0030_zhuangfy_air_attack_ult_extend_buff: zhuangFangyiBuff1,
+    buff_chr_0030_zhuangfy_attack3_ult_cancel: zhuangFangyiBuff2,
+    buff_chr_0030_zhuangfy_combo_skill_ring_hit: zhuangFangyiBuff3,
+    buff_chr_0030_zhuangfy_normal_skill_trigger_sword: zhuangFangyiBuff4,
+    buff_chr_0030_zhuangfy_normal_skill_trigger_sword_tar: zhuangFangyiBuff5,
+    buff_chr_0030_zhuangfy_passive_check_sword: zhuangFangyiBuff6,
+    buff_chr_0030_zhuangfy_potential1: zhuangFangyiBuff7,
+    buff_chr_0030_zhuangfy_potential1_more_sword: zhuangFangyiBuff8,
+    buff_chr_0030_zhuangfy_potential5: zhuangFangyiBuff9,
+    buff_chr_0030_zhuangfy_potential5_vfx: zhuangFangyiBuff10,
+    buff_chr_0030_zhuangfy_sword_triggerd: zhuangFangyiBuff11,
+    buff_chr_0030_zhuangfy_talent1: zhuangFangyiBuff12,
+    buff_chr_0030_zhuangfy_talent1_base: zhuangFangyiBuff13,
+    buff_chr_0030_zhuangfy_talent1_mark: zhuangFangyiBuff14,
+    buff_chr_0030_zhuangfy_ult_base: zhuangFangyiBuff15,
+    buff_chr_0030_zhuangfy_ult_skill_free: zhuangFangyiBuff16,
   },
   abilityEntityDefinitions: {
     abilityentity_chr_0030_zhuangfy_attack2: {
+      faction: 'good',
       bornTags: ['SelectCategory/Unmarkable', 'Immune/Damage'],
       lifetime: { kind: 'limited', durationSeconds: 1 },
       maxStackingCount: 1,
@@ -6600,7 +6599,7 @@ export const zhuangFangyi: OperatorDefinition = {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_4' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_3' },
                   whenTrue: { $sequence: 'mergeContextTargets_7' },
                   whenFalse: { $sequence: 'mergeContextTargets_10' },
                 },
@@ -6627,6 +6626,13 @@ export const zhuangFangyi: OperatorDefinition = {
                 type: 'boolean',
                 expression: { kind: 'probability', probability: { kind: 'constant', value: 0.5 } },
               },
+              data_3: {
+                type: 'boolean',
+                expression: {
+                  kind: 'checkActionResult',
+                  action: { $sequence: 'checkCondition_4' },
+                },
+              },
             },
           },
           macros: {},
@@ -6634,6 +6640,7 @@ export const zhuangFangyi: OperatorDefinition = {
       },
     },
     abilityentity_chr_0030_zhuangfy_attack5: {
+      faction: 'good',
       bornTags: ['SelectCategory/Unmarkable', 'Immune/Damage'],
       lifetime: { kind: 'limited', durationSeconds: 1 },
       maxStackingCount: 1,
@@ -6760,7 +6767,10 @@ export const zhuangFangyi: OperatorDefinition = {
               },
             },
             dataNodes: {
-              data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
+              data_1: {
+                type: 'boolean',
+                expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+              },
               data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
               data_3: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
               data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
@@ -6795,6 +6805,7 @@ export const zhuangFangyi: OperatorDefinition = {
       },
     },
     abilityentity_chr_0030_zhuangfy_attack_ult: {
+      faction: 'good',
       bornTags: ['SelectCategory/Unmarkable', 'Immune/Damage'],
       blackboard: { EntityBB_hitedMark: '#' },
       lifetime: { kind: 'limited', durationSeconds: 1.5 },
@@ -6869,8 +6880,8 @@ export const zhuangFangyi: OperatorDefinition = {
                   type: 'boolean',
                   expression: {
                     kind: 'timedMarkerPresent',
+                    target: { kind: 'fixed', target: 'enemy' },
                     returnTrueIfNotExists: true,
-                    target: 'enemy',
                     markerId: { kind: 'stringNode', nodeId: 'data_1' },
                   },
                 },
@@ -6949,8 +6960,8 @@ export const zhuangFangyi: OperatorDefinition = {
                   type: 'boolean',
                   expression: {
                     kind: 'timedMarkerPresent',
+                    target: { kind: 'fixed', target: 'enemy' },
                     returnTrueIfNotExists: true,
-                    target: 'enemy',
                     markerId: { kind: 'stringNode', nodeId: 'data_1' },
                   },
                 },
@@ -7029,8 +7040,8 @@ export const zhuangFangyi: OperatorDefinition = {
                   type: 'boolean',
                   expression: {
                     kind: 'timedMarkerPresent',
+                    target: { kind: 'fixed', target: 'enemy' },
                     returnTrueIfNotExists: true,
-                    target: 'enemy',
                     markerId: { kind: 'stringNode', nodeId: 'data_1' },
                   },
                 },
@@ -7109,8 +7120,8 @@ export const zhuangFangyi: OperatorDefinition = {
                   type: 'boolean',
                   expression: {
                     kind: 'timedMarkerPresent',
+                    target: { kind: 'fixed', target: 'enemy' },
                     returnTrueIfNotExists: true,
-                    target: 'enemy',
                     markerId: { kind: 'stringNode', nodeId: 'data_1' },
                   },
                 },
@@ -7122,6 +7133,7 @@ export const zhuangFangyi: OperatorDefinition = {
       },
     },
     abilityentity_chr_0030_zhuangfy_attack3_ult: {
+      faction: 'good',
       bornTags: ['SelectCategory/Unmarkable', 'Immune/Damage'],
       lifetime: { kind: 'limited', durationSeconds: 2 },
       childSkill: {
@@ -7218,6 +7230,7 @@ export const zhuangFangyi: OperatorDefinition = {
       },
     },
     abilityentity_chr_0030_zhuangfy_normal_skill_fake_target: {
+      faction: 'good',
       bornTags: [
         'SelectCategory/Unmarkable',
         'Immune/Damage',
@@ -7227,6 +7240,7 @@ export const zhuangFangyi: OperatorDefinition = {
       maxStackingCount: 10,
     },
     abilityentity_chr_0030_zhuangfy_normal_skill_sword: {
+      faction: 'good',
       bornTags: [
         'SelectCategory/Unmarkable',
         'Immune/Damage',
@@ -7266,7 +7280,7 @@ export const zhuangFangyi: OperatorDefinition = {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_1' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_2' },
                   whenTrue: { $sequence: null },
                   whenFalse: { $sequence: null },
                 },
@@ -7278,6 +7292,13 @@ export const zhuangFangyi: OperatorDefinition = {
                 type: 'boolean',
                 expression: { kind: 'probability', probability: { kind: 'constant', value: 0.5 } },
               },
+              data_2: {
+                type: 'boolean',
+                expression: {
+                  kind: 'checkActionResult',
+                  action: { $sequence: 'checkCondition_1' },
+                },
+              },
             },
           },
           macros: {},
@@ -7285,6 +7306,7 @@ export const zhuangFangyi: OperatorDefinition = {
       },
     },
     abilityentity_chr_0030_zhuangfy_normal_skill_ult: {
+      faction: 'good',
       bornTags: ['SelectCategory/Unmarkable', 'Immune/Damage'],
       blackboard: { EntityBB_SwordNum: 0 },
       lifetime: { kind: 'limited', durationSeconds: 3 },
@@ -7348,18 +7370,11 @@ export const zhuangFangyi: OperatorDefinition = {
                 action: { kind: 'finishOwner', parameters: { targets: { kind: 'owner' } } },
                 next: null,
               },
-              checkCondition_3: {
-                action: {
-                  kind: 'checkCondition',
-                  parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
-                },
-                next: null,
-              },
               ifElse_5: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_3' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_4' },
                   whenTrue: { $sequence: 'finishOwner_4' },
                   whenFalse: { $sequence: null },
                 },
@@ -7369,7 +7384,7 @@ export const zhuangFangyi: OperatorDefinition = {
                 action: {
                   kind: 'jumpTimeline',
                   parameters: { destinationFrame: 64 },
-                  condition: { $sequence: null },
+                  condition: { kind: 'conditionNode', nodeId: 'data_5' },
                 },
                 next: null,
               },
@@ -7378,7 +7393,7 @@ export const zhuangFangyi: OperatorDefinition = {
                   kind: 'dealDamage',
                   parameters: {
                     damageType: 'electric',
-                    attackScale: { kind: 'valueNode', nodeId: 'data_5' },
+                    attackScale: { kind: 'valueNode', nodeId: 'data_6' },
                     tags: ['normalSkill'],
                   },
                   key: 'abilityentity_chr_0030_zhuangfy_normal_skill_ult:chr_0030_zhuangfy_normal_skill_ult_abilityrange:/childSkill/actionGraph/main/nodes/dealDamage_10/action',
@@ -7390,18 +7405,11 @@ export const zhuangFangyi: OperatorDefinition = {
                   kind: 'dealDamage',
                   parameters: {
                     damageType: 'electric',
-                    attackScale: { kind: 'valueNode', nodeId: 'data_5' },
+                    attackScale: { kind: 'valueNode', nodeId: 'data_6' },
                     tags: ['normalSkill'],
                     features: ['canBreakWeakness'],
                   },
                   key: 'abilityentity_chr_0030_zhuangfy_normal_skill_ult:chr_0030_zhuangfy_normal_skill_ult_abilityrange:/childSkill/actionGraph/main/nodes/dealDamage_9/action',
-                },
-                next: null,
-              },
-              checkCondition_8: {
-                action: {
-                  kind: 'checkCondition',
-                  parameters: { condition: { kind: 'conditionNode', nodeId: 'data_7' } },
                 },
                 next: null,
               },
@@ -7420,7 +7428,7 @@ export const zhuangFangyi: OperatorDefinition = {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_8' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_8' },
                   whenTrue: { $sequence: 'dealDamage_9' },
                   whenFalse: { $sequence: 'dealDamage_10' },
                 },
@@ -7438,18 +7446,11 @@ export const zhuangFangyi: OperatorDefinition = {
                 },
                 next: 'ifElse_13',
               },
-              checkCondition_11: {
-                action: {
-                  kind: 'checkCondition',
-                  parameters: { condition: { kind: 'conditionNode', nodeId: 'data_8' } },
-                },
-                next: null,
-              },
               ifElse_16: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_11' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_9' },
                   whenTrue: { $sequence: 'applyBuff_14' },
                   whenFalse: { $sequence: 'jumpTimeline_15' },
                 },
@@ -7486,10 +7487,10 @@ export const zhuangFangyi: OperatorDefinition = {
                   kind: 'dealDamage',
                   parameters: {
                     damageType: 'electric',
-                    attackScale: { kind: 'valueNode', nodeId: 'data_5' },
+                    attackScale: { kind: 'valueNode', nodeId: 'data_6' },
                     tags: ['normalSkill'],
                     features: ['canBreakWeakness'],
-                    stagger: { kind: 'valueNode', nodeId: 'data_9' },
+                    stagger: { kind: 'valueNode', nodeId: 'data_10' },
                   },
                   key: 'abilityentity_chr_0030_zhuangfy_normal_skill_ult:chr_0030_zhuangfy_normal_skill_ult_abilityrange:/childSkill/actionGraph/main/nodes/dealDamage_19/action',
                 },
@@ -7508,8 +7509,8 @@ export const zhuangFangyi: OperatorDefinition = {
                   parameters: {
                     key: 'atk_scale_final',
                     operation: 'multiply',
-                    left: { kind: 'valueNode', nodeId: 'data_5' },
-                    right: { kind: 'valueNode', nodeId: 'data_10' },
+                    left: { kind: 'valueNode', nodeId: 'data_6' },
+                    right: { kind: 'valueNode', nodeId: 'data_11' },
                   },
                 },
                 next: 'applyElementalInfliction_20',
@@ -7529,7 +7530,7 @@ export const zhuangFangyi: OperatorDefinition = {
               checkCondition_23: {
                 action: {
                   kind: 'checkCondition',
-                  parameters: { condition: { kind: 'conditionNode', nodeId: 'data_11' } },
+                  parameters: { condition: { kind: 'conditionNode', nodeId: 'data_12' } },
                 },
                 next: 'applyBuff_22',
               },
@@ -7554,18 +7555,11 @@ export const zhuangFangyi: OperatorDefinition = {
                 },
                 next: null,
               },
-              checkCondition_25: {
-                action: {
-                  kind: 'checkCondition',
-                  parameters: { condition: { kind: 'conditionNode', nodeId: 'data_13' } },
-                },
-                next: null,
-              },
               ifElse_27: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_25' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_14' },
                   whenTrue: { $sequence: 'modifyActionValue_26' },
                   whenFalse: { $sequence: null },
                 },
@@ -7612,34 +7606,38 @@ export const zhuangFangyi: OperatorDefinition = {
                 },
               },
               data_5: {
-                type: 'number',
-                expression: { kind: 'blackboard', key: 'atk_scale_final' },
+                type: 'boolean',
+                expression: { kind: 'checkActionResult', action: { $sequence: null } },
               },
               data_6: {
                 type: 'number',
-                expression: { kind: 'blackboard', key: 'tick_index', fallback: 0 },
+                expression: { kind: 'blackboard', key: 'atk_scale_final' },
               },
               data_7: {
-                type: 'boolean',
-                expression: {
-                  kind: 'actionValueCompare',
-                  left: { kind: 'valueNode', nodeId: 'data_6' },
-                  operator: 'equal',
-                  right: { kind: 'constant', value: 1 },
-                },
+                type: 'number',
+                expression: { kind: 'blackboard', key: 'tick_index', fallback: 0 },
               },
               data_8: {
                 type: 'boolean',
                 expression: {
                   kind: 'actionValueCompare',
-                  left: { kind: 'valueNode', nodeId: 'data_6' },
+                  left: { kind: 'valueNode', nodeId: 'data_7' },
+                  operator: 'equal',
+                  right: { kind: 'constant', value: 1 },
+                },
+              },
+              data_9: {
+                type: 'boolean',
+                expression: {
+                  kind: 'actionValueCompare',
+                  left: { kind: 'valueNode', nodeId: 'data_7' },
                   operator: 'less',
                   right: { kind: 'valueNode', nodeId: 'data_3' },
                 },
               },
-              data_9: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
-              data_10: { type: 'number', expression: { kind: 'blackboard', key: 'final_rate' } },
-              data_11: {
+              data_10: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
+              data_11: { type: 'number', expression: { kind: 'blackboard', key: 'final_rate' } },
+              data_12: {
                 type: 'boolean',
                 expression: {
                   kind: 'entityCountCompare',
@@ -7650,15 +7648,15 @@ export const zhuangFangyi: OperatorDefinition = {
                   value: 1,
                 },
               },
-              data_12: {
+              data_13: {
                 type: 'number',
                 expression: { kind: 'blackboard', key: 'sword_index', fallback: 0 },
               },
-              data_13: {
+              data_14: {
                 type: 'boolean',
                 expression: {
                   kind: 'actionValueCompare',
-                  left: { kind: 'valueNode', nodeId: 'data_12' },
+                  left: { kind: 'valueNode', nodeId: 'data_13' },
                   operator: 'less',
                   right: { kind: 'valueNode', nodeId: 'data_3' },
                 },
@@ -7670,11 +7668,13 @@ export const zhuangFangyi: OperatorDefinition = {
       },
     },
     abilityentity_chr_0030_zhuangfy_ult_mirror: {
+      faction: 'good',
       bornTags: ['SelectCategory/Unmarkable', 'Immune/Damage'],
       lifetime: { kind: 'limited', durationSeconds: 3 },
       maxStackingCount: 1,
     },
     abilityentity_chr_0030_zhuangfy_ult: {
+      faction: 'good',
       bornTags: ['SelectCategory/Unmarkable', 'Immune/Damage'],
       lifetime: { kind: 'limited', durationSeconds: 3 },
       maxStackingCount: 1,

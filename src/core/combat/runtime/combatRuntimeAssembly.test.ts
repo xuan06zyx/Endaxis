@@ -62,9 +62,9 @@ const rejectingExecutor: CombatOperationExecutor = {
   evaluate: () => false,
 };
 
-const gilbertaBattleSkill = gilbertaGeneratedOperator.skillGroups
-  .flatMap(group => (Array.isArray(group.skills) ? group.skills : [group.skills]))
-  .find(skill => skill.key === 'chr_0013_aglina_normal_skill') as SkillDefinition;
+const gilbertaBattleSkill = gilbertaGeneratedOperator.skills.find(
+  skill => skill.key === 'chr_0013_aglina_normal_skill',
+) as SkillDefinition;
 
 const compileGraphEntry = (
   revision: string,
@@ -400,7 +400,12 @@ function createAssembly(
       : { createOperatorBuffRuntime: resolvedCreateOperatorBuffRuntime }),
     ...(createAbilityEntityBuffRuntime === undefined ? {} : { createAbilityEntityBuffRuntime }),
     ...(isOperatorControlled === undefined ? {} : { isOperatorControlled }),
-    ...(resolveVitals === undefined ? {} : { resolveVitals }),
+    ...(resolveVitals === undefined
+      ? {}
+      : {
+          resolveVitals,
+          resolveOperatorVitals: (operatorId: string) => resolveVitals('caster', operatorId),
+        }),
     ...(emitAbilityEvent === undefined ? {} : { emitAbilityEvent }),
   });
 }
@@ -559,6 +564,7 @@ describe('CombatRuntimeAssembly', () => {
         },
         dashTiming: {
           dashOffsetFrames: 30,
+          skillOffsetFrames: 30,
           blockAttackFramesInDash: 2,
           allowAttackAfterFramesInDash: 4,
           blockAttackFramesInPerfectDodge: 2,
@@ -1116,6 +1122,7 @@ describe('CombatRuntimeAssembly', () => {
       ],
       dashTiming: {
         dashOffsetFrames: 30,
+        skillOffsetFrames: 30,
         blockAttackFramesInDash: 1,
         allowAttackAfterFramesInDash: 4,
         blockAttackFramesInPerfectDodge: 1,
@@ -1204,8 +1211,8 @@ describe('CombatRuntimeAssembly', () => {
           [`${prefix}-type`]: {
             type: 'boolean' as const,
             expression: {
-              kind: 'contextTargetObjectTypeMatch' as const,
-              contextKey: 'source',
+              kind: 'targetObjectTypeMatch' as const,
+              target: { kind: 'context' as const, key: 'source' },
               objectTypes: [objectType],
             },
           },
@@ -2329,10 +2336,31 @@ describe('CombatRuntimeAssembly', () => {
     const origin = assembly.abilityEntities.snapshot(entity!).skillCastInfo;
     expect(origin).toMatchObject({ originSkillId: 'skill', originSkillType: 'battleSkill' });
     assembly.abilityEntities.finish(entity!, 'explicit');
-    for (const event of ['abilityEntitySpawned', 'abilityEntityFinished']) {
+    for (const event of [
+      'abilityEntitySpawned',
+      'abilityEntitySelfFinished',
+      'abilityEntityFinished',
+    ]) {
       const published = emitAbilityEvent.mock.calls.find(call => call[1] === event);
       expect(published?.[2].skillCastInfo).toBe(origin);
     }
+    const entityId = logicalAbilityEntityRuntimeId(entity!.instanceId);
+    expect(
+      emitAbilityEvent.mock.calls.filter(
+        call => call[1] === 'abilityEntitySelfFinished' || call[1] === 'abilityEntityFinished',
+      ),
+    ).toEqual([
+      [
+        entityId,
+        'abilityEntitySelfFinished',
+        { skillCastInfo: origin, sourceId: entityId, targetId: entityId, finishReason: 'other' },
+      ],
+      [
+        'operator',
+        'abilityEntityFinished',
+        { skillCastInfo: origin, sourceId: entityId, targetId: entityId, finishReason: 'other' },
+      ],
+    ]);
     expect(assembly.receipt.entries).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -2660,6 +2688,160 @@ describe('CombatRuntimeAssembly', () => {
     const launched = assembly.receipt.entries.find(entry => entry.event === 'ProjectileLaunched');
     expect(launched?.subject).toEqual({ kind: 'abilityEntity', instanceId: 2 });
     expect(launched?.producedBy).toEqual({ kind: 'abilityEntity', instanceId: 1 });
+  });
+
+  it('initializes spawned Souls from body attributes and their own health blackboard', () => {
+    const body = new CombatVitals({
+      health: 100,
+      maxHealth: 1000,
+      poise: 25,
+      maxPoise: 100,
+      poiseRecoveryTime: 0,
+      poiseRecoveryTimeMultiplier: 1,
+      poiseBrokenEndTime: 0,
+      poiseImmune: false,
+    });
+    const attributes = new CombatAttributeSet<string>();
+    attributes.setRawValue('attack', 80);
+    const definitions = new CompiledCombatBuffDefinitions<string>(
+      'soul-test',
+      [
+        { id: 'ordinary', stackingType: 'unique' },
+        {
+          id: 'soul-only',
+          stackingType: 'unique',
+          applyTags: ['Skill/Character/chr_0036_jsspsi/soul/SoulBuff'],
+        },
+      ],
+      {
+        emitElementalInflictionStarted: () => {},
+      },
+    );
+    const applied = vi.fn();
+    const enemyRuntime = new BuffDefinitionOperationTarget(
+      new CombatBuffContainer('enemy', attributes),
+      definitions,
+      { kind: 'enemy' },
+      undefined,
+      applied,
+    );
+    const entityContainers: CombatBuffContainer<string>[] = [];
+    const entityTargets: BuffDefinitionOperationTarget<string>[] = [];
+    const program = skill({
+      costs: [],
+      costFrame: undefined,
+      timelineActions: [
+        {
+          startFrame: 0,
+          sequence: chainEntry(
+            'spawn-souls',
+            [0, 200].map(health => ({
+              kind: 'spawnAbilityEntity',
+              parameters: {
+                bornAt: { kind: 'owner' },
+                target: 'enemy',
+                abilityEntityId: 'soul',
+                dieWhenSourceDies: false,
+                blackboardAssignments: { soulHp: { kind: 'constant', value: health } },
+                definition: {
+                  lifetime: { kind: 'infinite' },
+                  blackboard: { ratio: 1.5 },
+                  soul: {
+                    useMainBodyHp: false,
+                    useMainBodyPoise: true,
+                    canBeHitIndividually: false,
+                    onlyHitByNormalAttack: false,
+                    canBeDirectlyBuffed: false,
+                    damageTransferType: 'sharedDamage',
+                    damageRatio: 0,
+                    poiseRatio: 1,
+                    soulHpBlackboardKey: 'soulHp',
+                    soulDamageRatio: { blackboardKey: 'ratio', fallback: 1 },
+                    soulPoiseRatio: 1,
+                    asPrimaryTarget: false,
+                  },
+                },
+              },
+            })),
+          ),
+        },
+      ],
+    });
+    const assembly = createAssembly(
+      [program],
+      undefined,
+      () => body,
+      enemyRuntime,
+      undefined,
+      testEnemy,
+      undefined,
+      (id, blackboard, target) => {
+        const container = new CombatBuffContainer(
+          id,
+          new CombatAttributeSet<string>(),
+          undefined,
+          null,
+          blackboard,
+        );
+        entityContainers.push(container);
+        const runtime = new BuffDefinitionOperationTarget(container, definitions, target);
+        entityTargets.push(runtime);
+        return runtime;
+      },
+    );
+    expect(assembly.tryStartSkill('operator', 'skill')).toBe(true);
+    const first = { kind: 'abilityEntity', instanceId: 1 } as const;
+    const second = { kind: 'abilityEntity', instanceId: 2 } as const;
+    expect(assembly.abilityEntities.soulVitals(first)?.health).toBe(1000);
+    const routed = entityTargets[0]!.applyScoped({
+      buffId: 'ordinary',
+      sourceId: 'operator',
+      blackboardValues: {},
+      partTransferInfo: {
+        currentMainBodyId: 'previous',
+        mainBodyToPart: new Map([['previous', 'ability-entity:2']]),
+      },
+    });
+    const retained = entityTargets[0]!.applyScoped({
+      buffId: 'soul-only',
+      sourceId: 'operator',
+      blackboardValues: {},
+    });
+    expect(routed?.reference.ownerId).toBe('enemy');
+    expect(applied.mock.calls[0]![0].partTransferInfo).toEqual({
+      currentMainBodyId: 'enemy',
+      mainBodyToPart: new Map([
+        ['previous', 'ability-entity:2'],
+        ['enemy', 'ability-entity:1'],
+      ]),
+    });
+    expect(retained?.reference.ownerId).toBe('ability-entity:1');
+    const instanceTransfer = enemyRuntime.container.buffs[0]!.runtimeState.partTransferInfo;
+    expect(instanceTransfer).toEqual(applied.mock.calls[0]![0].partTransferInfo);
+    expect(instanceTransfer).not.toBe(applied.mock.calls[0]![0].partTransferInfo);
+    expect(
+      structuredClone(enemyRuntime.runtimeState).instances.get(routed!.reference.instanceId)
+        ?.partTransferInfo,
+    ).toEqual(instanceTransfer);
+    expect(enemyRuntime.getCountByIds(['ordinary'])).toBe(1);
+    expect(entityTargets[0]!.getCountByIds(['ordinary'])).toBe(0);
+    expect(entityTargets[0]!.getCountByIds(['soul-only'])).toBe(1);
+    routed!.finish('early');
+    expect(enemyRuntime.getCountByIds(['ordinary'])).toBe(0);
+    expect(assembly.abilityEntities.soulVitals(second)?.health).toBe(200);
+    expect(assembly.abilityEntities.runtimeState.instances.get(2)?.soul).toMatchObject({
+      damageRatio: 1.5,
+      poiseRatio: 1,
+      useMainBodyPoise: true,
+    });
+    expect(
+      entityContainers.map(container => container.runtimeState.attributes.rawValues.get('attack')),
+    ).toEqual([80, 80]);
+    attributes.setRawValue('attack', 160);
+    expect(entityContainers[0]!.runtimeState.attributes.rawValues.get('attack')).toBe(80);
+    assembly.abilityEntities.soulVitals(second)!.takeDamage(50);
+    expect(body.health).toBe(100);
+    expect(assembly.abilityEntities.soulVitals(first)?.health).toBe(1000);
   });
 
   it('lets an AbilityEntity Buff lifecycle finish its owning entity through the shared chain', () => {
@@ -4860,7 +5042,7 @@ describe('CombatRuntimeAssembly', () => {
                 type: 'boolean',
                 expression: {
                   kind: 'healthCompare',
-                  target: 'enemy',
+                  target: { kind: 'fixed', target: 'enemy' },
                   valueType: 'ratio',
                   operator: 'less',
                   value: { kind: 'constant', value: 0.5 },
@@ -4914,7 +5096,11 @@ describe('CombatRuntimeAssembly', () => {
             {
               input_1: {
                 type: 'boolean',
-                expression: { kind: 'enemyRankIn', ranks: ['elite', 'boss'] },
+                expression: {
+                  kind: 'enemyRankIn',
+                  target: { kind: 'fixed', target: 'enemy' },
+                  ranks: ['elite', 'boss'],
+                },
               },
             },
           ),
@@ -4968,7 +5154,12 @@ describe('CombatRuntimeAssembly', () => {
                   next: null,
                 },
               },
-              { input_1: { type: 'boolean', expression: { kind: 'casterControlled' } } },
+              {
+                input_1: {
+                  type: 'boolean',
+                  expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+                },
+              },
             ),
           },
         ],
@@ -5001,7 +5192,12 @@ describe('CombatRuntimeAssembly', () => {
                 next: null,
               },
             },
-            { input_1: { type: 'boolean', expression: { kind: 'casterControlled' } } },
+            {
+              input_1: {
+                type: 'boolean',
+                expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+              },
+            },
           ),
         },
       ],
@@ -5699,7 +5895,8 @@ describe('CombatRuntimeAssembly', () => {
                 type: 'boolean',
                 expression: {
                   kind: 'buffIdStackCompare',
-                  target: 'caster',
+                  target: { kind: 'fixed', target: 'caster' },
+                  compareZeroWhenTargetMissing: false,
                   buffIds: ['sword-trigger'],
                   operator: 'greaterOrEqual',
                   value: 1,

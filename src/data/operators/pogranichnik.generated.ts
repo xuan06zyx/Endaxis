@@ -11,13 +11,6 @@ import type { OperatorDefinition } from '../../../packages/game-data-contract/sr
 export const pogranichnikChr_0029_pograni_attack1ActionGraph = {
   main: {
     nodes: {
-      checkCondition_2: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       startTimeDilation_3: {
         action: {
           kind: 'startTimeDilation',
@@ -38,7 +31,7 @@ export const pogranichnikChr_0029_pograni_attack1ActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_2' },
+            amount: { kind: 'valueNode', nodeId: 'data_1' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -52,7 +45,7 @@ export const pogranichnikChr_0029_pograni_attack1ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_2' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'changeResource_4' },
           whenFalse: { $sequence: null },
         },
@@ -78,8 +71,11 @@ export const pogranichnikChr_0029_pograni_attack1ActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
     },
   },
@@ -154,18 +150,11 @@ export const pogranichnikChr_0029_pograni_attack2ActionGraph = {
         },
         next: 'startTimeDilation_4',
       },
-      checkCondition_3: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_6: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'changeResource_5' },
           whenFalse: { $sequence: null },
         },
@@ -216,7 +205,7 @@ export const pogranichnikChr_0029_pograni_attack2ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: 'changeResource_10' },
           whenFalse: { $sequence: null },
         },
@@ -243,8 +232,15 @@ export const pogranichnikChr_0029_pograni_attack2ActionGraph = {
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
+      data_4: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
     },
   },
   macros: {},
@@ -319,18 +315,11 @@ export const pogranichnikChr_0029_pograni_attack3ActionGraph = {
         },
         next: 'startTimeDilation_4',
       },
-      checkCondition_3: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_6: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'changeResource_5' },
           whenFalse: { $sequence: null },
         },
@@ -383,7 +372,7 @@ export const pogranichnikChr_0029_pograni_attack3ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_5' },
           whenTrue: { $sequence: 'changeResource_10' },
           whenFalse: { $sequence: null },
         },
@@ -412,9 +401,16 @@ export const pogranichnikChr_0029_pograni_attack3ActionGraph = {
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
       data_4: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
+      data_5: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
     },
   },
   macros: {},
@@ -475,18 +471,11 @@ export const pogranichnikChr_0029_pograni_attack4ActionGraph = {
         },
         next: null,
       },
-      checkCondition_5: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_7: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_5' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'changeResource_6' },
           whenFalse: { $sequence: null },
         },
@@ -578,7 +567,7 @@ export const pogranichnikChr_0029_pograni_attack4ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_29' },
+          condition: { kind: 'conditionNode', nodeId: 'data_7' },
           whenTrue: { $sequence: 'startTimeDilation_30' },
           whenFalse: { $sequence: null },
         },
@@ -594,7 +583,10 @@ export const pogranichnikChr_0029_pograni_attack4ActionGraph = {
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
       data_4: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
       data_5: {
@@ -608,7 +600,14 @@ export const pogranichnikChr_0029_pograni_attack4ActionGraph = {
           value: 1,
         },
       },
-      data_6: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_6: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_7: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: 'checkCondition_29' } },
+      },
     },
   },
   macros: {},
@@ -670,19 +669,12 @@ export const pogranichnikChr_0029_pograni_attack5ActionGraph = {
         },
         next: null,
       },
-      checkCondition_3: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       changeResource_4: {
         action: {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_2' },
+            amount: { kind: 'valueNode', nodeId: 'data_1' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -696,7 +688,7 @@ export const pogranichnikChr_0029_pograni_attack5ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'modifyActionValue_2' },
           whenFalse: { $sequence: null },
         },
@@ -706,7 +698,7 @@ export const pogranichnikChr_0029_pograni_attack5ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'ifElse_5' },
           whenFalse: { $sequence: null },
         },
@@ -717,20 +709,13 @@ export const pogranichnikChr_0029_pograni_attack5ActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_3' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_4' },
             tags: ['normalAttack', 'normalAttackLastCombo'],
-            stagger: { kind: 'valueNode', nodeId: 'data_4' },
+            stagger: { kind: 'valueNode', nodeId: 'data_5' },
             staggerOnlyWhenCasterControlled: true,
           },
         },
         next: 'ifElse_6',
-      },
-      checkCondition_8: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
-        },
-        next: null,
       },
       startTimeDilation_9: {
         action: {
@@ -751,7 +736,7 @@ export const pogranichnikChr_0029_pograni_attack5ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_8' },
+          condition: { kind: 'conditionNode', nodeId: 'data_7' },
           whenTrue: { $sequence: 'startTimeDilation_9' },
           whenFalse: { $sequence: null },
         },
@@ -766,19 +751,26 @@ export const pogranichnikChr_0029_pograni_attack5ActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
-      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
-      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
-      data_5: {
+      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_3: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
+      data_5: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
+      data_6: {
         type: 'number',
         expression: { kind: 'blackboard', key: 'isHitbyMain', fallback: 0 },
       },
-      data_6: {
+      data_7: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_5' },
+          left: { kind: 'valueNode', nodeId: 'data_6' },
           operator: 'greaterOrEqual',
           right: { kind: 'constant', value: 1 },
         },
@@ -844,18 +836,11 @@ export const pogranichnikChr_0029_pograni_power_attackActionGraph = {
         },
         next: null,
       },
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       ifElse_3: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'startTimeDilation_2' },
           whenFalse: { $sequence: null },
         },
@@ -893,7 +878,7 @@ export const pogranichnikChr_0029_pograni_power_attackActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'startTimeDilation_6' },
           whenFalse: { $sequence: null },
         },
@@ -920,7 +905,7 @@ export const pogranichnikChr_0029_pograni_power_attackActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: 'gainFinisherSp_10' },
           whenFalse: { $sequence: null },
         },
@@ -957,14 +942,14 @@ export const pogranichnikChr_0029_pograni_power_attackActionGraph = {
       checkCondition_14: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
         },
         next: 'startTimeDilation_13',
       },
       checkCondition_15: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
         },
         next: 'checkCondition_14',
       },
@@ -996,9 +981,20 @@ export const pogranichnikChr_0029_pograni_power_attackActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
       data_3: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
+      data_4: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
+      data_5: {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
@@ -1009,7 +1005,10 @@ export const pogranichnikChr_0029_pograni_power_attackActionGraph = {
           value: 1,
         },
       },
-      data_4: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_6: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
     },
   },
   macros: {},
@@ -1023,6 +1022,7 @@ export const pogranichnikChr_0029_pograni_power_attack: SkillDefinition = {
   naturalDurationFrames: 145,
   exclusiveFrame: 47,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       {
@@ -1051,19 +1051,12 @@ export const pogranichnikChr_0029_pograni_power_attack: SkillDefinition = {
 export const pogranichnikChr_0029_pograni_plunging_attack_endActionGraph = {
   main: {
     nodes: {
-      checkCondition_2: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       changeResource_3: {
         action: {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_2' },
+            amount: { kind: 'valueNode', nodeId: 'data_1' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -1077,7 +1070,7 @@ export const pogranichnikChr_0029_pograni_plunging_attack_endActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_2' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'changeResource_3' },
           whenFalse: { $sequence: null },
         },
@@ -1096,8 +1089,11 @@ export const pogranichnikChr_0029_pograni_plunging_attack_endActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
     },
   },
@@ -1149,18 +1145,11 @@ export const pogranichnikChr_0029_pograni_normal_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_23: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
-        },
-        next: null,
-      },
       ifElse_25: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_23' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: 'modifyActionValue_24' },
           whenFalse: { $sequence: null },
         },
@@ -1331,13 +1320,6 @@ export const pogranichnikChr_0029_pograni_normal_skillActionGraph = {
         },
         next: 'changeResource_37',
       },
-      checkCondition_36: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_15' } },
-        },
-        next: null,
-      },
       startTimeDilation_39: {
         action: {
           kind: 'startTimeDilation',
@@ -1407,7 +1389,7 @@ export const pogranichnikChr_0029_pograni_normal_skillActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_16' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_15' },
             tags: ['normalSkill'],
             features: ['canBreakWeakness'],
             stagger: { kind: 'valueNode', nodeId: 'data_11' },
@@ -1426,7 +1408,7 @@ export const pogranichnikChr_0029_pograni_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_36' },
+          condition: { kind: 'conditionNode', nodeId: 'data_16' },
           whenTrue: { $sequence: 'checkCondition_38' },
           whenFalse: { $sequence: null },
         },
@@ -1458,7 +1440,7 @@ export const pogranichnikChr_0029_pograni_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_17' },
           whenTrue: { $sequence: 'applyBuff_44' },
           whenFalse: { $sequence: null },
         },
@@ -1499,7 +1481,8 @@ export const pogranichnikChr_0029_pograni_normal_skillActionGraph = {
           right: { kind: 'constant', value: 1 },
         },
       },
-      data_15: {
+      data_15: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale2' } },
+      data_16: {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
@@ -1510,7 +1493,10 @@ export const pogranichnikChr_0029_pograni_normal_skillActionGraph = {
           value: 2,
         },
       },
-      data_16: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale2' } },
+      data_17: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
     },
   },
   macros: {},
@@ -1536,6 +1522,7 @@ export const pogranichnikChr_0029_pograni_normal_skill: SkillDefinition = {
   naturalDurationFrames: 218,
   exclusiveFrame: 55,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       {
@@ -1578,7 +1565,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
         action: {
           kind: 'finishBuffsById',
           parameters: {
-            targets: { kind: 'fixed', target: 'enemy' },
+            targets: { kind: 'source' },
             finishSource: { kind: 'source' },
             buffIds: [
               'buff_chr_0029_pograni_combo_skill_count1',
@@ -1613,18 +1600,11 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
         },
         next: 'finishBuffsById_4',
       },
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       ifElse_9: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'modifyActionValue_3' },
           whenFalse: { $sequence: 'modifyActionValue_5' },
         },
@@ -1641,18 +1621,11 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
         },
         next: 'finishBuffsById_4',
       },
-      checkCondition_6: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_13: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_6' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'modifyActionValue_8' },
           whenFalse: { $sequence: 'ifElse_9' },
         },
@@ -1669,18 +1642,11 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
         },
         next: 'finishBuffsById_4',
       },
-      checkCondition_10: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
       ifElse_14: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_10' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'modifyActionValue_12' },
           whenFalse: { $sequence: 'ifElse_13' },
         },
@@ -1690,14 +1656,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 200 },
-          condition: { $sequence: null },
-        },
-        next: null,
-      },
-      checkCondition_15: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
         },
         next: null,
       },
@@ -1705,7 +1664,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_15' },
+          condition: { kind: 'conditionNode', nodeId: 'data_6' },
           whenTrue: { $sequence: 'jumpTimeline_16' },
           whenFalse: { $sequence: null },
         },
@@ -1715,14 +1674,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 400 },
-          condition: { $sequence: null },
-        },
-        next: null,
-      },
-      checkCondition_17: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
+          condition: { kind: 'conditionNode', nodeId: 'data_7' },
         },
         next: null,
       },
@@ -1730,7 +1682,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_17' },
+          condition: { kind: 'conditionNode', nodeId: 'data_8' },
           whenTrue: { $sequence: 'jumpTimeline_18' },
           whenFalse: { $sequence: 'ifElse_19' },
         },
@@ -1740,14 +1692,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 600 },
-          condition: { $sequence: null },
-        },
-        next: null,
-      },
-      checkCondition_20: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_7' } },
+          condition: { kind: 'conditionNode', nodeId: 'data_9' },
         },
         next: null,
       },
@@ -1755,7 +1700,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_20' },
+          condition: { kind: 'conditionNode', nodeId: 'data_10' },
           whenTrue: { $sequence: 'jumpTimeline_21' },
           whenFalse: { $sequence: 'ifElse_22' },
         },
@@ -1774,7 +1719,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'ultimateEnergy',
-            amount: { kind: 'valueNode', nodeId: 'data_8' },
+            amount: { kind: 'valueNode', nodeId: 'data_11' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -1802,10 +1747,10 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_9' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_12' },
             tags: ['comboSkill'],
             features: ['canBreakWeakness'],
-            stagger: { kind: 'valueNode', nodeId: 'data_10' },
+            stagger: { kind: 'valueNode', nodeId: 'data_13' },
           },
         },
         next: 'startTimeDilation_40',
@@ -1815,7 +1760,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_11' },
+            amount: { kind: 'valueNode', nodeId: 'data_14' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -1831,8 +1776,8 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           parameters: {
             key: 'calc_atb1',
             operation: 'multiply',
-            left: { kind: 'valueNode', nodeId: 'data_12' },
-            right: { kind: 'valueNode', nodeId: 'data_13' },
+            left: { kind: 'valueNode', nodeId: 'data_15' },
+            right: { kind: 'valueNode', nodeId: 'data_16' },
           },
         },
         next: 'changeResource_42',
@@ -1857,10 +1802,10 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_14' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_17' },
             tags: ['comboSkill'],
             features: ['canBreakWeakness'],
-            stagger: { kind: 'valueNode', nodeId: 'data_10' },
+            stagger: { kind: 'valueNode', nodeId: 'data_13' },
           },
         },
         next: 'startTimeDilation_44',
@@ -1870,7 +1815,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_15' },
+            amount: { kind: 'valueNode', nodeId: 'data_18' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -1886,8 +1831,8 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           parameters: {
             key: 'calc_atb2',
             operation: 'multiply',
-            left: { kind: 'valueNode', nodeId: 'data_16' },
-            right: { kind: 'valueNode', nodeId: 'data_13' },
+            left: { kind: 'valueNode', nodeId: 'data_19' },
+            right: { kind: 'valueNode', nodeId: 'data_16' },
           },
         },
         next: 'changeResource_46',
@@ -1952,10 +1897,10 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_17' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_20' },
             tags: ['comboSkill'],
             features: ['canBreakWeakness'],
-            stagger: { kind: 'valueNode', nodeId: 'data_18' },
+            stagger: { kind: 'valueNode', nodeId: 'data_21' },
           },
         },
         next: 'startTimeDilation_48',
@@ -1965,7 +1910,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_19' },
+            amount: { kind: 'valueNode', nodeId: 'data_22' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -1981,8 +1926,8 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           parameters: {
             key: 'calc_atb4',
             operation: 'multiply',
-            left: { kind: 'valueNode', nodeId: 'data_20' },
-            right: { kind: 'valueNode', nodeId: 'data_13' },
+            left: { kind: 'valueNode', nodeId: 'data_23' },
+            right: { kind: 'valueNode', nodeId: 'data_16' },
           },
         },
         next: 'changeResource_50',
@@ -1992,10 +1937,10 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_21' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_24' },
             tags: ['comboSkill'],
             features: ['canBreakWeakness'],
-            stagger: { kind: 'valueNode', nodeId: 'data_22' },
+            stagger: { kind: 'valueNode', nodeId: 'data_25' },
           },
         },
         next: 'startTimeDilation_48',
@@ -2005,7 +1950,7 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_23' },
+            amount: { kind: 'valueNode', nodeId: 'data_26' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -2021,8 +1966,8 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
           parameters: {
             key: 'calc_atb3',
             operation: 'multiply',
-            left: { kind: 'valueNode', nodeId: 'data_24' },
-            right: { kind: 'valueNode', nodeId: 'data_13' },
+            left: { kind: 'valueNode', nodeId: 'data_27' },
+            right: { kind: 'valueNode', nodeId: 'data_16' },
           },
         },
         next: 'changeResource_63',
@@ -2081,80 +2026,95 @@ export const pogranichnikChr_0029_pograni_combo_skillActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0029_pograni_combo_skill_count2'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0029_pograni_combo_skill_count2'],
         },
       },
       data_2: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0029_pograni_combo_skill_count3'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0029_pograni_combo_skill_count3'],
         },
       },
       data_3: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0029_pograni_combo_skill_count4'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0029_pograni_combo_skill_count4'],
         },
       },
       data_4: {
-        type: 'number',
-        expression: { kind: 'blackboard', key: 'EntityBB_noguard_count', fallback: 0 },
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
       },
       data_5: {
-        type: 'boolean',
-        expression: {
-          kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_4' },
-          operator: 'lessOrEqual',
-          right: { kind: 'constant', value: 3 },
-        },
+        type: 'number',
+        expression: { kind: 'blackboard', key: 'EntityBB_noguard_count', fallback: 0 },
       },
       data_6: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_4' },
+          left: { kind: 'valueNode', nodeId: 'data_5' },
           operator: 'lessOrEqual',
-          right: { kind: 'constant', value: 2 },
+          right: { kind: 'constant', value: 3 },
         },
       },
       data_7: {
         type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_8: {
+        type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_4' },
+          left: { kind: 'valueNode', nodeId: 'data_5' },
+          operator: 'lessOrEqual',
+          right: { kind: 'constant', value: 2 },
+        },
+      },
+      data_9: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_10: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_5' },
           operator: 'lessOrEqual',
           right: { kind: 'constant', value: 1 },
         },
       },
-      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'usp' } },
-      data_9: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
-      data_10: { type: 'number', expression: { kind: 'blackboard', key: 'poise1' } },
-      data_11: { type: 'number', expression: { kind: 'blackboard', key: 'calc_atb1' } },
-      data_12: { type: 'number', expression: { kind: 'blackboard', key: 'atb1' } },
-      data_13: { type: 'number', expression: { kind: 'blackboard', key: 'atb_ratio' } },
-      data_14: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale2' } },
-      data_15: { type: 'number', expression: { kind: 'blackboard', key: 'calc_atb2' } },
-      data_16: { type: 'number', expression: { kind: 'blackboard', key: 'atb2' } },
-      data_17: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale4' } },
-      data_18: { type: 'number', expression: { kind: 'blackboard', key: 'poise4' } },
-      data_19: { type: 'number', expression: { kind: 'blackboard', key: 'calc_atb4' } },
-      data_20: { type: 'number', expression: { kind: 'blackboard', key: 'atb4' } },
-      data_21: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale3' } },
-      data_22: { type: 'number', expression: { kind: 'blackboard', key: 'poise3' } },
-      data_23: { type: 'number', expression: { kind: 'blackboard', key: 'calc_atb3' } },
-      data_24: { type: 'number', expression: { kind: 'blackboard', key: 'atb3' } },
+      data_11: { type: 'number', expression: { kind: 'blackboard', key: 'usp' } },
+      data_12: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
+      data_13: { type: 'number', expression: { kind: 'blackboard', key: 'poise1' } },
+      data_14: { type: 'number', expression: { kind: 'blackboard', key: 'calc_atb1' } },
+      data_15: { type: 'number', expression: { kind: 'blackboard', key: 'atb1' } },
+      data_16: { type: 'number', expression: { kind: 'blackboard', key: 'atb_ratio' } },
+      data_17: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale2' } },
+      data_18: { type: 'number', expression: { kind: 'blackboard', key: 'calc_atb2' } },
+      data_19: { type: 'number', expression: { kind: 'blackboard', key: 'atb2' } },
+      data_20: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale4' } },
+      data_21: { type: 'number', expression: { kind: 'blackboard', key: 'poise4' } },
+      data_22: { type: 'number', expression: { kind: 'blackboard', key: 'calc_atb4' } },
+      data_23: { type: 'number', expression: { kind: 'blackboard', key: 'atb4' } },
+      data_24: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale3' } },
+      data_25: { type: 'number', expression: { kind: 'blackboard', key: 'poise3' } },
+      data_26: { type: 'number', expression: { kind: 'blackboard', key: 'calc_atb3' } },
+      data_27: { type: 'number', expression: { kind: 'blackboard', key: 'atb3' } },
     },
   },
   macros: {},
@@ -2186,6 +2146,7 @@ export const pogranichnikChr_0029_pograni_combo_skill: SkillDefinition = {
   naturalDurationFrames: 728,
   exclusiveFrame: 649,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       { startFrame: 66, endFrame: 96, skillIds: ['chr_0029_pograni_normal_skill'] },
@@ -2283,7 +2244,7 @@ export const pogranichnikChr_0029_pograni_ultimate_skillActionGraph = {
             priority: 10,
             curve: { kind: 'named', key: 'RESETto1' },
             finishByAction: false,
-            targets: ['caster'],
+            targets: [{ kind: 'owner' }],
           },
         },
         next: null,
@@ -2473,14 +2434,18 @@ export const pogranichnikChr_0029_pograni_ultimate_skill: SkillDefinition = {
   key: 'chr_0029_pograni_ultimate_skill',
   element: 'physical',
   blackboard: {
+    angle: 120,
     atb_final: [30, 30, 30, 30, 30, 30, 30, 30, 30, 40, 40, 40],
     atb_trigger: [7.5, 7.5, 7.5, 7.5, 7.5, 7.5, 7.5, 7.5, 7.5, 10, 10, 10],
     atk_scale_final: [2, 2.2, 2.4, 2.6, 2.8, 3, 3.2, 3.4, 3.6, 3.85, 4.15, 4.5],
     atk_scale_rush: [1.33, 1.47, 1.6, 1.73, 1.86, 2, 2.13, 2.26, 2.4, 2.56, 2.76, 3],
     atk_scale_trigger: [0.45, 0.49, 0.53, 0.58, 0.62, 0.67, 0.71, 0.76, 0.8, 0.86, 0.92, 1],
+    center_radius: 6,
     duration: 30,
+    height: 4,
     poise_final: 15,
     poise_rush: 10,
+    radius: 5,
   },
   timelineBlockFrames: 91,
   naturalDurationFrames: 210,
@@ -2523,6 +2488,28 @@ export const pogranichnikCommon_character_perfect_dodge: SkillDefinition = {
   defaultTarget: 'enemy',
   skillType: 'dodge',
   nativeSkillType: 'dodge',
+};
+
+export const pogranichnikChr_0029_pograni_plunging_attack_startActionGraph = {
+  main: { nodes: {} },
+  macros: {},
+} as const satisfies ActionGraphResourceDefinition;
+
+export const pogranichnikChr_0029_pograni_plunging_attack_start: SkillDefinition = {
+  actionGraph: pogranichnikChr_0029_pograni_plunging_attack_startActionGraph,
+  key: 'chr_0029_pograni_plunging_attack_start',
+  element: 'physical',
+  blackboard: {},
+  timelineBlockFrames: 1501,
+  naturalDurationFrames: 1500,
+  exclusiveFrame: 1500,
+  offsetRecordFrame: 0,
+  costFrame: 0,
+  scheduledSequences: [],
+  defaultTarget: 'enemy',
+  skillType: 'plungingAttack',
+  nativeSkillType: 'attack',
+  levelSource: 'basicAttack',
 };
 
 const pogranichnikPassive1ActionGraph = {
@@ -2673,10 +2660,15 @@ const pogranichnikPassive1: OperatorPassiveSkillDefinition = {
 const pogranichnikComboCondition1ActionGraph = {
   main: {
     nodes: {
-      checkCondition_1: {
+      applyBuff_3: {
         action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_chr_0029_pograni_combo_skill_count1' }],
+            targets: { kind: 'source' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+          },
         },
         next: null,
       },
@@ -2692,22 +2684,13 @@ const pogranichnikComboCondition1ActionGraph = {
         },
         next: null,
       },
-      applyBuff_3: {
+      ifElse_6: {
         action: {
-          kind: 'applyBuff',
-          parameters: {
-            buffs: [{ buffId: 'buff_chr_0029_pograni_combo_skill_count1' }],
-            targets: { kind: 'source' },
-            source: { kind: 'source' },
-            inheritSourceSkillCastInfo: true,
-          },
-        },
-        next: null,
-      },
-      checkCondition_4: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
+          whenTrue: { $sequence: 'applyBuff_2' },
+          whenFalse: { $sequence: 'applyBuff_3' },
         },
         next: null,
       },
@@ -2723,20 +2706,13 @@ const pogranichnikComboCondition1ActionGraph = {
         },
         next: null,
       },
-      ifElse_6: {
+      ifElse_9: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
-          whenTrue: { $sequence: 'applyBuff_2' },
-          whenFalse: { $sequence: 'applyBuff_3' },
-        },
-        next: null,
-      },
-      checkCondition_7: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
+          whenTrue: { $sequence: 'applyBuff_5' },
+          whenFalse: { $sequence: 'ifElse_6' },
         },
         next: null,
       },
@@ -2752,21 +2728,11 @@ const pogranichnikComboCondition1ActionGraph = {
         },
         next: null,
       },
-      ifElse_9: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_4' },
-          whenTrue: { $sequence: 'applyBuff_5' },
-          whenFalse: { $sequence: 'ifElse_6' },
-        },
-        next: null,
-      },
       ifElse_10: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_7' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: 'applyBuff_8' },
           whenFalse: { $sequence: 'ifElse_9' },
         },
@@ -2840,20 +2806,20 @@ const pogranichnikComboCondition1ActionGraph = {
       data_5: {
         type: 'boolean',
         expression: {
-          kind: 'contextTargetObjectTypeMatch',
-          contextKey: 'trigger',
+          kind: 'targetObjectTypeMatch',
+          target: { kind: 'context', key: 'trigger' },
           objectTypes: ['enemy', 'enemyPart'],
         },
       },
       data_6: {
         type: 'boolean',
         expression: {
-          kind: 'contextTargetBuffIdStackCompare',
+          kind: 'buffIdStackCompare',
+          target: { kind: 'context', key: 'trigger' },
           compareZeroWhenTargetMissing: false,
-          contextKey: 'trigger',
-          buffIds: ['buff_physical_no_guard'],
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_physical_no_guard'],
         },
       },
       data_7: {
@@ -3159,18 +3125,11 @@ const pogranichnikBuff9ActionGraph = {
         },
         next: null,
       },
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       ifElse_4: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'applyBuff_2' },
           whenFalse: { $sequence: 'applyBuff_3' },
         },
@@ -3571,29 +3530,31 @@ const pogranichnikBuff9ActionGraph = {
       data_1: {
         type: 'boolean',
         expression: {
-          kind: 'actionInputTargetIdentityMatch',
-          other: 'actionSource',
-          operator: 'equal',
+          kind: 'targetsEqual',
+          first: { kind: 'inputTarget' },
+          second: { kind: 'source' },
         },
       },
       data_2: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffSource',
-          buffIds: ['buff_chr_0029_pograni_talent1_exist'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0029_pograni_talent1_exist'],
         },
       },
       data_3: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffSource',
-          buffIds: ['buff_chr_0029_pograni_talent2'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0029_pograni_talent2'],
         },
       },
       data_4: { type: 'number', expression: { kind: 'blackboard', key: 'interval' } },
@@ -3601,18 +3562,19 @@ const pogranichnikBuff9ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffSource',
-          buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'equal',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
         },
       },
       data_6: {
         type: 'boolean',
         expression: {
           kind: 'timedMarkerPresent',
+          target: { kind: 'source' },
           returnTrueIfNotExists: true,
-          target: 'buffSource',
           markerId: 'chr_0029_pograni_soldier_attacked',
         },
       },
@@ -3620,18 +3582,19 @@ const pogranichnikBuff9ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffSource',
-          buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greater',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
         },
       },
       data_8: {
         type: 'boolean',
         expression: {
           kind: 'timedMarkerPresent',
+          target: { kind: 'source' },
           returnTrueIfNotExists: true,
-          target: 'buffSource',
           markerId: 'chr_0029_pograni_soldier_attacked',
         },
       },
@@ -3639,20 +3602,22 @@ const pogranichnikBuff9ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffSource',
-          buffIds: ['buff_chr_0029_pograni_talent1_exist'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0029_pograni_talent1_exist'],
         },
       },
       data_10: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffSource',
-          buffIds: ['buff_chr_0029_pograni_talent2'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0029_pograni_talent2'],
         },
       },
       data_11: {
@@ -3663,22 +3628,27 @@ const pogranichnikBuff9ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffSource',
-          buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'equal',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
         },
       },
       data_13: {
         type: 'boolean',
-        expression: { kind: 'eventSourceMatchesBuffSourceEntitySource' },
+        expression: {
+          kind: 'targetsEqual',
+          first: { kind: 'abilitySystemSource', owner: { kind: 'source' } },
+          second: { kind: 'inputTarget' },
+        },
       },
       data_14: {
         type: 'boolean',
         expression: {
           kind: 'timedMarkerPresent',
+          target: { kind: 'source' },
           returnTrueIfNotExists: true,
-          target: 'buffSource',
           markerId: 'chr_0029_pograni_soldier_attacked',
         },
       },
@@ -3690,22 +3660,27 @@ const pogranichnikBuff9ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffSource',
-          buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greater',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
         },
       },
       data_17: {
         type: 'boolean',
-        expression: { kind: 'eventSourceMatchesBuffSourceEntitySource' },
+        expression: {
+          kind: 'targetsEqual',
+          first: { kind: 'abilitySystemSource', owner: { kind: 'source' } },
+          second: { kind: 'inputTarget' },
+        },
       },
       data_18: {
         type: 'boolean',
         expression: {
           kind: 'timedMarkerPresent',
+          target: { kind: 'source' },
           returnTrueIfNotExists: true,
-          target: 'buffSource',
           markerId: 'chr_0029_pograni_soldier_attacked',
         },
       },
@@ -3734,6 +3709,7 @@ const pogranichnikBuff9: SkillBuffDefinition = {
     max_stack_team_temp: 0,
     physpell_up_temp: 0,
     poise_final: 0,
+    radius: 5,
   },
   attributeModifiers: [],
   abilityEventResponses: [
@@ -3857,45 +3833,53 @@ export const pogranichnik: OperatorDefinition = {
     baseAttack: [30, 92, 157, 223, 288, 321],
     baseHealth: [500, 1566, 2689, 3811, 4934, 5495],
   },
+  skills: [
+    pogranichnikChr_0029_pograni_attack1,
+    pogranichnikChr_0029_pograni_attack2,
+    pogranichnikChr_0029_pograni_attack3,
+    pogranichnikChr_0029_pograni_attack4,
+    pogranichnikChr_0029_pograni_attack5,
+    pogranichnikChr_0029_pograni_power_attack,
+    pogranichnikChr_0029_pograni_plunging_attack_end,
+    pogranichnikChr_0029_pograni_normal_skill,
+    pogranichnikChr_0029_pograni_combo_skill,
+    pogranichnikChr_0029_pograni_ultimate_skill,
+    pogranichnikCommon_character_perfect_dodge,
+    pogranichnikChr_0029_pograni_plunging_attack_start,
+  ],
   skillGroups: [
     {
       key: 'basicAttack',
       operationType: 'basicAttack',
-      skills: [
-        pogranichnikChr_0029_pograni_attack1,
-        pogranichnikChr_0029_pograni_attack2,
-        pogranichnikChr_0029_pograni_attack3,
-        pogranichnikChr_0029_pograni_attack4,
-        pogranichnikChr_0029_pograni_attack5,
+      skillIds: [
+        'chr_0029_pograni_attack1',
+        'chr_0029_pograni_attack2',
+        'chr_0029_pograni_attack3',
+        'chr_0029_pograni_attack4',
+        'chr_0029_pograni_attack5',
       ],
     },
-    {
-      key: 'finisher',
-      operationType: 'finisher',
-      skills: pogranichnikChr_0029_pograni_power_attack,
-    },
+    { key: 'finisher', operationType: 'finisher', skillIds: ['chr_0029_pograni_power_attack'] },
     {
       key: 'plungingAttack',
       operationType: 'plungingAttack',
-      skills: pogranichnikChr_0029_pograni_plunging_attack_end,
+      skillIds: ['chr_0029_pograni_plunging_attack_end'],
     },
     {
       key: 'battleSkill',
       operationType: 'battleSkill',
-      skills: pogranichnikChr_0029_pograni_normal_skill,
+      skillIds: ['chr_0029_pograni_normal_skill'],
     },
-    {
-      key: 'comboSkill',
-      operationType: 'comboSkill',
-      skills: pogranichnikChr_0029_pograni_combo_skill,
-    },
-    {
-      key: 'ultimate',
-      operationType: 'ultimate',
-      skills: pogranichnikChr_0029_pograni_ultimate_skill,
-    },
+    { key: 'comboSkill', operationType: 'comboSkill', skillIds: ['chr_0029_pograni_combo_skill'] },
+    { key: 'ultimate', operationType: 'ultimate', skillIds: ['chr_0029_pograni_ultimate_skill'] },
   ],
-  dodgeSkill: pogranichnikCommon_character_perfect_dodge,
+  dodgeSkillId: 'common_character_perfect_dodge',
+  plungingAttack: {
+    startSkillId: 'chr_0029_pograni_plunging_attack_start',
+    endSkillId: 'chr_0029_pograni_plunging_attack_end',
+    startDurationSeconds: 0.633,
+    endDurationSeconds: 2,
+  },
   dashBuffs: [
     { buffId: 'buff_common_dash', blackboard: { dodgeSkillId: 'common_character_perfect_dodge' } },
   ],
@@ -4027,6 +4011,7 @@ export const pogranichnik: OperatorDefinition = {
   },
   abilityEntityDefinitions: {
     abilityentity_chr_0029_pograni_ultimate_skill: {
+      faction: 'good',
       bornTags: [
         'Immune/Damage',
         'SelectCategory/Unmarkable',
@@ -4081,10 +4066,11 @@ export const pogranichnik: OperatorDefinition = {
                   type: 'boolean',
                   expression: {
                     kind: 'buffIdStackCompare',
-                    target: 'caster',
-                    buffIds: ['buff_chr_0029_pograni_ultimate_skill'],
+                    target: { kind: 'source' },
+                    compareZeroWhenTargetMissing: false,
                     operator: 'equal',
                     value: { kind: 'constant', value: 0 },
+                    buffIds: ['buff_chr_0029_pograni_ultimate_skill'],
                   },
                 },
               },
@@ -4150,14 +4136,7 @@ export const pogranichnik: OperatorDefinition = {
                   action: {
                     kind: 'jumpTimeline',
                     parameters: { destinationFrame: 300 },
-                    condition: { $sequence: null },
-                  },
-                  next: null,
-                },
-                checkCondition_1: {
-                  action: {
-                    kind: 'checkCondition',
-                    parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
+                    condition: { kind: 'conditionNode', nodeId: 'data_1' },
                   },
                   next: null,
                 },
@@ -4165,7 +4144,7 @@ export const pogranichnik: OperatorDefinition = {
                   action: {
                     kind: 'ifElse',
                     parameters: { alwaysNext: true },
-                    condition: { $sequence: 'checkCondition_1' },
+                    condition: { kind: 'conditionNode', nodeId: 'data_2' },
                     whenTrue: { $sequence: 'jumpTimeline_2' },
                     whenFalse: { $sequence: null },
                   },
@@ -4175,14 +4154,7 @@ export const pogranichnik: OperatorDefinition = {
                   action: {
                     kind: 'jumpTimeline',
                     parameters: { destinationFrame: 200 },
-                    condition: { $sequence: null },
-                  },
-                  next: null,
-                },
-                checkCondition_3: {
-                  action: {
-                    kind: 'checkCondition',
-                    parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
+                    condition: { kind: 'conditionNode', nodeId: 'data_3' },
                   },
                   next: null,
                 },
@@ -4190,7 +4162,7 @@ export const pogranichnik: OperatorDefinition = {
                   action: {
                     kind: 'ifElse',
                     parameters: { alwaysNext: true },
-                    condition: { $sequence: 'checkCondition_3' },
+                    condition: { kind: 'conditionNode', nodeId: 'data_4' },
                     whenTrue: { $sequence: 'jumpTimeline_4' },
                     whenFalse: { $sequence: 'ifElse_5' },
                   },
@@ -4200,14 +4172,7 @@ export const pogranichnik: OperatorDefinition = {
                   action: {
                     kind: 'jumpTimeline',
                     parameters: { destinationFrame: 100 },
-                    condition: { $sequence: null },
-                  },
-                  next: null,
-                },
-                checkCondition_6: {
-                  action: {
-                    kind: 'checkCondition',
-                    parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
+                    condition: { kind: 'conditionNode', nodeId: 'data_5' },
                   },
                   next: null,
                 },
@@ -4215,16 +4180,9 @@ export const pogranichnik: OperatorDefinition = {
                   action: {
                     kind: 'ifElse',
                     parameters: { alwaysNext: true },
-                    condition: { $sequence: 'checkCondition_6' },
+                    condition: { kind: 'conditionNode', nodeId: 'data_6' },
                     whenTrue: { $sequence: 'jumpTimeline_7' },
                     whenFalse: { $sequence: 'ifElse_8' },
-                  },
-                  next: null,
-                },
-                checkCondition_9: {
-                  action: {
-                    kind: 'checkCondition',
-                    parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
                   },
                   next: null,
                 },
@@ -4232,7 +4190,7 @@ export const pogranichnik: OperatorDefinition = {
                   action: {
                     kind: 'ifElse',
                     parameters: { alwaysNext: true },
-                    condition: { $sequence: 'checkCondition_9' },
+                    condition: { kind: 'conditionNode', nodeId: 'data_7' },
                     whenTrue: { $sequence: null },
                     whenFalse: { $sequence: 'ifElse_10' },
                   },
@@ -4245,7 +4203,7 @@ export const pogranichnik: OperatorDefinition = {
                 interruptCurrentSkill_13: {
                   action: {
                     kind: 'interruptCurrentSkill',
-                    parameters: { targets: { kind: 'fixed', target: 'enemy' } },
+                    parameters: { targets: { kind: 'inputTarget' } },
                   },
                   next: null,
                 },
@@ -4270,7 +4228,7 @@ export const pogranichnik: OperatorDefinition = {
                     kind: 'dealDamage',
                     parameters: {
                       damageType: 'physical',
-                      attackScale: { kind: 'valueNode', nodeId: 'data_5' },
+                      attackScale: { kind: 'valueNode', nodeId: 'data_8' },
                       tags: ['ultimateSkill'],
                     },
                     key: 'abilityentity_chr_0029_pograni_ultimate_skill:chr_0029_pograni_ultimate_skill_abilityentity|chr_0029_pograni_ultimate_skill_abilityentity_attack2|chr_0029_pograni_ultimate_skill_abilityentity_finish1|chr_0029_pograni_ultimate_skill_abilityentity_finish2|chr_0029_pograni_ultimate_skill_abilityentity_finish3|chr_0029_pograni_ultimate_skill_abilityentity_finish4:/childSkills/chr_0029_pograni_ultimate_skill_abilityentity_attack2/actionGraph/main/nodes/dealDamage_25/action',
@@ -4282,7 +4240,7 @@ export const pogranichnik: OperatorDefinition = {
                     kind: 'changeResource',
                     parameters: {
                       resource: 'sp',
-                      amount: { kind: 'valueNode', nodeId: 'data_6' },
+                      amount: { kind: 'valueNode', nodeId: 'data_9' },
                       coefficient: { kind: 'constant', value: 1 },
                       source: { kind: 'source' },
                       targets: { kind: 'source' },
@@ -4297,7 +4255,7 @@ export const pogranichnik: OperatorDefinition = {
                     kind: 'dealDamage',
                     parameters: {
                       damageType: 'physical',
-                      attackScale: { kind: 'valueNode', nodeId: 'data_5' },
+                      attackScale: { kind: 'valueNode', nodeId: 'data_8' },
                       tags: ['ultimateSkill'],
                     },
                     key: 'abilityentity_chr_0029_pograni_ultimate_skill:chr_0029_pograni_ultimate_skill_abilityentity|chr_0029_pograni_ultimate_skill_abilityentity_attack2|chr_0029_pograni_ultimate_skill_abilityentity_finish1|chr_0029_pograni_ultimate_skill_abilityentity_finish2|chr_0029_pograni_ultimate_skill_abilityentity_finish3|chr_0029_pograni_ultimate_skill_abilityentity_finish4:/childSkills/chr_0029_pograni_ultimate_skill_abilityentity_attack2/actionGraph/main/nodes/dealDamage_28/action',
@@ -4309,7 +4267,7 @@ export const pogranichnik: OperatorDefinition = {
                     kind: 'changeResource',
                     parameters: {
                       resource: 'sp',
-                      amount: { kind: 'valueNode', nodeId: 'data_6' },
+                      amount: { kind: 'valueNode', nodeId: 'data_9' },
                       coefficient: { kind: 'constant', value: 1 },
                       source: { kind: 'source' },
                       targets: { kind: 'source' },
@@ -4324,7 +4282,7 @@ export const pogranichnik: OperatorDefinition = {
                     kind: 'dealDamage',
                     parameters: {
                       damageType: 'physical',
-                      attackScale: { kind: 'valueNode', nodeId: 'data_5' },
+                      attackScale: { kind: 'valueNode', nodeId: 'data_8' },
                       tags: ['ultimateSkill'],
                     },
                     key: 'abilityentity_chr_0029_pograni_ultimate_skill:chr_0029_pograni_ultimate_skill_abilityentity|chr_0029_pograni_ultimate_skill_abilityentity_attack2|chr_0029_pograni_ultimate_skill_abilityentity_finish1|chr_0029_pograni_ultimate_skill_abilityentity_finish2|chr_0029_pograni_ultimate_skill_abilityentity_finish3|chr_0029_pograni_ultimate_skill_abilityentity_finish4:/childSkills/chr_0029_pograni_ultimate_skill_abilityentity_attack2/actionGraph/main/nodes/dealDamage_31/action',
@@ -4336,7 +4294,7 @@ export const pogranichnik: OperatorDefinition = {
                     kind: 'changeResource',
                     parameters: {
                       resource: 'sp',
-                      amount: { kind: 'valueNode', nodeId: 'data_6' },
+                      amount: { kind: 'valueNode', nodeId: 'data_9' },
                       coefficient: { kind: 'constant', value: 1 },
                       source: { kind: 'source' },
                       targets: { kind: 'source' },
@@ -4351,7 +4309,7 @@ export const pogranichnik: OperatorDefinition = {
                     kind: 'dealDamage',
                     parameters: {
                       damageType: 'physical',
-                      attackScale: { kind: 'valueNode', nodeId: 'data_5' },
+                      attackScale: { kind: 'valueNode', nodeId: 'data_8' },
                       tags: ['ultimateSkill'],
                     },
                     key: 'abilityentity_chr_0029_pograni_ultimate_skill:chr_0029_pograni_ultimate_skill_abilityentity|chr_0029_pograni_ultimate_skill_abilityentity_attack2|chr_0029_pograni_ultimate_skill_abilityentity_finish1|chr_0029_pograni_ultimate_skill_abilityentity_finish2|chr_0029_pograni_ultimate_skill_abilityentity_finish3|chr_0029_pograni_ultimate_skill_abilityentity_finish4:/childSkills/chr_0029_pograni_ultimate_skill_abilityentity_attack2/actionGraph/main/nodes/dealDamage_34/action',
@@ -4363,7 +4321,7 @@ export const pogranichnik: OperatorDefinition = {
                     kind: 'changeResource',
                     parameters: {
                       resource: 'sp',
-                      amount: { kind: 'valueNode', nodeId: 'data_6' },
+                      amount: { kind: 'valueNode', nodeId: 'data_9' },
                       coefficient: { kind: 'constant', value: 1 },
                       source: { kind: 'source' },
                       targets: { kind: 'source' },
@@ -4414,7 +4372,7 @@ export const pogranichnik: OperatorDefinition = {
                         ],
                       },
                       finishByAction: false,
-                      targets: ['caster'],
+                      targets: [],
                       abilityEntityTargets: [{ kind: 'current' }],
                     },
                   },
@@ -4424,49 +4382,65 @@ export const pogranichnik: OperatorDefinition = {
               dataNodes: {
                 data_1: {
                   type: 'boolean',
-                  expression: {
-                    kind: 'buffIdStackCompare',
-                    target: 'caster',
-                    buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
-                    operator: 'equal',
-                    value: { kind: 'constant', value: 2 },
-                  },
+                  expression: { kind: 'checkActionResult', action: { $sequence: null } },
                 },
                 data_2: {
                   type: 'boolean',
                   expression: {
                     kind: 'buffIdStackCompare',
-                    target: 'caster',
-                    buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
+                    target: { kind: 'source' },
+                    compareZeroWhenTargetMissing: true,
                     operator: 'equal',
-                    value: { kind: 'constant', value: 3 },
+                    value: { kind: 'constant', value: 2 },
+                    buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
                   },
                 },
                 data_3: {
                   type: 'boolean',
-                  expression: {
-                    kind: 'buffIdStackCompare',
-                    target: 'caster',
-                    buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
-                    operator: 'equal',
-                    value: { kind: 'constant', value: 4 },
-                  },
+                  expression: { kind: 'checkActionResult', action: { $sequence: null } },
                 },
                 data_4: {
                   type: 'boolean',
                   expression: {
                     kind: 'buffIdStackCompare',
-                    target: 'caster',
-                    buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
+                    target: { kind: 'source' },
+                    compareZeroWhenTargetMissing: true,
                     operator: 'equal',
-                    value: { kind: 'constant', value: 5 },
+                    value: { kind: 'constant', value: 3 },
+                    buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
                   },
                 },
                 data_5: {
+                  type: 'boolean',
+                  expression: { kind: 'checkActionResult', action: { $sequence: null } },
+                },
+                data_6: {
+                  type: 'boolean',
+                  expression: {
+                    kind: 'buffIdStackCompare',
+                    target: { kind: 'source' },
+                    compareZeroWhenTargetMissing: true,
+                    operator: 'equal',
+                    value: { kind: 'constant', value: 4 },
+                    buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
+                  },
+                },
+                data_7: {
+                  type: 'boolean',
+                  expression: {
+                    kind: 'buffIdStackCompare',
+                    target: { kind: 'source' },
+                    compareZeroWhenTargetMissing: true,
+                    operator: 'equal',
+                    value: { kind: 'constant', value: 5 },
+                    buffIds: ['buff_chr_0029_pograni_ultimate_skill_count'],
+                  },
+                },
+                data_8: {
                   type: 'number',
                   expression: { kind: 'blackboard', key: 'atk_scale_trigger' },
                 },
-                data_6: { type: 'number', expression: { kind: 'blackboard', key: 'atb_trigger' } },
+                data_9: { type: 'number', expression: { kind: 'blackboard', key: 'atb_trigger' } },
               },
             },
             macros: {},
@@ -4714,22 +4688,15 @@ export const pogranichnik: OperatorDefinition = {
                   },
                   next: null,
                 },
-                checkCondition_4: {
-                  action: {
-                    kind: 'checkCondition',
-                    parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-                  },
-                  next: null,
-                },
                 dealDamage_5: {
                   action: {
                     kind: 'dealDamage',
                     parameters: {
                       damageType: 'physical',
-                      attackScale: { kind: 'valueNode', nodeId: 'data_2' },
+                      attackScale: { kind: 'valueNode', nodeId: 'data_1' },
                       tags: ['ultimateSkill'],
                       features: ['canBreakWeakness'],
-                      stagger: { kind: 'valueNode', nodeId: 'data_3' },
+                      stagger: { kind: 'valueNode', nodeId: 'data_2' },
                     },
                     key: 'abilityentity_chr_0029_pograni_ultimate_skill:chr_0029_pograni_ultimate_skill_abilityentity|chr_0029_pograni_ultimate_skill_abilityentity_attack2|chr_0029_pograni_ultimate_skill_abilityentity_finish1|chr_0029_pograni_ultimate_skill_abilityentity_finish2|chr_0029_pograni_ultimate_skill_abilityentity_finish3|chr_0029_pograni_ultimate_skill_abilityentity_finish4:/childSkills/chr_0029_pograni_ultimate_skill_abilityentity_finish4/actionGraph/main/nodes/dealDamage_5/action',
                   },
@@ -4753,7 +4720,7 @@ export const pogranichnik: OperatorDefinition = {
                     kind: 'changeResource',
                     parameters: {
                       resource: 'sp',
-                      amount: { kind: 'valueNode', nodeId: 'data_4' },
+                      amount: { kind: 'valueNode', nodeId: 'data_3' },
                       coefficient: { kind: 'constant', value: 1 },
                       source: { kind: 'source' },
                       targets: { kind: 'source' },
@@ -4778,7 +4745,7 @@ export const pogranichnik: OperatorDefinition = {
                   action: {
                     kind: 'ifElse',
                     parameters: { alwaysNext: true },
-                    condition: { $sequence: 'checkCondition_4' },
+                    condition: { kind: 'conditionNode', nodeId: 'data_4' },
                     whenTrue: { $sequence: 'findTargets_8' },
                     whenFalse: { $sequence: null },
                   },
@@ -4825,7 +4792,7 @@ export const pogranichnik: OperatorDefinition = {
                         ],
                       },
                       finishByAction: false,
-                      targets: ['caster'],
+                      targets: [],
                       abilityEntityTargets: [{ kind: 'current' }],
                     },
                   },
@@ -4834,20 +4801,20 @@ export const pogranichnik: OperatorDefinition = {
               },
               dataNodes: {
                 data_1: {
-                  type: 'boolean',
-                  expression: {
-                    kind: 'timedMarkerPresent',
-                    returnTrueIfNotExists: true,
-                    target: 'caster',
-                    markerId: 'chr_0029_pograni_ultimate_finalhit',
-                  },
-                },
-                data_2: {
                   type: 'number',
                   expression: { kind: 'blackboard', key: 'atk_scale_final' },
                 },
-                data_3: { type: 'number', expression: { kind: 'blackboard', key: 'poise_final' } },
-                data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atb_final' } },
+                data_2: { type: 'number', expression: { kind: 'blackboard', key: 'poise_final' } },
+                data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atb_final' } },
+                data_4: {
+                  type: 'boolean',
+                  expression: {
+                    kind: 'timedMarkerPresent',
+                    target: { kind: 'source' },
+                    returnTrueIfNotExists: true,
+                    markerId: 'chr_0029_pograni_ultimate_finalhit',
+                  },
+                },
               },
             },
             macros: {},

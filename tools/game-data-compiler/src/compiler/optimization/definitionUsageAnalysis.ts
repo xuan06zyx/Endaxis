@@ -4,6 +4,7 @@
  */
 import type {
   ActionTargetQuery,
+  ActionGraphReference,
   CombatStepDefinition,
   CombatStepForKind,
   CombatStepParameters,
@@ -17,7 +18,8 @@ import type { ActionStringOperand, LevelValues } from '../intermediateDefinition
 
 /** 这些查询只读取已有目标身份，不创建位置或修改目标组。 */
 export function isReadOnlyTargetQuery(query: ActionTargetQuery): boolean {
-  if (query.kind === 'mainTarget') return isReadOnlyTargetQuery(query.owner);
+  if (query.kind === 'mainTarget' || query.kind === 'abilitySystemSource')
+    return isReadOnlyTargetQuery(query.owner);
   return [
     'owner',
     'source',
@@ -151,7 +153,10 @@ function numericOutputUsage(keys: readonly (string | undefined)[]): DefinitionVa
 }
 
 /** 条件即使只返回真假，也可能写值、抽样或要求特定事件环境。 */
-export function analyzeConditionUsage(condition: CombatCondition): DefinitionValueUsage {
+export function analyzeConditionUsage(
+  condition: CombatCondition,
+  sequenceUsage?: (reference: ActionGraphReference) => DefinitionValueUsage,
+): DefinitionValueUsage {
   const value = (operand: ActionValueOperand | number, writes: readonly string[] = []) => ({
     ...mergeDefinitionValueUsage([actionValueUsage(operand), numericOutputUsage(writes)]),
     // 除字面量比较之外的查询需要运行环境；优化器不能把环境错误一起抹掉。
@@ -163,16 +168,22 @@ export function analyzeConditionUsage(condition: CombatCondition): DefinitionVal
     mayThrow: true,
   });
   switch (condition.kind) {
+    case 'checkActionResult':
+      return sequenceUsage
+        ? sequenceUsage(condition.action)
+        : { ...EMPTY, unknownAccess: true, mayThrow: true, observable: true };
     case 'constant':
       return EMPTY;
     case 'conditionNode':
       // 数据节点按当前作用域求值，结果取决于节点自身图；不能静态归并，也不能静默删除。
       return { ...EMPTY, unknownAccess: true, mayThrow: true };
     case 'not':
-      return analyzeConditionUsage(condition.condition);
+      return analyzeConditionUsage(condition.condition, sequenceUsage);
     case 'all':
     case 'any':
-      return mergeDefinitionValueUsage(condition.conditions.map(analyzeConditionUsage));
+      return mergeDefinitionValueUsage(
+        condition.conditions.map(child => analyzeConditionUsage(child, sequenceUsage)),
+      );
     case 'stringEquals':
       return mergeDefinitionValueUsage([
         actionStringUsage(condition.left),
@@ -205,8 +216,12 @@ export function analyzeConditionUsage(condition: CombatCondition): DefinitionVal
         mayThrow: true,
       };
     case 'abilityEntityRemainingDurationCompare':
-      return value(condition.value);
+      return {
+        ...value(condition.value, condition.outputKey === undefined ? [] : [condition.outputKey]),
+        observable: condition.outputKey !== undefined || !isReadOnlyTargetQuery(condition.target),
+      };
     case 'eventConsumedBuffLayerCompare':
+    case 'eventBuffEnhanceLayerCompare':
       return value(condition.value, condition.outputKey === undefined ? [] : [condition.outputKey]);
     case 'targetContains':
       return {
@@ -217,15 +232,22 @@ export function analyzeConditionUsage(condition: CombatCondition): DefinitionVal
         ),
       };
     case 'targetDistance':
+    case 'targetsEqual':
       return {
         ...EMPTY,
         mayThrow: true,
-        observable: [condition.source, condition.target].some(
+        observable: (condition.kind === 'targetsEqual'
+          ? [condition.first, condition.second]
+          : [condition.source, condition.target]
+        ).some(query => !isReadOnlyTargetQuery(query)),
+      };
+    case 'targetFacingAngle':
+      return {
+        ...actionValueUsage(condition.angle),
+        observable: [condition.origin, condition.target].some(
           query => !isReadOnlyTargetQuery(query),
         ),
       };
-    case 'targetFacingAngle':
-      return actionValueUsage(condition.angle);
     case 'twoDirectionAngleCompare':
       return {
         ...value(condition.value),
@@ -236,20 +258,24 @@ export function analyzeConditionUsage(condition: CombatCondition): DefinitionVal
           condition.direction2Target,
         ].some(query => !isReadOnlyTargetQuery(query)),
       };
-    case 'enemySuperArmorCompare':
     case 'healthCompare':
     case 'poiseCompare':
-    case 'contextTargetBuffStackCompare':
-    case 'contextTargetBuffIdStackCompare':
-    case 'currentBuffStackCompare':
+    case 'enemySuperArmorCompare':
     case 'buffStackCompare':
     case 'buffTagIdCountCompare':
     case 'buffIdStackCompare':
-    case 'eventTargetBuffCountCompare':
+      return {
+        ...value(condition.value),
+        mayThrow: true,
+        observable: !isReadOnlyTargetQuery(condition.target),
+      };
+    case 'currentBuffStackCompare':
       return value(condition.value);
     case 'timedMarkerPresent':
-    case 'abilityEntityTimedMarkerPresent':
-      return mergeDefinitionValueUsage([outputs(), actionStringUsage(condition.markerId)]);
+      return mergeDefinitionValueUsage([
+        { ...outputs(), mayThrow: true, observable: !isReadOnlyTargetQuery(condition.target) },
+        actionStringUsage(condition.markerId),
+      ]);
     case 'eventInflictionElementIn':
     case 'eventPhysicalInflictionTypeIn': {
       // 两类原生检查先严格读取旧值，再比较 float32 epsilon；Spell 的空键不启用保存。
@@ -264,6 +290,9 @@ export function analyzeConditionUsage(condition: CombatCondition): DefinitionVal
     }
     case 'eventCustomAbilityNameMatch':
       return outputs(condition.outputKey === '' ? undefined : condition.outputKey);
+    case 'eventTransferredPartTagsMatch':
+      // 目标组写入不是黑板写入，但同样不允许随未使用的比较结果一起裁剪。
+      return { ...EMPTY, mayThrow: true, observable: condition.saveToContextKey !== undefined };
     case 'eventBuffIdMatch':
     case 'eventBuffTagsMatch':
       // Buff ID 是字符串，运行时 assign 直接覆盖，不经过数值 epsilon 检查。
@@ -278,30 +307,33 @@ export function analyzeConditionUsage(condition: CombatCondition): DefinitionVal
         ),
         reads: new Set(),
       };
+    case 'deckAttributeCompare':
+      return mergeDefinitionValueUsage([
+        { ...EMPTY, mayThrow: true, observable: !isReadOnlyTargetQuery(condition.target) },
+        typeof condition.left === 'string' ? EMPTY : value(condition.left),
+        typeof condition.right === 'string' ? EMPTY : value(condition.right),
+      ]);
+    case 'checkMainCharacter':
+    case 'operatorRoleIn':
+    case 'currentSkillTypeIn':
+    case 'entityTagMatch':
+    case 'targetObjectTypeMatch':
+    case 'globalCooldownPresent':
+    case 'comboSkillPending':
+    case 'enemyRankIn':
+      return { ...EMPTY, mayThrow: true, observable: !isReadOnlyTargetQuery(condition.target) };
     case 'skillHasHit':
     case 'combatActive':
     case 'singleEnemyPresent':
     case 'comboCameraAlphaSetting':
-    case 'casterControlled':
     case 'characterTypeIn':
-    case 'operatorRoleIn':
-    case 'enemyRankIn':
     case 'targetStaggered':
-    case 'contextTargetObjectTypeMatch':
-    case 'actionInputTargetObjectTypeMatch':
-    case 'actionInputTargetIdentityMatch':
-    case 'contextTargetIdentityMatch':
-    case 'contextTargetEntityTagMatch':
-    case 'entityTagMatch':
-    case 'globalCooldownPresent':
-    case 'casterComboPending':
     case 'eventDamageTagsMatch':
     case 'eventDamageGameplayTagsMatch':
     case 'eventDamageFeaturesMatch':
     case 'eventDamageTypeIn':
     case 'skillDamageTypeIn':
     case 'eventSkillTypeIn':
-    case 'currentSkillTypeIn':
     case 'originSkillTypeIn':
     case 'skillInterruptReasonIn':
     case 'eventSkillIdIn':
@@ -309,12 +341,9 @@ export function analyzeConditionUsage(condition: CombatCondition): DefinitionVal
     case 'eventBuffEndedEarly':
     case 'eventHealTagsMatch':
     case 'eventSpGainMatch':
-    case 'eventSourceMatchesBuffSource':
-    case 'eventSourceMatchesBuffSourceEntitySource':
-    case 'buffSourceMatchesOwner':
     case 'ownerSpawnedAbilityEntityPresent':
-    case 'deckAttributeCompare':
     case 'eventProjectilePerfectDodgeCooldownEquals':
+    case 'eventAbilityEntityFinishReasonIn':
     case 'eventProjectileIgnoreImmuneLevelCompare':
       return outputs();
     default: {
@@ -371,6 +400,8 @@ export function analyzeStepUsage(
       return effect([
         step.parameters.attackScale,
         step.parameters.calculationAddition,
+        step.parameters.calculationValue,
+        step.parameters.calculationValueScale,
         step.parameters.stagger,
         step.parameters.staggerMultiplier,
         ...(step.parameters.instantAttributeModifiers?.map(modifier => modifier.value) ?? []),
@@ -457,7 +488,12 @@ export function analyzeStepUsage(
     case 'storeCharacterTypeId':
     case 'storeCurrentTimelineFrame':
     case 'storeShieldValue':
+    case 'storeEventDamageValue':
       return effect([], [step.parameters.outputKey]);
+    case 'storeCharacterTypeBySquadSlot':
+      return effect([step.parameters.slotIndex], [step.parameters.outputKey]);
+    case 'findCharacterBySquadSlot':
+      return effect([step.parameters.slotIndex], []);
     case 'storeEventSpGainAmount':
       return effect([], [step.parameters.outputKey, step.parameters.realDeltaOutputKey]);
     case 'storeEventHealValues':
@@ -564,7 +600,12 @@ export function analyzeStepUsage(
       return effect();
     case 'overrideMultiDashLimit':
       return effect([step.parameters.dashCount]);
+    case 'changeSkillSlot':
+      return effect(
+        step.parameters.durationSeconds === undefined ? [] : [step.parameters.durationSeconds],
+      );
     case 'copyContextTargets':
+    case 'saveTransferredSource':
     case 'findTargets':
     case 'interruptCurrentSkill':
     case 'mergeContextTargets':
@@ -594,7 +635,6 @@ export function analyzeStepUsage(
     case 'reachSkillOperableBoundary':
     case 'markCurrentSkillCanDash':
     case 'openComboWindow':
-    case 'changeSkillSlot':
     case 'overrideBasicAttackMapping':
     case 'changePlayerActionMode':
     case 'changeNativeSkillType':

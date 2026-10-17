@@ -66,7 +66,7 @@ describe('Buff 运行时公共来源', () => {
       expect(evaluate).toHaveBeenCalledWith(
         expect.objectContaining({
           kind: 'healthCompare',
-          target: 'enemy',
+          target: { kind: 'fixed', target: 'enemy' },
           valueType: 'current',
           operator: 'greater',
           value: { kind: 'constant', value: 0 },
@@ -77,7 +77,6 @@ describe('Buff 运行时公共来源', () => {
       evaluate.mockReturnValue(true);
       expect(runtime.createSequence(entry).executeInstant({})).toBe(true);
       expect(execute).toHaveBeenCalled();
-      expect(() => compile('enemy')).toThrow('unsupported health condition target');
     },
   );
 
@@ -294,7 +293,13 @@ describe('Buff 运行时公共来源', () => {
         condition: {
           actions: [
             { body: { value: { action: { kind: 'damageDecorateMask', mask: 2097152 } } } },
-            { body: { value: { action: { kind: 'mainOperator', targetSource: 'Source' } } } },
+            {
+              body: {
+                value: {
+                  action: { kind: 'mainOperator', target: { targetSource: 'Source' } },
+                },
+              },
+            },
           ],
         },
         processors: [

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { EaButton, EaNumberInput, EaSelect, type EaSelectValue } from '@/design-system';
+import { EaButton, EaDialog, EaNumberInput, EaSelect, type EaSelectValue } from '@/design-system';
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 import {
   computed,
@@ -864,6 +864,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   projectChange: [project: EndaxisProjectDocument];
+  initialReady: [];
 }>();
 const gameDataRepository = props.gameDataRepository;
 const consumables = gameDataRepository.getConsumables();
@@ -1063,9 +1064,30 @@ async function handleProjectFileChange(event: Event): Promise<void> {
   }
 }
 
+const legacyConversionConfirmation = shallowRef<{
+  content: string;
+  resolve: (confirmed: boolean) => void;
+} | null>(null);
+
+function finishLegacyConversionConfirmation(confirmed: boolean): void {
+  const pending = legacyConversionConfirmation.value;
+  legacyConversionConfirmation.value = null;
+  pending?.resolve(confirmed);
+}
+
+function downloadLegacyJson(): void {
+  const pending = legacyConversionConfirmation.value;
+  if (pending === null) return;
+  downloadBlob(
+    new Blob([pending.content], { type: 'application/json;charset=utf-8' }),
+    'Endaxis_Timeline_V2.json',
+  );
+}
+
+onScopeDispose(() => finishLegacyConversionConfirmation(false));
+
 async function openProjectContent(content: string): Promise<boolean> {
   let legacy = false;
-  const legacyTimingMode = ref<'repair' | 'preserve'>('preserve');
   try {
     let parsedInput: unknown = content;
     try {
@@ -1075,42 +1097,14 @@ async function openProjectContent(content: string): Promise<boolean> {
     }
     legacy = inspectProjectInput(parsedInput).kind === 'legacy';
     if (legacy) {
-      try {
-        await serviceModalBoundary.run(() =>
-          ElMessageBox.confirm(
-            () =>
-              h('div', [
-                h('p', '检测到旧版本轴。请选择技能时间的处理方式，原文件不会修改。'),
-                h(EaSelect, {
-                  modelValue: legacyTimingMode.value,
-                  'aria-label': '旧轴时间处理方式',
-                  options: [
-                    { label: '智能修复时间', value: 'repair' },
-                    { label: '保留原时间', value: 'preserve' },
-                  ],
-                  'onUpdate:modelValue': value => {
-                    if (value === 'repair' || value === 'preserve') legacyTimingMode.value = value;
-                  },
-                }),
-                h(
-                  'p',
-                  legacyTimingMode.value === 'repair'
-                    ? '按新版技能时长和接续规则顺延技能，可能改变增益覆盖。'
-                    : '保留旧轴技能位置，仅换算帧率。重叠和不可接续会在轴上显示告警。',
-                ),
-                h('p', '两种方式都会判断技能形态，并按需要补主控切换。'),
-              ]),
-            '转换旧版本轴',
-            {
-              confirmButtonText: '确定并转换',
-              cancelButtonText: '取消',
-              type: 'warning',
-            },
-          ),
-        );
-      } catch {
-        return false;
-      }
+      const confirmed = await serviceModalBoundary.run(
+        () =>
+          new Promise<boolean>(resolve => {
+            finishLegacyConversionConfirmation(false);
+            legacyConversionConfirmation.value = { content, resolve };
+          }),
+      );
+      if (!confirmed) return false;
     }
     await ensureAllGameData();
     let projectInput: unknown = parsedInput;
@@ -1131,7 +1125,6 @@ async function openProjectContent(content: string): Promise<boolean> {
           parsedInput,
           gameDataRepository,
           legacyMappings as Parameters<typeof convertLegacyTimeline>[2],
-          { timingMode: legacyTimingMode.value },
         );
         legacyConversionReport = conversion.report;
         if (conversion.project === null) {
@@ -1171,9 +1164,7 @@ async function openProjectContent(content: string): Promise<boolean> {
           identityChanges: [],
           sequenceExpansions: [],
           resourceAdjustments: [],
-          timingAdjustments: [],
           skillFormAdjustments: [],
-          controlSwitchAdjustments: [],
         },
         true,
       );
@@ -1911,6 +1902,16 @@ const {
   scenario,
   service: simulationService,
 });
+let initialReadyEmitted = false;
+watch(
+  [simulationRun, simulationError],
+  ([run, error]) => {
+    if (initialReadyEmitted || (run === null && error === null)) return;
+    initialReadyEmitted = true;
+    emit('initialReady');
+  },
+  { immediate: true },
+);
 const {
   battleLogSnapshot,
   publishedOperators,
@@ -2002,16 +2003,18 @@ const selectedLibraryInspectorModel = computed(() => {
     segments: skillSegments(entry).map(segment => segment.label),
   };
 });
-const gearSetNames = computed<Readonly<Record<string, string>>>(() =>
-  Object.fromEntries(
+const gearSetNames = computed<Readonly<Record<string, string>>>(() => {
+  // 装备目录按需加载后，仓库查询结果会变化，需要同步刷新套装名称。
+  void operatorDefinitionRevision.value;
+  return Object.fromEntries(
     editorGameDataRepository
       .getGearSets()
       .map(definition => [
         definition.slug,
         definition.displayName ?? getGearSetGameName(definition.slug, locale.value),
       ]),
-  ),
-);
+  );
+});
 const gearSetTextSlugs = computed<Readonly<Record<string, string>>>(() =>
   Object.fromEntries(
     Object.values(projectDefinitionLibrary.value.gearSets).map(template => [
@@ -3502,7 +3505,7 @@ function hitMarkerTitle(label: TimelineHitEffectLabel | undefined): string {
   const parts: string[] = [];
   for (const damage of label.damage) {
     parts.push(
-      `${Math.round(damage.value)}${publishedRandomMode.value === 'sampled' && damage.isCritical ? '!' : ''} ${damageElementLabel(damage.damageType)}`,
+      `${Math.floor(damage.value)}${publishedRandomMode.value === 'sampled' && damage.isCritical ? '!' : ''} ${damageElementLabel(damage.damageType)}`,
     );
   }
   for (const infliction of label.infliction) {
@@ -5355,7 +5358,7 @@ function resolvePlacedSkillDurationFrames(
   if (operator === null) return 0;
   const group = operator.skillGroups.find(g => g.key === skillGroupKey);
   if (group === undefined) return 0;
-  const lastSkill = resolveSkillGroupPlacementSkills(group, variantKey, skillKey).at(-1);
+  const lastSkill = resolveSkillGroupPlacementSkills(group, operator, variantKey, skillKey).at(-1);
   return skillPlacementDisplayFrames(lastSkill?.timelineBlockFrames ?? 0);
 }
 
@@ -6136,6 +6139,45 @@ function setScenarioRandomMode(mode: 'expected' | 'sampled'): void {
   }));
 }
 
+const comboSkillPriorityOperators = computed(() => {
+  const tracks = viewModel.value.tracks;
+  const saved = scenario.value.battle.comboSkillPriority?.operatorOrder ?? [];
+  const occupied = tracks.filter(track => track.operatorInstanceId !== null);
+  const ordered = [
+    ...saved.flatMap(id => occupied.filter(track => track.operatorInstanceId === id)),
+    ...occupied.filter(track => !saved.includes(track.operatorInstanceId!)),
+    ...tracks.filter(track => track.operatorInstanceId === null),
+  ];
+  return ordered.map(track => ({
+    id: track.operatorInstanceId,
+    name: operatorName(track.operatorSlug),
+    avatar:
+      track.operatorAssetSlug === null ? null : getOperatorAvatarPath(track.operatorAssetSlug),
+  }));
+});
+
+function toggleComboSkillPriority(): void {
+  commitScenario('toggleComboSkillPriority', current => ({
+    ...current,
+    battle: {
+      ...current.battle,
+      comboSkillPriority: {
+        enabled: !current.battle.comboSkillPriority?.enabled,
+        operatorOrder:
+          current.battle.comboSkillPriority?.operatorOrder ??
+          current.tracks.flatMap(track => (track ? [track.id] : [])),
+      },
+    },
+  }));
+}
+
+function setComboSkillPriorityOrder(operatorOrder: string[]): void {
+  commitScenario('setComboSkillPriorityOrder', current => ({
+    ...current,
+    battle: { ...current.battle, comboSkillPriority: { enabled: true, operatorOrder } },
+  }));
+}
+
 function toggleAutomaticControlSwitches(): void {
   commitScenario('toggleAutomaticControlSwitches', current => ({
     ...current,
@@ -6252,6 +6294,36 @@ function setMobileGuideFrame(frame: number | null): void {
 </script>
 
 <template>
+  <EaDialog
+    :model-value="legacyConversionConfirmation !== null"
+    :title="t('timeline.legacyConversion.title')"
+    align-center
+    :close-on-click-modal="false"
+    @update:model-value="
+      value => {
+        if (!value) finishLegacyConversionConfirmation(false);
+      }
+    "
+  >
+    <p>{{ t('timeline.legacyConversion.question') }}</p>
+    <p>{{ t('timeline.legacyConversion.notice') }}</p>
+    <template #footer>
+      <div class="ea-dialog-actions ea-dialog-actions--end legacy-conversion-actions">
+        <EaButton @click="downloadLegacyJson">{{
+          t('timeline.legacyConversion.download')
+        }}</EaButton>
+        <EaButton @click="finishLegacyConversionConfirmation(false)">{{
+          t('common.cancel')
+        }}</EaButton>
+        <EaButton
+          class="legacy-conversion-confirm"
+          @click="finishLegacyConversionConfirmation(true)"
+        >
+          {{ t('timeline.legacyConversion.confirm') }}
+        </EaButton>
+      </div>
+    </template>
+  </EaDialog>
   <TimelineResetDialog
     v-if="resetDialogVisible"
     v-model="resetDialogVisible"
@@ -6574,6 +6646,8 @@ function setMobileGuideFrame(frame: number | null): void {
         :appearance="appearance"
         :random-mode="scenario.battle.random?.mode ?? 'expected'"
         :automatic-control-switches="scenario.battle.automaticControlSwitches !== false"
+        :combo-skill-priority-enabled="scenario.battle.comboSkillPriority?.enabled ?? false"
+        :combo-skill-priority-operators="comboSkillPriorityOperators"
         :global-random-seed="scenario.battle.random?.globalSeed ?? 0"
         :labels="{
           rename: t('timeline.scenario.renameTooltip'),
@@ -6633,6 +6707,8 @@ function setMobileGuideFrame(frame: number | null): void {
         @set-keycap-mode="keycapMode = $event"
         @set-random-mode="setScenarioRandomMode"
         @toggle-automatic-control-switches="toggleAutomaticControlSwitches"
+        @toggle-combo-skill-priority="toggleComboSkillPriority"
+        @set-combo-skill-priority-order="setComboSkillPriorityOrder"
         @set-global-random-seed="setGlobalRandomSeed"
         @roll-global-random-seed="rollGlobalRandomSeed"
         @clear-selection="clearTimelineSelection"
@@ -7798,6 +7874,9 @@ function setMobileGuideFrame(frame: number | null): void {
         :input-read-only="selectedCastId !== null && isHistoricalSkillInput(selectedCastId)"
         :label="selectedCastModel?.label ?? ''"
         :current-definition="selectedCastModel?.currentDefinition ?? null"
+        :actual-duration-frames="
+          selectedCastId === null ? undefined : skillCastActualDurationFrames.get(selectedCastId)
+        "
         :skill-level="selectedCastModel?.skillLevel ?? 1"
         :minimum-frame="-scenario.battle.prepFrames"
         :maximum-frame="scenario.battle.durationFrames"
@@ -8406,7 +8485,6 @@ function setMobileGuideFrame(frame: number | null): void {
       totalDamage: t('timeline.analysis.totalDamage'),
       expectedTotalDamage: t('timeline.analysis.expectedTotalDamage'),
       sampledTotalDamage: t('timeline.analysis.sampledTotalDamage'),
-      expectedModeDescription: t('timeline.analysis.expectedModeDescription'),
       sampledModeDescription: (seed: string) =>
         t('timeline.analysis.sampledModeDescription', { seed }),
       rotationTime: t('timeline.analysis.rotationTime'),
@@ -8419,6 +8497,7 @@ function setMobileGuideFrame(frame: number | null): void {
         [t('timeline.analysis.faq2Q'), t('timeline.analysis.faq2A')],
         [t('timeline.analysis.faq3Q'), t('timeline.analysis.faq3A')],
         [t('timeline.analysis.faq4Q'), t('timeline.analysis.faq4A')],
+        [t('timeline.analysis.faq6Q'), t('timeline.analysis.faq6A')],
       ],
     }"
     @update:visible="showDamageAnalysis = $event"
@@ -8432,6 +8511,25 @@ function setMobileGuideFrame(frame: number | null): void {
 </template>
 
 <style scoped>
+.legacy-conversion-actions .ea-button {
+  height: 32px;
+  padding: 8px 15px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.legacy-conversion-actions .legacy-conversion-confirm {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+
+.legacy-conversion-actions .legacy-conversion-confirm:hover {
+  background: color-mix(in srgb, var(--el-color-primary) 85%, white);
+  border-color: color-mix(in srgb, var(--el-color-primary) 85%, white);
+  color: var(--el-color-white);
+}
+
 .project-file-input {
   display: none;
 }

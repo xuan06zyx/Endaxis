@@ -18,6 +18,12 @@ export function rootActionSteps(sequence: ResolvedActionSequence): readonly Reso
       result.push(...rootActionSteps(action.entry));
     } else if (action.kind === 'callMacro') {
       result.push(...rootActionSteps(bind(action.entry, `${id}:macro`)));
+    } else if (action.kind === 'physicsCast') {
+      result.push({
+        ...action,
+        whenHit: bind(action.whenHit.$sequence, `${id}:hit`),
+        whenMiss: bind(action.whenMiss.$sequence, `${id}:miss`),
+      });
     } else if (action.kind === 'playAnimation') {
       result.push({ ...action, onEnd: bind(action.onEnd.$sequence, `${id}:onEnd`) });
     } else if (action.kind === 'showComboRingQte') {
@@ -31,19 +37,9 @@ export function rootActionSteps(sequence: ResolvedActionSequence): readonly Reso
         onEnter: bind(action.onEnter.$sequence, `${id}:enter`),
         onExit: bind(action.onExit.$sequence, `${id}:exit`),
       });
-    } else if (action.kind === 'jumpTimeline') {
-      result.push({ ...action, condition: bind(action.condition.$sequence, `${id}:condition`) });
-    } else if (action.kind === 'anyCondition') {
-      result.push({
-        ...action,
-        conditions: action.conditions.map((condition, index) =>
-          bind(condition.$sequence, `${id}:${index}`),
-        ),
-      });
     } else if (action.kind === 'ifElse') {
       result.push({
         ...action,
-        condition: bind(action.condition.$sequence, `${id}:condition`),
         whenTrue: bind(action.whenTrue.$sequence, `${id}:true`),
         whenFalse: bind(action.whenFalse.$sequence, `${id}:false`),
       });
@@ -61,6 +57,14 @@ export function rootActionSteps(sequence: ResolvedActionSequence): readonly Reso
           ...option,
           sequence: bind(option.sequence.$sequence, `${id}:${index}`),
         })),
+      });
+    } else if (action.kind === 'listenForTagQuery') {
+      result.push({
+        ...action,
+        parameters: {
+          ...action.parameters,
+          sequence: bind(action.parameters.sequence.$sequence, `${id}:tags`),
+        },
       });
     } else if (action.kind === 'listenForCombatEvents') {
       result.push({

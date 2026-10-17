@@ -90,12 +90,13 @@ const guardedBuff: SkillBuffDefinition = {
 };
 
 function planned(slug: string, definitions: OperatorBuffDefinitions = {}) {
-  // 生成管线仍是树侧消费；avywenna 生成产物是图形态，剔除图专属字段后作为树夹具基座。
-  const { dodgeSkill: _dodgeSkill, eventHandlers: _eventHandlers, ...base } = avywenna;
+  // 只保留夹具显式声明的技能和效果，避免载体干员的其他程序参与依赖分析。
+  const { dodgeSkillId: _dodgeSkillId, eventHandlers: _eventHandlers, ...base } = avywenna;
   return {
     activeSkills: [{ key: `${slug}-skill` }],
     operator: {
       ...base,
+      skills: [],
       skillGroups: [],
       talents: [],
       potentials: [],
@@ -187,7 +188,7 @@ async function setup(slugs: readonly string[] = ['one', 'two']) {
 }
 
 describe('干员与公共 Buff 共用规划', () => {
-  it('复用完整外部摘要时不重编译且文本不变，未提供摘要的下一轮重新编译来源', async () => {
+  it('外部 Buff 的同名变量不保护无引用实体的传入值', async () => {
     const args = { ...(await setup(['one'])), includeCommonBuffs: true };
     const skill: SkillDefinition = skillFixture({
       key: 'spawn',
@@ -217,7 +218,8 @@ describe('干员与公共 Buff 共用规划', () => {
     const operator: OperatorDefinition = {
       ...planned('one').operator,
       abilityEntityDefinitions: { fixture: { lifetime: { kind: 'infinite' } } },
-      skillGroups: [{ key: 'spawn', operationType: 'battleSkill', skills: skill }],
+      skills: [skill],
+      skillGroups: [{ key: 'spawn', operationType: 'battleSkill', skillIds: [skill.key] }],
     };
     projectOperatorDefinition.mockReturnValue({ ...planned('one'), operator });
     const equipment = (key: string) =>
@@ -234,21 +236,21 @@ describe('干员与公共 Buff 共用规划', () => {
     const original = equipment('equipmentValue');
     compileEntityValueConsumers.mockResolvedValue(original);
     const first = await renderOperatorDefinitionBatch(args);
-    expect(first.files[0]!.content).toContain('"equipmentValue":7');
+    expect(first.files[0]!.content).not.toContain('"equipmentValue":7');
     expect(first.files[0]!.content).not.toContain('"unused":99');
     expect(await renderOperatorDefinitionBatch(args, original)).toEqual(first);
     expect(compileEntityValueConsumers).toHaveBeenCalledTimes(1);
     compileEntityValueConsumers.mockImplementation(async () => equipment('changed'));
     const next = await renderOperatorDefinitionBatch(args);
     expect(compileEntityValueConsumers).toHaveBeenCalledTimes(2);
-    expect(next.files[0]!.content).toContain('"changed":8');
+    expect(next.files[0]!.content).not.toContain('"changed":8');
     expect(next.files[0]!.content).not.toContain('"equipmentValue":7');
     expect(projectOperatorDefinition).toHaveBeenCalledTimes(3);
     for (const result of [first, next])
       expect(result.summary.entityValueConsumers?.unknownAccess).toBe(false);
   });
 
-  it('正式单人生成与联合候选文本相同，复验重新收齐闭包且只写目标', async () => {
+  it('正式单人生成独立规划且只写目标，不受其他干员同名变量影响', async () => {
     const input = { ...(await setup()), optimization: 'apply' as const };
     const skill: SkillDefinition = skillFixture({
       key: 'spawn',
@@ -286,7 +288,7 @@ describe('干员与公共 Buff 共用规划', () => {
                 {
                   key: 'spawn',
                   operationType: 'battleSkill',
-                  skills: skill,
+                  skillIds: [skill.key],
                 },
               ],
             }
@@ -304,7 +306,7 @@ describe('干员与公共 Buff 共用规划', () => {
     await generateOperatorDefinitionCandidates(input);
     const candidate = await fs.readFile(path.join(input.outputRoot, 'one.generated.ts'), 'utf8');
     expect(candidate).not.toContain('"unused":99');
-    expect(candidate).toContain('"teammateValue":7');
+    expect(candidate).not.toContain('"teammateValue":7');
     const candidateAudit = await fs.readFile(
       path.join(input.auditRoot, 'one/operator.audit.json'),
       'utf8',
@@ -538,7 +540,8 @@ describe('干员与公共 Buff 共用规划', () => {
       const operator: OperatorDefinition = {
         ...planned('one').operator,
         abilityEntityDefinitions: { fixture: { lifetime: { kind: 'infinite' } } },
-        skillGroups: [{ key: 'spawn', operationType: 'battleSkill', skills: skill }],
+        skills: [skill],
+        skillGroups: [{ key: 'spawn', operationType: 'battleSkill', skillIds: [skill.key] }],
       };
       const gearSet: GearSetDefinition = {
         slug: 'fixture',
@@ -572,7 +575,6 @@ describe('干员与公共 Buff 共用规划', () => {
       expect(compileEntityValueConsumers).toHaveBeenCalledTimes(withCommonBuffs ? 1 : 0);
       if (withCommonBuffs)
         expect(result.entityValueConsumers).toEqual({
-          fallbackKeys: ['equipmentValue', 'mechanicValue'],
           externalReads: [],
           unknownAccess: false,
         });
@@ -580,14 +582,8 @@ describe('干员与公共 Buff 共用规划', () => {
       expect(renderOperatorDefinitionFiles).toHaveBeenCalledWith(
         'one',
         expect.objectContaining({
-          skillGroups: [
-            expect.objectContaining({
-              skills: expect.objectContaining({
-                blackboard: withCommonBuffs
-                  ? { equipmentValue: 7, mechanicValue: 9 }
-                  : skill.blackboard,
-              }),
-            }),
+          skills: [
+            expect.objectContaining({ blackboard: withCommonBuffs ? {} : skill.blackboard }),
           ],
         }),
         expect.objectContaining({ optimization: expect.objectContaining({ mode: 'apply' }) }),

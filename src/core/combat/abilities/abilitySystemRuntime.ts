@@ -21,6 +21,11 @@ import type {
 import type { BuffApplicationHandle } from '../buffs/buffOperationExecutor';
 import type { FrameRuntime } from '../runtime/combatSimulation';
 import { SkillOperableBoundaryRuntime } from '../skills/skillOperableBoundaryRuntime';
+import {
+  advancePlungingAttackMotion,
+  createPlungingAttackMotion,
+  type PlungingAttackMotionConfig,
+} from '../skills/plungingAttackMotion';
 import type { RuntimeSkillInterruptReason } from '../skills/skillRuntime';
 import type { RuntimeSkillState, SkillOperableBoundaryFact } from '../state/abilityState';
 import { createAbilitySystemState } from '../state/abilityState';
@@ -48,11 +53,13 @@ export interface AbilitySkillRuntime extends FrameRuntime {
   /** 玩家语义分类；实体内部技能只需 nativeSkillType，可以没有此字段。 */
   readonly skillType?: SkillType;
   readonly nativeSkillType?: NativeSkillType;
+  readonly normalSkillSubType?: SkillDefinition['normalSkillSubType'];
   /** 场景技能块在宿主局部时钟中的可操作宽度；非场景测试运行时可省略。 */
   readonly timelineBlockFrames?: number;
   readonly timelineBlockFollowUpSkillId?: string;
   /** 原生普攻连段身份提交点。 */
   readonly offsetRecordFrame?: number;
+  readonly dontInterruptCombo?: boolean;
   /** 正式块宽由技能实际执行和 canInterrupt 决定，静态宽度只供预览。 */
   readonly usesRuntimeOperableBoundary?: boolean;
   /** 该技能已保留 AllowNext 动作；静态窗口只作诊断，边界必须等待实际执行候选。 */
@@ -149,6 +156,14 @@ function nativeSkillInterruptPriority(skillType: NativeSkillType): number {
 }
 
 export interface AbilitySystemRuntimeOptions {
+  readonly plungingAttack?: {
+    readonly startSkillId: string;
+    readonly endSkillId: string;
+    readonly motion: PlungingAttackMotionConfig;
+    readonly jumpOffsetFrames: number;
+    readonly startSkill: (skillId: string, castId: string) => boolean;
+    readonly inputInterrupted: (castId: string) => void;
+  };
   /** 真正进入施放时发布；待发布的数据保存在能力系统状态中。 */
   readonly emitBeforeSkillCast?: (payload: AbilitySkillPayload) => void;
   /** 原生 onPostSkillTryCastRequest 对象委托：写入延迟槽之后通知，不是 AbilityEvent。 */
@@ -159,7 +174,7 @@ export interface AbilitySystemRuntimeOptions {
   /** 静态目录只登记类型身份，不创建可施放实例；换槽与类型动作也能寻址未放置技能。 */
   readonly skillDefinitions?: readonly Pick<
     AbilitySkillRuntime,
-    'skillId' | 'skillType' | 'nativeSkillType'
+    'skillId' | 'skillType' | 'nativeSkillType' | 'normalSkillSubType'
   >[];
   /** 完整技能目录的推进顺序；有冷却的身份先更新账本，再更新其放置实例。 */
   readonly skillTickPlan?: readonly {
@@ -180,6 +195,7 @@ export interface AbilitySystemRuntimeOptions {
   readonly playerActionModes?: readonly OperatorPlayerActionModeDefinition[];
   readonly actionRuntime?: FrameRuntime;
   readonly resolveTickDeltas?: () => AbilityTickDeltas;
+  readonly advanceSkillSlotReplacements?: (globalDeltaSeconds: number) => void;
   /** 帧末延迟施放在真正启动前回到装配根，复用施放前事件与运行时参数准备。 */
   readonly beforePostSkillCastStart?: (request: PostSkillCastRequest) => void;
   readonly onPostSkillCastResolved?: (request: PostSkillCastRequest, started: boolean) => void;
@@ -190,6 +206,9 @@ export interface AbilitySystemRuntimeOptions {
   readonly onCurrentSkillChanged?: (type: NativeSkillType | null) => void;
   /** 原生 BattleCommandMappingConfig.dashOffsetCacheTime 换算后的帧数。 */
   readonly dashOffsetFrames?: number;
+  readonly skillOffsetFrames?: number;
+  /** 原生角色主控身份及功能解锁门禁，由运行环境提供。 */
+  readonly canPreserveComboOnSkill?: () => boolean;
 }
 
 interface ActiveSkillBinding {
@@ -210,6 +229,7 @@ function firstSkillAfter(active: readonly ActiveSkillBinding[], order: number): 
 
 /** 按原生 PreLateTick 主干顺序推进一个实体的战斗能力。 */
 export class AbilitySystemRuntime implements FrameRuntime {
+  readonly #plungingAttack: AbilitySystemRuntimeOptions['plungingAttack'];
   readonly runtimeState: ReturnType<typeof createAbilitySystemState>;
   readonly #buffRuntime?: AbilityBuffRuntime;
   readonly #skills: AbilitySkillRuntime[];
@@ -224,6 +244,10 @@ export class AbilitySystemRuntime implements FrameRuntime {
     { binding: ActiveSkillBinding; active: ActiveSkillBinding[] }
   >();
   readonly #skillsById = new Map<string, AbilitySkillRuntime>();
+  readonly #normalSkillSubTypes = new Map<
+    string,
+    NonNullable<SkillDefinition['normalSkillSubType']>
+  >();
   readonly #slotGroupByStableInputSkill = new Map<string, string>();
   readonly #slotGroupByAllowedSkill = new Map<string, string>();
   readonly #defaultSlotGroupByInput = new Map<PlayerSkillInput, string>();
@@ -232,6 +256,7 @@ export class AbilitySystemRuntime implements FrameRuntime {
   readonly #skillKeysByTransitionSkillId = new Map<string, Set<string>>();
   readonly #actionRuntime?: FrameRuntime;
   readonly #resolveTickDeltas: () => AbilityTickDeltas;
+  readonly #advanceSkillSlotReplacements?: (globalDeltaSeconds: number) => void;
   readonly #beforePostSkillCastStart?: (request: PostSkillCastRequest) => void;
   readonly #onPostSkillCastResolved: AbilitySystemRuntimeOptions['onPostSkillCastResolved'];
   readonly #operableBoundaries: SkillOperableBoundaryRuntime | null;
@@ -240,6 +265,8 @@ export class AbilitySystemRuntime implements FrameRuntime {
   readonly #emitBeforeSkillCast: AbilitySystemRuntimeOptions['emitBeforeSkillCast'];
   readonly #onPostSkillCastRequest?: AbilitySystemRuntimeOptions['onPostSkillCastRequest'];
   readonly #dashOffsetFrames: number | undefined;
+  readonly #skillOffsetFrames: number | undefined;
+  readonly #canPreserveComboOnSkill: (() => boolean) | undefined;
   readonly #onCurrentSkillChanged: AbilitySystemRuntimeOptions['onCurrentSkillChanged'];
 
   /** 运行对象按数据中的稳定技能身份即时解析，不在字段中另存一份当前对象引用。 */
@@ -273,6 +300,7 @@ export class AbilitySystemRuntime implements FrameRuntime {
     this.#buffRuntime = options.buffRuntime;
     this.#skills = [...options.skills];
     this.#actionRuntime = options.actionRuntime;
+    this.#advanceSkillSlotReplacements = options.advanceSkillSlotReplacements;
     this.#playerActionRoutes = options.playerActionRoutes;
     const defaultModeLayers = new Set<string>();
     for (const mode of options.playerActionModes ?? []) {
@@ -289,10 +317,18 @@ export class AbilitySystemRuntime implements FrameRuntime {
           this.runtimeState.activePlayerActionModeByLayer.set(mode.modeLayer, mode.modeId);
       }
     }
+    this.#plungingAttack = options.plungingAttack;
     this.#beforePostSkillCastStart = options.beforePostSkillCastStart;
     this.#onPostSkillCastResolved = options.onPostSkillCastResolved;
     this.#onPostSkillCastRequest = options.onPostSkillCastRequest;
     this.#dashOffsetFrames = options.dashOffsetFrames;
+    this.#skillOffsetFrames = options.skillOffsetFrames;
+    this.#canPreserveComboOnSkill = options.canPreserveComboOnSkill;
+    if (
+      this.#skillOffsetFrames !== undefined &&
+      (!Number.isFinite(this.#skillOffsetFrames) || this.#skillOffsetFrames < 0)
+    )
+      throw new RangeError('skillOffsetFrames must be non-negative');
     this.#onCurrentSkillChanged = options.onCurrentSkillChanged;
     if (
       this.#dashOffsetFrames !== undefined &&
@@ -329,6 +365,11 @@ export class AbilitySystemRuntime implements FrameRuntime {
         throw new Error(`ability skill '${skill.skillId}' has inconsistent native SkillType`);
       }
       definedNativeSkillTypes.set(skill.skillId, nativeSkillType);
+      const subtype = skill.normalSkillSubType ?? 'normal';
+      const previousSubtype = this.#normalSkillSubTypes.get(skill.skillId);
+      if (previousSubtype !== undefined && previousSubtype !== subtype)
+        throw new Error(`ability skill '${skill.skillId}' has inconsistent normal skill subtype`);
+      this.#normalSkillSubTypes.set(skill.skillId, subtype);
       // 定义之间必须一致；切面里的类型可能已被 ChangeSkillType 改过，应原样保留。
       if (restored === undefined)
         this.runtimeState.nativeSkillTypeBySkillId.set(skill.skillId, nativeSkillType);
@@ -559,6 +600,13 @@ export class AbilitySystemRuntime implements FrameRuntime {
     return type;
   }
 
+  /** 原生 getter 同时读取可变 SkillType 与不可变 SkillData 子类型。 */
+  normalSkillSubTypeForSkill(skillId: string): SkillDefinition['normalSkillSubType'] {
+    return this.nativeSkillTypeForSkill(skillId) === 'normalSkill'
+      ? this.#normalSkillSubTypes.get(skillId)
+      : undefined;
+  }
+
   /** ChangeSkillType 修改同一原生技能身份的运行时类型，不改变玩家操作槽位。 */
   changeNativeSkillType(skillId: string, nativeSkillType: NativeSkillType): void {
     if (!this.runtimeState.nativeSkillTypeBySkillId.has(skillId)) {
@@ -576,6 +624,7 @@ export class AbilitySystemRuntime implements FrameRuntime {
   /** 控制标签新增时的原生中断；移除标签不会恢复此前技能。 */
   /** 按原生默认原因中断当前施法；结束回调可能已切换到另一技能，不能清除新实例。 */
   interruptCurrentSkill(): void {
+    this.#cancelPlungingAttack();
     const current = this.#currentSkill;
     if (current?.state === 'casting') current.interrupt('default');
     if (this.#currentSkill === current && current?.state !== 'casting') this.#currentSkill = null;
@@ -595,6 +644,7 @@ export class AbilitySystemRuntime implements FrameRuntime {
     readonly canInterrupt: boolean | undefined;
     readonly canDash: boolean | undefined;
   } | null {
+    this.#cancelPlungingAttack();
     const current = this.#currentSkill?.state === 'casting' ? this.#currentSkill : null;
     if (current === null) return null;
     const result = {
@@ -1119,6 +1169,14 @@ export class AbilitySystemRuntime implements FrameRuntime {
 
   /** All immediate entrances share processing context, before-cast hooks and startup. */
   #startAvailableSkill(skill: AbilitySkillRuntime, forceTimelinePayment: boolean): boolean {
+    const plunge = this.runtimeState.plungingAttack;
+    if (
+      plunge !== null &&
+      (skill.castId !== plunge.castId ||
+        (skill.skillId !== this.#plungingAttack?.startSkillId &&
+          skill.skillId !== plunge.endSkillId))
+    )
+      this.#cancelPlungingAttack();
     const skillId = skill.skillId;
     if (forceTimelinePayment) {
       if (skill.prepareForcedTimelineCast === undefined) {
@@ -1159,6 +1217,7 @@ export class AbilitySystemRuntime implements FrameRuntime {
     this.#currentSkill = skill;
     if (previousSkill !== null) this.#interruptForNextSkill(previousSkill, skill);
     if (beforeCastStart !== undefined) this.#withProcessingSkill(skill, beforeCastStart);
+    this.#prepareComboOffsetForCast(skill);
     if (!skill.tryStart()) {
       throw new Error(`skill '${skillId}' became unavailable during synchronous cast start`);
     }
@@ -1210,6 +1269,7 @@ export class AbilitySystemRuntime implements FrameRuntime {
 
   advanceFrame(): void {
     const deltas = this.#resolveTickDeltas();
+    this.#advancePlungingAttack(deltas.selfScaledDeltaSeconds);
     if (this.#buffRuntime?.advanceWithDeltas !== undefined) {
       this.#buffRuntime.advanceWithDeltas(deltas);
     } else {
@@ -1241,6 +1301,7 @@ export class AbilitySystemRuntime implements FrameRuntime {
     this.#commitComboOffsetTargetAtRecordFrame();
     if (this.#currentSkill?.state !== 'casting') this.#currentSkill = null;
     this.#advanceComboOffset(deltas.globalScaledDeltaSeconds * COMBAT_FRAMES_PER_SECOND);
+    this.#advanceSkillSlotReplacements?.(deltas.globalScaledDeltaSeconds);
     this.#flushPostSkillCastRequest();
     this.#buffRuntime?.recycleFinishedBuffs?.();
     this.#actionRuntime?.advanceFrame();
@@ -1297,6 +1358,7 @@ export class AbilitySystemRuntime implements FrameRuntime {
     this.#beforePostSkillCastStart?.(request);
     const beforeCastStart = this.#takeBeforeCastStart(nextSkill);
     beforeCastStart?.();
+    this.#prepareComboOffsetForCast(nextSkill);
     const started = nextSkill.tryStart();
     if (started) {
       this.#onSkillCastStart(nextSkill);
@@ -1307,9 +1369,24 @@ export class AbilitySystemRuntime implements FrameRuntime {
     this.#onPostSkillCastResolved?.(request, started);
   }
 
+  /** 原生 TryCastSkill 在 BeforeCastStart 后、DoCast 前清除不保留连段技能的旧缓存。 */
+  #prepareComboOffsetForCast(skill: AbilitySkillRuntime): void {
+    const type = this.nativeSkillTypeForSkill(skill.skillId);
+    if (type === 'attack' || type === 'dodge' || skill.dontInterruptCombo === true) return;
+    this.#clearComboOffset(true);
+  }
+
   #interruptForNextSkill(previousSkill: AbilitySkillRuntime, nextSkill: AbilitySkillRuntime): void {
+    if (
+      this.#canPreserveComboOnSkill?.() === true &&
+      nextSkill.dontInterruptCombo === true &&
+      (this.nativeSkillTypeForSkill(previousSkill.skillId) === 'attack' ||
+        this.runtimeState.comboOffsetModifier !== null)
+    )
+      this.#createComboOffset('skill', nextSkill.transitionSkillId ?? nextSkill.skillId);
     previousSkill.interrupt('castNextSkill', {
       nextSkillId: nextSkill.transitionSkillId ?? nextSkill.skillId,
+      ...(nextSkill.castId === undefined ? {} : { nextCastId: nextSkill.castId }),
       attachBuffToNextSkill: buff => {
         if (nextSkill.attachInheritedBuff === undefined) {
           throw new Error(`skill '${nextSkill.skillId}' cannot inherit Buff instances`);
@@ -1384,17 +1461,30 @@ export class AbilitySystemRuntime implements FrameRuntime {
 
   #createComboOffset(trigger: 'dash' | 'skill' | 'jump', triggerSkillKey: string | null): boolean {
     const targetSkillKey = this.runtimeState.comboOffsetTargetSkillKey;
-    if (targetSkillKey === null || this.#dashOffsetFrames === undefined) return false;
+    const duration =
+      trigger === 'skill'
+        ? this.#skillOffsetFrames
+        : trigger === 'jump'
+          ? this.#plungingAttack?.jumpOffsetFrames
+          : this.#dashOffsetFrames;
+    if (targetSkillKey === null || duration === undefined) return false;
     this.#clearComboOffset(false);
     this.runtimeState.comboOffsetModifier = {
       trigger,
       triggerSkillKey,
       targetSkillKey,
-      remainingFrames: this.#dashOffsetFrames,
+      remainingFrames: duration,
       reduceDuration: trigger === 'dash',
       skillCasted: false,
     };
     return true;
+  }
+
+  /** 原生 OnSkillExclusiveTimeExecuted：匹配插入技能的可中断时点才开始缓存倒计时。 */
+  onSkillExclusiveTimeExecuted(skillId: string): void {
+    const offset = this.runtimeState.comboOffsetModifier;
+    if (offset?.trigger === 'skill' && offset.triggerSkillKey === skillId)
+      offset.reduceDuration = true;
   }
 
   #advanceComboOffset(deltaFrames: number): void {
@@ -1410,6 +1500,7 @@ export class AbilitySystemRuntime implements FrameRuntime {
   }
 
   #beginSkillOperableBoundary(skill: AbilitySkillRuntime): void {
+    if (skill.skillId === this.#plungingAttack?.startSkillId) return;
     if (
       this.#operableBoundaries === null ||
       skill.castId === undefined ||
@@ -1433,6 +1524,7 @@ export class AbilitySystemRuntime implements FrameRuntime {
   }
 
   #publishRuntimeOperableBoundary(skill: AbilitySkillRuntime): void {
+    if (skill.skillId === this.#plungingAttack?.startSkillId) return;
     if (
       skill.usesRuntimeOperableBoundary !== true ||
       skill.castId === undefined ||
@@ -1512,9 +1604,92 @@ export class AbilitySystemRuntime implements FrameRuntime {
     this.runtimeState.registeredOperableBoundaryCastIds.add(skill.castId);
     this.#onSkillOperableBoundaryReached({
       castId: skill.castId,
-      durationFrames,
+      durationFrames:
+        this.runtimeState.plungingAttack?.castId === skill.castId
+          ? this.#resolveActualFrame() - this.runtimeState.plungingAttack.inputFrame
+          : durationFrames,
       reachedAtFrame: this.#resolveActualFrame(),
     });
+  }
+
+  #cancelPlungingAttack(): void {
+    const plunge = this.runtimeState.plungingAttack;
+    if (plunge === null) return;
+    if (plunge.motion.stage === 'landed') {
+      this.runtimeState.plungingAttack = null;
+      return;
+    }
+    if (plunge.cancelled) return;
+    this.#plungingAttack!.inputInterrupted(plunge.castId);
+    // BreakPlunge -> FallOrGrounded；MovePipelineFall.OnEnter 清零纵向速度，
+    // 高度保留。真正落地后才通知 Jump 缓存，不再执行落地攻击。
+    plunge.cancelled = true;
+    plunge.motion.stage = 'freeFall';
+    plunge.motion.velocity = 0;
+    plunge.motion.stageSeconds = 0;
+  }
+
+  /** 一次复合输入；跳跃和下落起手均不推进普攻段数。 */
+  tryStartPlungingAttack(skillId: string, castId: string): boolean {
+    const config = this.#plungingAttack;
+    if (config === undefined)
+      throw new Error('plunging attack input requires native movement configuration');
+    const frame = this.#resolveActualFrame!();
+    const activeMotion = this.runtimeState.plungingAttack?.motion;
+    const airborne = activeMotion !== undefined && activeMotion.stage !== 'landed';
+    // 起跳尚未完成时保留其进度；已经在空中时，新输入只请求下落起手。
+    // 时间轴的强制执行不应凭空增加高度或重新获得一次起跳速度。
+    const motion = airborne
+      ? activeMotion.stage === 'jump'
+        ? { ...activeMotion }
+        : {
+            stage: 'pendingStart' as const,
+            height: activeMotion.height,
+            velocity: 0,
+            stageSeconds: 0,
+          }
+      : createPlungingAttackMotion(config.motion);
+    this.#cancelPlungingAttack();
+    const previous = this.#currentSkill;
+    if (
+      !airborne &&
+      this.#canPreserveComboOnSkill?.() === true &&
+      (previous?.nativeSkillType === 'attack' || this.runtimeState.comboOffsetModifier !== null)
+    )
+      this.#createComboOffset('jump', null);
+    previous?.interrupt('default');
+    this.#currentSkill = null;
+    this.runtimeState.plungingAttack = {
+      castId,
+      endSkillId: skillId,
+      inputFrame: frame,
+      // 输入时刻只建立初始状态；首个位移积分覆盖输入后的时间区间，不能预支一帧位移。
+      lastFrame: frame,
+      cancelled: false,
+      motion,
+    };
+    return true;
+  }
+
+  #advancePlungingAttack(deltaSeconds: number): void {
+    const state = this.runtimeState.plungingAttack;
+    const config = this.#plungingAttack;
+    if (state === null || config === undefined) return;
+    const frame = this.#resolveActualFrame!();
+    if (frame <= state.lastFrame) return;
+    state.lastFrame = frame;
+    // 原生 Movement 固定组先于中心状态回调；本步落地后即可请求落地技能，不另延迟一帧。
+    const event = advancePlungingAttackMotion(state.motion, config.motion, deltaSeconds);
+    if (event === undefined) return;
+    if (event === 'landed') {
+      const offset = this.runtimeState.comboOffsetModifier;
+      if (offset?.trigger === 'jump') offset.reduceDuration = true;
+    }
+    if (state.cancelled) return;
+    if (
+      !config.startSkill(event === 'start' ? config.startSkillId : state.endSkillId, state.castId)
+    )
+      throw new Error(`failed to start ${event} skill for plunging attack '${state.castId}'`);
   }
 
   /** 只检查此刻玩家操作能够解析出的技能身份；费用、冷却和未来输入不参与当前块宽。 */

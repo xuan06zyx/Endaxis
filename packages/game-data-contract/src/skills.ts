@@ -11,6 +11,7 @@ import type { BuildCondition, CombatCondition } from './conditions.ts';
 import type { GameplayTag } from './gameplayTags.ts';
 import type {
   CombatResource,
+  CombatFaction,
   DamageElement,
   ImageRef,
   LevelValues,
@@ -71,6 +72,8 @@ export interface AbilityEntityChildSkillDefinition extends Readonly<SkillActionP
   readonly skillId: string;
   /** 实体注册表确定的原生技能类型。 */
   readonly nativeSkillType: NativeSkillType;
+  /** 原生战技子类型；省略表示普通战技，仅当前原生类型为 normalSkill 时生效。 */
+  readonly normalSkillSubType?: 'normal' | 'additionalNormalSkill';
   /** 没有提前结束时的自然持续帧数。 */
   readonly naturalDurationFrames: number;
   /** 该技能自己的扣费和冷却设置。 */
@@ -103,6 +106,23 @@ export type AbilityEntityDefinitionNumber =
 
 /** 可由干员级定义表复用的完整逻辑能力实体蓝图。 */
 export interface AbilityEntityDefinition {
+  /** 原生 Soul 的独立受击配置；其主体是生成目标，不是施法者。 */
+  readonly soul?: {
+    readonly useMainBodyHp: boolean;
+    readonly useMainBodyPoise: boolean;
+    readonly canBeHitIndividually: boolean;
+    readonly onlyHitByNormalAttack: boolean;
+    readonly canBeDirectlyBuffed: boolean;
+    /** 排除目标时保留部位自身身份；缺省为原生 false。 */
+    readonly asIndividualInExcludeTargetProcessor?: boolean;
+    readonly damageTransferType: 'partAttributes' | 'mainBodyAttributes' | 'sharedDamage';
+    readonly damageRatio: number;
+    readonly poiseRatio: number;
+    readonly soulHpBlackboardKey: string;
+    readonly soulDamageRatio: AbilityEntityDefinitionNumber;
+    readonly soulPoiseRatio: AbilityEntityDefinitionNumber;
+    readonly asPrimaryTarget: boolean;
+  };
   /** 实体存在期间的干员状态图标；直接由该实体造成的伤害显示在状态下方。 */
   readonly presentation?: {
     readonly icon: ImageRef;
@@ -113,6 +133,8 @@ export interface AbilityEntityDefinition {
   };
   /** AbilityEntityTemplateData.bornTags；实体创建时立即成为其 AbilitySystem 自身标签。 */
   readonly bornTags?: readonly GameplayTag[];
+  /** 模板的原生阵营；未配置不代表继承创建者阵营。 */
+  readonly faction?: CombatFaction;
   /** AbilitySystemData.entityBlackboard 的模板初值；生成动作的显式赋值可覆盖同名键。 */
   readonly blackboard?: Readonly<Record<string, number | string>>;
   /** 能力实体的寿命：限定秒数或无限持续。 */
@@ -300,6 +322,8 @@ export interface SkillDefinitionProperties extends SkillActionProgramDefinition 
   key: string;
   /** `_InitSkills` 创建实例时得到的原生初值；之后可由 ChangeSkillType 改写。 */
   nativeSkillType: NativeSkillType;
+  /** 原生战技子类型，不改变玩家操作类型；省略表示普通战技。 */
+  normalSkillSubType?: 'normal' | 'additionalNormalSkill';
   /**
    * 该次释放所创建的强化状态 Buff 身份。时间轴只按实际 Buff 回执投影生命周期；
    * 省略表示没有已取证的强化状态，不能把任意自身 Buff 猜成强化条。
@@ -328,6 +352,8 @@ export interface SkillDefinitionProperties extends SkillActionProgramDefinition 
   exclusiveFrame: number;
   /** 原生 SkillData.offsetRecordFrame；到达时把下一段普攻提交为连段偏移目标。 */
   offsetRecordFrame: number;
+  /** 原生 SkillData.dontInterruptCombo；主控插入此技能时保留普攻连段。缺省为 false。 */
+  dontInterruptCombo?: boolean;
   /**
    * 从原生顶层直连输入 Action 保留的操作解析证据。两类窗口职责不同：
    * commandMappings 选择该操作当前指向的技能，allowedNextSkills 只决定能否提前中断。
@@ -407,7 +433,7 @@ export interface SkillGroupPlacementPolicy {
 /**
  * 技能库中的操作组：一个或一组连续按键操作，不是原生技能槽。
  * 每个可见成员对应操作段的目标技能；轴上放置的是该段的实例。
- * 当前 skills 内嵌执行定义是存储布局，不意味着执行逻辑可依赖分组。
+ * 成员仅引用干员持有的技能；组不拥有执行定义，不参与原生执行路由。
  */
 export interface SkillGroupDefinition {
   /** 编辑器一次放置整个技能组时采用的展开规则。 */
@@ -417,7 +443,7 @@ export interface SkillGroupDefinition {
   /** 玩家操作类别；技能库与轴上技能块均据此展示，实际执行读取具体技能的 skillType。 */
   operationType: OperationType;
   /** 单个可放置技能，或作为一个技能库条目放置的有序技能链。 */
-  skills: SkillDefinition | readonly SkillDefinition[];
+  skillIds: readonly string[];
   /** 操作名称模板的 i18n 键，含 name/shortName；{baseName} 为操作名称（轴上含段号）。 */
   nameKey?: string;
   /**
@@ -430,22 +456,6 @@ export interface SkillGroupDefinition {
    * 例如终结技状态下的强化普攻仍属于普攻，但倍率取终结技等级。
    */
   variants?: readonly SkillGroupVariantDefinition[];
-  /**
-   * 与 `skills` 共用一个稳定放置身份、仅由运行时换槽动作选中的技能形态。
-   * 这里只保存本组连续段或内部执行技能；独立可放置的替换操作应放在独立组的 skills 中。
-   */
-  replacementSkills?: readonly SkillDefinition[];
-  /**
-   * 每个运行时替换技能在技能库中的显式放置语义。运行时替换关系本身不能推出展示语义：
-   * `internal` 不接受玩家输入；独立操作由独立技能组表达。
-   * 有序接续技能由 `placementSequenceSkillKeys` 表达，不重复出现在这里。
-   */
-  replacementSkillPlacements?: Readonly<Record<string, 'internal'>>;
-  /**
-   * 本展示组中的转发技能。原生稳定槽位由 skillSlots 定义，与展示组独立；执行使用原生分类与等级源。
-   * 仅用于原生输入旁路（例如战技包装器实际 Cast 连携技）；普通同组换槽继续使用 replacementSkills。
-   */
-  routedReplacementSkills?: readonly RoutedSkillReplacementDefinition[];
   /** 同一稳定技能组的 UI 变体，不会产生独立的释放身份。 */
   presentationVariants?: readonly SkillPresentationVariantDefinition[];
 }
@@ -459,13 +469,13 @@ export interface SkillGroupVariantDefinition {
   /** 此放置形态的名称模板覆盖；未提供时继承组的 nameKey。 */
   nameKey?: string;
   /** 此形态包含的单个技能或有序技能链。 */
-  skills: SkillDefinition | readonly SkillDefinition[];
+  skillIds: readonly string[];
 }
 
 /** 包装技能到实际执行技能的绑定；两者均按技能 ID 引用，与展示组无关。 */
 export interface RoutedSkillReplacementDefinition {
-  /** 已合并输入包装器资源规则、且拥有独立稳定 key 的执行定义。 */
-  skill: SkillDefinition;
+  /** 本干员技能目录中已合并输入包装器资源规则的技能 ID。 */
+  skillId: string;
 
   /** 执行体在原生养成定义中的稳定技能身份。 */
   executionSkillKey: string;

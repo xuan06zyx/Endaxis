@@ -119,6 +119,7 @@ export interface CompiledAbilityEntityChildSkillProgram extends CompiledSkillAct
   readonly skillId: string;
   readonly skillLevel?: number;
   readonly nativeSkillType: NativeSkillType;
+  readonly normalSkillSubType?: SkillDefinition['normalSkillSubType'];
   readonly naturalDurationFrames: number;
   readonly castResource: {
     readonly costFrame: number;
@@ -130,6 +131,8 @@ export interface CompiledAbilityEntityChildSkillProgram extends CompiledSkillAct
 
 /** 已按引用技能等级展开、可供逻辑能力实体运行时创建实例的蓝图。 */
 export interface ResolvedAbilityEntityDefinition {
+  readonly faction?: AbilityEntityDefinition['faction'];
+  readonly soul?: AbilityEntityDefinition['soul'];
   readonly bornTags?: AbilityEntityDefinition['bornTags'];
   readonly blackboard?: AbilityEntityDefinition['blackboard'];
   readonly lifetime: AbilityEntityDefinition['lifetime'];
@@ -142,6 +145,7 @@ export interface ResolvedAbilityEntityDefinition {
 }
 
 export interface ResolvedCombatStepParameters {
+  physicsCast: CompiledStepParameters['physicsCast'];
   copyContextTargets: CompiledStepParameters['copyContextTargets'];
   findTargets: CompiledStepParameters['findTargets'];
   mergeContextTargets: CompiledStepParameters['mergeContextTargets'];
@@ -149,6 +153,7 @@ export interface ResolvedCombatStepParameters {
   createSpatialPointTargets: CompiledStepParameters['createSpatialPointTargets'];
   findOwnerSpawnedAbilityEntities: CompiledStepParameters['findOwnerSpawnedAbilityEntities'];
   pickContextTarget: CompiledStepParameters['pickContextTarget'];
+  saveTransferredSource: CompiledStepParameters['saveTransferredSource'];
   forEachContextTarget: CompiledStepParameters['forEachContextTarget'];
   setAbilityEntityRemainingDuration: CompiledStepParameters['setAbilityEntityRemainingDuration'];
   finishOwner: CompiledStepParameters['finishOwner'];
@@ -165,13 +170,16 @@ export interface ResolvedCombatStepParameters {
   applyPhysicalInfliction: CompiledStepParameters['applyPhysicalInfliction'];
   forceSpellStatus: CompiledStepParameters['forceSpellStatus'];
   dealDamage: {
+    target?: CompiledStepParameters['dealDamage']['target'];
     damageType: DamageType;
-    calculation?: 'standard' | 'breakingAttack' | 'attribute';
+    calculation?: CompiledStepParameters['dealDamage']['calculation'];
     attackScale: number | CompiledValueInput;
     takeAttackSnapshot?: boolean;
     calculationMultiplier?: number;
     calculationAttribute?: string;
     calculationAddition?: number | CompiledValueInput;
+    calculationValue?: number | CompiledValueInput;
+    calculationValueScale?: number | CompiledValueInput;
     tags: readonly DamageTag[];
     gameplayTags?: readonly GameplayTag[];
     features?: readonly DamageFeature[];
@@ -182,6 +190,7 @@ export interface ResolvedCombatStepParameters {
     instantDamageScaleModifiers?: CompiledStepParameters['dealDamage']['instantDamageScaleModifiers'];
   };
   dealStagger: {
+    target?: CompiledStepParameters['dealStagger']['target'];
     value: number | CompiledValueInput;
     valueMultiplier?: number | CompiledValueInput;
     features?: readonly DamageFeature[];
@@ -246,11 +255,15 @@ export interface ResolvedCombatStepParameters {
   hideUi: CompiledStepParameters['hideUi'];
   setIgnoreGlobalTimeScale: CompiledStepParameters['setIgnoreGlobalTimeScale'];
   storeCharacterTypeId: CompiledStepParameters['storeCharacterTypeId'];
+  findCharacterBySquadSlot: CompiledStepParameters['findCharacterBySquadSlot'];
+  storeCharacterTypeBySquadSlot: CompiledStepParameters['storeCharacterTypeBySquadSlot'];
   storeCurrentTimelineFrame: CompiledStepParameters['storeCurrentTimelineFrame'];
   storeEventSpGainAmount: CompiledStepParameters['storeEventSpGainAmount'];
   storeEventHealValues: CompiledStepParameters['storeEventHealValues'];
+  storeEventDamageValue: CompiledStepParameters['storeEventDamageValue'];
   storeShieldValue: CompiledStepParameters['storeShieldValue'];
   modifyActionValue: CompiledStepParameters['modifyActionValue'];
+  storeRandomInteger: CompiledStepParameters['storeRandomInteger'];
   calculateActionValue: CompiledStepParameters['calculateActionValue'];
   storeSourceAttributeValue: CompiledStepParameters['storeSourceAttributeValue'];
   storeEntityPropertyValue: CompiledStepParameters['storeEntityPropertyValue'];
@@ -301,6 +314,9 @@ export interface ResolvedCombatStepParameters {
       readonly sequence: ResolvedActionSequence;
     }[];
   };
+  listenForTagQuery: Omit<CompiledStepParameters['listenForTagQuery'], 'sequence'> & {
+    sequence: ResolvedActionSequence;
+  };
 }
 
 type ResolvedCombatStepNode<K extends CombatStepKind> = {
@@ -309,47 +325,52 @@ type ResolvedCombatStepNode<K extends CombatStepKind> = {
   readonly hitId?: string;
   readonly kind: K;
   readonly parameters: Readonly<ResolvedCombatStepParameters[K]>;
-} & (K extends 'playAnimation'
-  ? { readonly onEnd: ResolvedActionSequence }
-  : K extends 'showComboRingQte'
-    ? { readonly triggeredAction: ResolvedActionSequence }
-    : K extends 'aura'
-      ? { readonly onEnter: ResolvedActionSequence; readonly onExit: ResolvedActionSequence }
-      : K extends 'jumpTimeline'
-        ? { readonly condition: ResolvedActionSequence }
-        : K extends 'anyCondition'
-          ? { readonly conditions: readonly ResolvedActionSequence[] }
-          : K extends 'ifElse'
-            ? {
-                readonly condition: ResolvedActionSequence;
-                readonly whenTrue: ResolvedActionSequence;
-                readonly whenFalse: ResolvedActionSequence;
-              }
-            : K extends 'conditional'
+} & (K extends 'physicsCast'
+  ? { readonly whenHit: ResolvedActionSequence; readonly whenMiss: ResolvedActionSequence }
+  : K extends 'playAnimation'
+    ? { readonly onEnd: ResolvedActionSequence }
+    : K extends 'showComboRingQte'
+      ? { readonly triggeredAction: ResolvedActionSequence }
+      : K extends 'aura'
+        ? { readonly onEnter: ResolvedActionSequence; readonly onExit: ResolvedActionSequence }
+        : K extends 'jumpTimeline'
+          ? { readonly condition: CompiledCondition }
+          : K extends 'anyCondition'
+            ? { readonly conditions: readonly CompiledCondition[] }
+            : K extends 'ifElse'
               ? {
+                  readonly condition: CompiledCondition;
                   readonly whenTrue: ResolvedActionSequence;
-                  readonly whenFalse?: ResolvedActionSequence;
+                  readonly whenFalse: ResolvedActionSequence;
                 }
-              : K extends 'once'
-                ? { readonly body: ResolvedActionSequence }
-                : K extends 'switch'
-                  ? {
-                      readonly options: readonly (Omit<ActionSwitchOptionDefinition, 'sequence'> & {
-                        readonly sequence: ResolvedActionSequence;
-                      })[];
-                    }
-                  : K extends 'repeatEachTick'
-                    ? { readonly body: ResolvedActionSequence }
-                    : K extends 'launchProjectile'
-                      ? {
-                          readonly callbacks: readonly {
-                            readonly event: 'hit' | 'block' | 'reach' | 'finish';
-                            readonly skill: CompiledAbilityEntityChildSkillProgram;
-                          }[];
-                        }
-                      : K extends 'forEachContextTarget'
-                        ? { readonly body: ResolvedActionSequence }
-                        : {});
+              : K extends 'conditional'
+                ? {
+                    readonly whenTrue: ResolvedActionSequence;
+                    readonly whenFalse?: ResolvedActionSequence;
+                  }
+                : K extends 'once'
+                  ? { readonly body: ResolvedActionSequence }
+                  : K extends 'switch'
+                    ? {
+                        readonly options: readonly (Omit<
+                          ActionSwitchOptionDefinition,
+                          'sequence'
+                        > & {
+                          readonly sequence: ResolvedActionSequence;
+                        })[];
+                      }
+                    : K extends 'repeatEachTick'
+                      ? { readonly body: ResolvedActionSequence }
+                      : K extends 'launchProjectile'
+                        ? {
+                            readonly callbacks: readonly {
+                              readonly event: 'launch' | 'hit' | 'block' | 'reach' | 'finish';
+                              readonly skill: CompiledAbilityEntityChildSkillProgram;
+                            }[];
+                          }
+                        : K extends 'forEachContextTarget'
+                          ? { readonly body: ResolvedActionSequence }
+                          : {});
 
 /** 按成员逐一构造，联合kind仍保留parameters与子序列字段的判别关联。 */
 export type ResolvedCombatStepForKind<K extends CombatStepKind> = {
@@ -361,6 +382,7 @@ export type ResolvedCombatStep = ResolvedCombatStepForKind<CombatStepKind>;
 
 /** 每种节点必须明确执行归属；新增 kind 不得自动落入操作链。 */
 export const COMBAT_STEP_EXECUTION_ROUTES = {
+  physicsCast: 'operation',
   copyContextTargets: 'operation',
   findTargets: 'operation',
   mergeContextTargets: 'operation',
@@ -368,6 +390,7 @@ export const COMBAT_STEP_EXECUTION_ROUTES = {
   createSpatialPointTargets: 'operation',
   findOwnerSpawnedAbilityEntities: 'operation',
   pickContextTarget: 'operation',
+  saveTransferredSource: 'operation',
   forEachContextTarget: 'sequence',
   setAbilityEntityRemainingDuration: 'operation',
   finishOwner: 'operation',
@@ -416,11 +439,15 @@ export const COMBAT_STEP_EXECUTION_ROUTES = {
   hideUi: 'operation',
   setIgnoreGlobalTimeScale: 'operation',
   storeCharacterTypeId: 'operation',
+  findCharacterBySquadSlot: 'operation',
+  storeCharacterTypeBySquadSlot: 'operation',
   storeCurrentTimelineFrame: 'operation',
   storeEventSpGainAmount: 'operation',
   storeEventHealValues: 'operation',
+  storeEventDamageValue: 'operation',
   storeShieldValue: 'operation',
   modifyActionValue: 'operation',
+  storeRandomInteger: 'operation',
   calculateActionValue: 'operation',
   storeSourceAttributeValue: 'operation',
   storeEntityPropertyValue: 'operation',
@@ -454,6 +481,7 @@ export const COMBAT_STEP_EXECUTION_ROUTES = {
   setCharacterPassiveUiValue: 'operation',
   inheritSkillCastInfoForBasicAttack: 'operation',
   listenForCombatEvents: 'sequence',
+  listenForTagQuery: 'sequence',
 } as const satisfies Record<CombatStepKind, 'sequence' | 'operation'>;
 
 type CombatOperationKind = {
@@ -462,11 +490,13 @@ type CombatOperationKind = {
 
 /** 仅交给操作链的节点；监听器与控制流程由序列运行时持有生命周期。 */
 export type ResolvedCombatOperationStep = {
-  [K in CombatOperationKind]: ResolvedCombatStepForKind<K>;
+  [K in CombatOperationKind]: K extends 'physicsCast'
+    ? Omit<ResolvedCombatStepForKind<K>, 'whenHit' | 'whenMiss'>
+    : ResolvedCombatStepForKind<K>;
 }[CombatOperationKind];
 
 export function isCombatOperationStep(
-  step: ResolvedCombatStep,
+  step: ResolvedCombatStep | ResolvedCombatOperationStep,
 ): step is ResolvedCombatOperationStep {
   return COMBAT_STEP_EXECUTION_ROUTES[step.kind] === 'operation';
 }
@@ -541,6 +571,7 @@ export interface CompiledSkillExecutionProgram extends CompiledSkillActionProgra
   readonly skillType?: SkillType;
   /** 原生技能实例的初始可变分类；不同于伤害/养成使用的 Endaxis skillType。 */
   readonly nativeSkillType?: NativeSkillType;
+  readonly normalSkillSubType?: SkillDefinition['normalSkillSubType'];
   /** 默认施放的目标；省略时由调用方提供，不能回退到敌人。 */
   readonly defaultTarget?: 'enemy' | 'owner';
   readonly smartTarget?: 'enemy' | 'input' | 'trigger';
@@ -554,6 +585,7 @@ export interface CompiledSkillExecutionProgram extends CompiledSkillActionProgra
   readonly exclusiveFrame?: number;
   /** 原生普攻连段身份提交点；到达后下一次 Dash 可保存该目标。 */
   readonly offsetRecordFrame?: number;
+  readonly dontInterruptCombo?: boolean;
   /** 原生技能局部输入映射与接续窗口；已无等级值，运行时只读。 */
   readonly inputWindows?: SkillDefinition['inputWindows'];
   readonly cooldownFrames?: number;
@@ -587,6 +619,7 @@ export type CompiledSkillCooldownProgram = Pick<
   | 'skillId'
   | 'executionSkillId'
   | 'nativeSkillType'
+  | 'normalSkillSubType'
   | 'skillType'
   | 'inputWindows'
   | 'cooldownFrames'

@@ -39,18 +39,11 @@ export const catcherChr_0020_meurs_attack1ActionGraph = {
         },
         next: 'changeResource_4',
       },
-      checkCondition_3: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_6: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'startTimeDilation_5' },
           whenFalse: { $sequence: null },
         },
@@ -94,7 +87,10 @@ export const catcherChr_0020_meurs_attack1ActionGraph = {
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
     },
   },
@@ -169,27 +165,13 @@ export const catcherChr_0020_meurs_attack2ActionGraph = {
         },
         next: 'changeResource_5',
       },
-      checkCondition_4: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_8: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_4' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'startTimeDilation_6' },
           whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
-      checkCondition_7: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
         },
         next: null,
       },
@@ -197,7 +179,7 @@ export const catcherChr_0020_meurs_attack2ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_7' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'ifElse_8' },
           whenFalse: { $sequence: null },
         },
@@ -252,7 +234,10 @@ export const catcherChr_0020_meurs_attack2ActionGraph = {
           value: 1,
         },
       },
-      data_3: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_3: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
     },
   },
@@ -328,18 +313,11 @@ export const catcherChr_0020_meurs_attack3ActionGraph = {
         },
         next: 'changeResource_2',
       },
-      checkCondition_4: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_5: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'startTimeDilation_3' },
           whenFalse: { $sequence: null },
         },
@@ -349,7 +327,7 @@ export const catcherChr_0020_meurs_attack3ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_4' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'ifElse_5' },
           whenFalse: { $sequence: null },
         },
@@ -360,7 +338,7 @@ export const catcherChr_0020_meurs_attack3ActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_3' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_4' },
             tags: ['normalAttack'],
           },
         },
@@ -376,8 +354,15 @@ export const catcherChr_0020_meurs_attack3ActionGraph = {
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_3: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
+      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
     },
   },
   macros: {},
@@ -455,18 +440,11 @@ export const catcherChr_0020_meurs_attack4ActionGraph = {
         },
         next: 'once_5',
       },
-      checkCondition_4: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_7: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_4' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'startTimeDilation_6' },
           whenFalse: { $sequence: null },
         },
@@ -512,7 +490,10 @@ export const catcherChr_0020_meurs_attack4ActionGraph = {
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
       data_4: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
     },
@@ -576,13 +557,6 @@ export const catcherChr_0020_meurs_power_attackActionGraph = {
         },
         next: 'gainFinisherSp_1',
       },
-      checkCondition_3: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       startTimeDilation_4: {
         action: {
           kind: 'startTimeDilation',
@@ -598,18 +572,11 @@ export const catcherChr_0020_meurs_power_attackActionGraph = {
         },
         next: null,
       },
-      checkCondition_5: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
       ifElse_6: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'startTimeDilation_4' },
           whenFalse: { $sequence: null },
         },
@@ -619,7 +586,7 @@ export const catcherChr_0020_meurs_power_attackActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_5' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'ifElse_6' },
           whenFalse: { $sequence: null },
         },
@@ -678,7 +645,10 @@ export const catcherChr_0020_meurs_power_attackActionGraph = {
           value: 1,
         },
       },
-      data_3: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_3: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
     },
   },
   macros: {},
@@ -692,6 +662,7 @@ export const catcherChr_0020_meurs_power_attack: SkillDefinition = {
   naturalDurationFrames: 135,
   exclusiveFrame: 75,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       {
@@ -831,7 +802,7 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 255 },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
         },
         next: null,
       },
@@ -847,13 +818,6 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
         action: {
           kind: 'copyContextTargets',
           parameters: { source: { kind: 'context', key: 'Attacker' }, saveToContextKey: 'HitTar' },
-        },
-        next: null,
-      },
-      checkCondition_24: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
         },
         next: null,
       },
@@ -881,7 +845,7 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 60 },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
         },
         next: null,
       },
@@ -895,14 +859,14 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
       checkCondition_36: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
         },
         next: 'copyContextTargets_35',
       },
       checkCondition_37: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
         },
         next: 'checkCondition_36',
       },
@@ -916,7 +880,7 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
       checkCondition_33: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_7' } },
         },
         next: 'copyContextTargets_32',
       },
@@ -949,7 +913,7 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_7' },
+            amount: { kind: 'valueNode', nodeId: 'data_8' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -962,14 +926,14 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
       checkCondition_42: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_8' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_9' } },
         },
         next: 'changeResource_41',
       },
       checkCondition_43: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_10' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_11' } },
         },
         next: 'checkCondition_42',
       },
@@ -988,18 +952,11 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_44: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_11' } },
-        },
-        next: null,
-      },
       ifElse_46: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_44' },
+          condition: { kind: 'conditionNode', nodeId: 'data_12' },
           whenTrue: { $sequence: 'startTimeDilation_45' },
           whenFalse: { $sequence: null },
         },
@@ -1010,10 +967,10 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_12' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_13' },
             tags: ['normalSkill'],
             features: ['canBreakWeakness'],
-            stagger: { kind: 'valueNode', nodeId: 'data_13' },
+            stagger: { kind: 'valueNode', nodeId: 'data_14' },
           },
         },
         next: 'ifElse_46',
@@ -1119,7 +1076,7 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_15' },
           whenTrue: { $sequence: 'copyContextTargets_23' },
           whenFalse: { $sequence: 'copyContextTargets_23' },
         },
@@ -1129,7 +1086,7 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_24' },
+          condition: { kind: 'conditionNode', nodeId: 'data_16' },
           whenTrue: { $sequence: 'findTargets_opt2' },
           whenFalse: { $sequence: 'ifElse_opt3' },
         },
@@ -1140,18 +1097,14 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb_return_base' } },
       data_2: {
         type: 'boolean',
-        expression: {
-          kind: 'targetDistance',
-          source: { kind: 'owner' },
-          target: { kind: 'context', key: 'Attacker' },
-          distance: 3.5,
-          lessThan: false,
-          includeTargetRadius: false,
-          containsHittableObject: false,
-        },
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
       },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'taken_dmg' } },
       data_4: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_5: {
         type: 'boolean',
         expression: {
           kind: 'targetDistance',
@@ -1163,11 +1116,11 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
           containsHittableObject: false,
         },
       },
-      data_5: {
+      data_6: {
         type: 'boolean',
         expression: { kind: 'eventBuffIdMatch', buffIds: ['buff_eny_0018_lbtough_pre_catch'] },
       },
-      data_6: {
+      data_7: {
         type: 'boolean',
         expression: {
           kind: 'eventDamageFeaturesMatch',
@@ -1175,32 +1128,33 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
           features: ['dot', 'remainArea'],
         },
       },
-      data_7: { type: 'number', expression: { kind: 'blackboard', key: 'potential5_atb' } },
-      data_8: {
+      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'potential5_atb' } },
+      data_9: {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'caster',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/HpShield'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/HpShield'],
         },
       },
-      data_9: {
+      data_10: {
         type: 'number',
         expression: { kind: 'blackboard', key: 'potential5_atb', fallback: 0 },
       },
-      data_10: {
+      data_11: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_9' },
+          left: { kind: 'valueNode', nodeId: 'data_10' },
           operator: 'greater',
           right: { kind: 'constant', value: 0 },
         },
       },
-      data_11: {
+      data_12: {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
@@ -1211,8 +1165,24 @@ export const catcherChr_0020_meurs_normal_skillActionGraph = {
           value: 1,
         },
       },
-      data_12: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
-      data_13: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
+      data_13: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
+      data_14: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
+      data_15: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_16: {
+        type: 'boolean',
+        expression: {
+          kind: 'targetDistance',
+          source: { kind: 'owner' },
+          target: { kind: 'context', key: 'Attacker' },
+          distance: 3.5,
+          lessThan: false,
+          includeTargetRadius: false,
+          containsHittableObject: false,
+        },
+      },
     },
   },
   macros: {},
@@ -1232,6 +1202,7 @@ export const catcherChr_0020_meurs_normal_skill: SkillDefinition = {
   naturalDurationFrames: 373,
   exclusiveFrame: 285,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       { startFrame: 95, endFrame: 129, skillIds: ['chr_0020_meurs_normal_skill'] },
@@ -1402,18 +1373,11 @@ export const catcherChr_0020_meurs_combo_skillActionGraph = {
         },
         next: 'mergeContextTargets_10',
       },
-      checkCondition_8: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
-        },
-        next: null,
-      },
       ifElse_15: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_8' },
+          condition: { kind: 'conditionNode', nodeId: 'data_6' },
           whenTrue: { $sequence: 'findCharacterTeamTargets_11' },
           whenFalse: { $sequence: 'findCharacterTeamTargets_14' },
         },
@@ -1470,7 +1434,10 @@ export const catcherChr_0020_meurs_combo_skillActionGraph = {
       },
       data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_1' } },
       data_5: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
-      data_6: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_6: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_7: { type: 'number', expression: { kind: 'blackboard', key: 'potential3_duration' } },
       data_8: {
         type: 'boolean',
@@ -1505,6 +1472,7 @@ export const catcherChr_0020_meurs_combo_skill: SkillDefinition = {
   naturalDurationFrames: 98,
   exclusiveFrame: 45,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       { startFrame: 24, endFrame: 60, skillIds: ['chr_0020_meurs_normal_skill'] },
@@ -1538,7 +1506,7 @@ export const catcherChr_0020_meurs_ultimate_skillActionGraph = {
             priority: 10,
             curve: { kind: 'named', key: 'RESETto1' },
             finishByAction: false,
-            targets: ['caster'],
+            targets: [{ kind: 'owner' }],
           },
         },
         next: null,
@@ -1595,7 +1563,7 @@ export const catcherChr_0020_meurs_ultimate_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'dealDamage_7' },
           whenFalse: { $sequence: null },
         },
@@ -1606,7 +1574,7 @@ export const catcherChr_0020_meurs_ultimate_skillActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_3' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_4' },
             tags: ['ultimateSkill'],
             features: ['canBreakWeakness'],
             stagger: { kind: 'valueNode', nodeId: 'data_2' },
@@ -1618,7 +1586,7 @@ export const catcherChr_0020_meurs_ultimate_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_5' },
           whenTrue: { $sequence: 'dealDamage_10' },
           whenFalse: { $sequence: null },
         },
@@ -1644,10 +1612,10 @@ export const catcherChr_0020_meurs_ultimate_skillActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_4' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_6' },
             tags: ['ultimateSkill'],
             features: ['canBreakWeakness'],
-            stagger: { kind: 'valueNode', nodeId: 'data_5' },
+            stagger: { kind: 'valueNode', nodeId: 'data_7' },
           },
         },
         next: 'startTimeDilation_12',
@@ -1658,7 +1626,7 @@ export const catcherChr_0020_meurs_ultimate_skillActionGraph = {
           parameters: {
             type: 'knockDown',
             target: 'enemy',
-            duration: { kind: 'valueNode', nodeId: 'data_6' },
+            duration: { kind: 'valueNode', nodeId: 'data_8' },
             force: false,
             isExtra: false,
             targetFilter: 'aliveOnly',
@@ -1671,7 +1639,7 @@ export const catcherChr_0020_meurs_ultimate_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_9' },
           whenTrue: { $sequence: 'applyPhysicalInfliction_14' },
           whenFalse: { $sequence: null },
         },
@@ -1693,7 +1661,7 @@ export const catcherChr_0020_meurs_ultimate_skillActionGraph = {
       checkCondition_17: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_8' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_11' } },
         },
         next: 'spawnAbilityEntity_16',
       },
@@ -1726,16 +1694,28 @@ export const catcherChr_0020_meurs_ultimate_skillActionGraph = {
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
       data_2: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
-      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_1' } },
-      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_2' } },
-      data_5: { type: 'number', expression: { kind: 'blackboard', key: 'poise1' } },
-      data_6: { type: 'number', expression: { kind: 'blackboard', key: 'knockdown_time' } },
-      data_7: { type: 'number', expression: { kind: 'blackboard', key: 'talent_1', fallback: 0 } },
-      data_8: {
+      data_3: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_1' } },
+      data_5: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_6: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_2' } },
+      data_7: { type: 'number', expression: { kind: 'blackboard', key: 'poise1' } },
+      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'knockdown_time' } },
+      data_9: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_10: { type: 'number', expression: { kind: 'blackboard', key: 'talent_1', fallback: 0 } },
+      data_11: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_7' },
+          left: { kind: 'valueNode', nodeId: 'data_10' },
           operator: 'greaterOrEqual',
           right: { kind: 'constant', value: 1 },
         },
@@ -1814,6 +1794,28 @@ export const catcherCommon_character_perfect_dodge: SkillDefinition = {
   nativeSkillType: 'dodge',
 };
 
+export const catcherChr_0020_meurs_plunging_attack_startActionGraph = {
+  main: { nodes: {} },
+  macros: {},
+} as const satisfies ActionGraphResourceDefinition;
+
+export const catcherChr_0020_meurs_plunging_attack_start: SkillDefinition = {
+  actionGraph: catcherChr_0020_meurs_plunging_attack_startActionGraph,
+  key: 'chr_0020_meurs_plunging_attack_start',
+  element: 'physical',
+  blackboard: {},
+  timelineBlockFrames: 1501,
+  naturalDurationFrames: 1500,
+  exclusiveFrame: 1500,
+  offsetRecordFrame: 0,
+  costFrame: 9,
+  scheduledSequences: [],
+  defaultTarget: 'enemy',
+  skillType: 'plungingAttack',
+  nativeSkillType: 'attack',
+  levelSource: 'basicAttack',
+};
+
 const catcherComboCondition1ActionGraph = {
   main: {
     nodes: {
@@ -1849,7 +1851,11 @@ const catcherComboCondition1ActionGraph = {
     dataNodes: {
       data_1: {
         type: 'boolean',
-        expression: { kind: 'actionInputTargetObjectTypeMatch', objectTypes: ['enemy'] },
+        expression: {
+          kind: 'targetObjectTypeMatch',
+          target: { kind: 'inputTarget' },
+          objectTypes: ['enemy'],
+        },
       },
       data_2: {
         type: 'boolean',
@@ -1863,8 +1869,7 @@ const catcherComboCondition1ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'healthCompare',
-          target: 'contextTarget',
-          contextKey: 'trigger',
+          target: { kind: 'context', key: 'trigger' },
           valueType: 'ratio',
           operator: 'less',
           value: { kind: 'constant', value: 0.4 },
@@ -1872,13 +1877,7 @@ const catcherComboCondition1ActionGraph = {
       },
       data_4: {
         type: 'boolean',
-        expression: {
-          kind: 'contextTargetIdentityMatch',
-          selection: 'first',
-          contextKey: 'trigger',
-          other: 'controlledOperator',
-          operator: 'equal',
-        },
+        expression: { kind: 'checkMainCharacter', target: { kind: 'context', key: 'trigger' } },
       },
     },
   },
@@ -2274,32 +2273,47 @@ export const catcher: OperatorDefinition = {
     baseAttack: [30, 88, 148, 209, 270, 300],
     baseHealth: [500, 1566, 2689, 3811, 4934, 5495],
   },
+  skills: [
+    catcherChr_0020_meurs_attack1,
+    catcherChr_0020_meurs_attack2,
+    catcherChr_0020_meurs_attack3,
+    catcherChr_0020_meurs_attack4,
+    catcherChr_0020_meurs_power_attack,
+    catcherChr_0020_meurs_plunging_attack_end,
+    catcherChr_0020_meurs_normal_skill,
+    catcherChr_0020_meurs_combo_skill,
+    catcherChr_0020_meurs_ultimate_skill,
+    catcherCommon_character_perfect_dodge,
+    catcherChr_0020_meurs_plunging_attack_start,
+  ],
   skillGroups: [
     {
       key: 'basicAttack',
       operationType: 'basicAttack',
-      skills: [
-        catcherChr_0020_meurs_attack1,
-        catcherChr_0020_meurs_attack2,
-        catcherChr_0020_meurs_attack3,
-        catcherChr_0020_meurs_attack4,
+      skillIds: [
+        'chr_0020_meurs_attack1',
+        'chr_0020_meurs_attack2',
+        'chr_0020_meurs_attack3',
+        'chr_0020_meurs_attack4',
       ],
     },
-    { key: 'finisher', operationType: 'finisher', skills: catcherChr_0020_meurs_power_attack },
+    { key: 'finisher', operationType: 'finisher', skillIds: ['chr_0020_meurs_power_attack'] },
     {
       key: 'plungingAttack',
       operationType: 'plungingAttack',
-      skills: catcherChr_0020_meurs_plunging_attack_end,
+      skillIds: ['chr_0020_meurs_plunging_attack_end'],
     },
-    {
-      key: 'battleSkill',
-      operationType: 'battleSkill',
-      skills: catcherChr_0020_meurs_normal_skill,
-    },
-    { key: 'comboSkill', operationType: 'comboSkill', skills: catcherChr_0020_meurs_combo_skill },
-    { key: 'ultimate', operationType: 'ultimate', skills: catcherChr_0020_meurs_ultimate_skill },
+    { key: 'battleSkill', operationType: 'battleSkill', skillIds: ['chr_0020_meurs_normal_skill'] },
+    { key: 'comboSkill', operationType: 'comboSkill', skillIds: ['chr_0020_meurs_combo_skill'] },
+    { key: 'ultimate', operationType: 'ultimate', skillIds: ['chr_0020_meurs_ultimate_skill'] },
   ],
-  dodgeSkill: catcherCommon_character_perfect_dodge,
+  dodgeSkillId: 'common_character_perfect_dodge',
+  plungingAttack: {
+    startSkillId: 'chr_0020_meurs_plunging_attack_start',
+    endSkillId: 'chr_0020_meurs_plunging_attack_end',
+    startDurationSeconds: 0.633,
+    endDurationSeconds: 1.267,
+  },
   dashBuffs: [
     { buffId: 'buff_common_dash', blackboard: { dodgeSkillId: 'common_character_perfect_dodge' } },
   ],
@@ -2424,6 +2438,7 @@ export const catcher: OperatorDefinition = {
   },
   abilityEntityDefinitions: {
     abilityentity_chr_0020_meurs_talent_shockwave: {
+      faction: 'good',
       bornTags: [
         'Immune/Damage',
         'SelectCategory/Unmarkable',
@@ -2432,7 +2447,7 @@ export const catcher: OperatorDefinition = {
         'SelectCategory/ProjectilePassThru',
       ],
       lifetime: { kind: 'limited', durationSeconds: 2 },
-      deathReleaseDelaySeconds: 0.100000001490116,
+      deathReleaseDelaySeconds: 0.1,
       childSkill: {
         skillId: 'chr_0020_meurs_talent_shockwave',
         nativeSkillType: 'normalSkill',

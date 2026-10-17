@@ -10,10 +10,17 @@ import type {
   ActionGraphStep,
 } from '../../src/compiler/intermediateDefinitions.ts';
 import type { CombatCondition } from '../../src/compiler/intermediateDefinitions.ts';
-import { optimizeActionGraphDefinition } from '../../src/compiler/optimization/graphSequenceOptimization.ts';
+import {
+  optimizeActionGraphDefinition,
+  retainActionGraphEntries,
+} from '../../src/compiler/optimization/graphSequenceOptimization.ts';
 
 const literal = (value: number) => ({ kind: 'constant' as const, value });
 const constant = (value: boolean): CombatCondition => ({ kind: 'constant', value });
+const actionResult = (action: ActionGraphReference): CombatCondition => ({
+  kind: 'checkActionResult',
+  action,
+});
 const assign = (key: string, value: number): ActionGraphStep => ({
   kind: 'modifyActionValue',
   parameters: { key, operation: 'assign', value: literal(value) },
@@ -58,6 +65,18 @@ function optimize(graph: ActionGraphDefinition, entry: ActionGraphReference) {
 }
 
 describe('图侧序列优化', () => {
+  it('按宿主入口删除孤立依赖，但保留条件求值和未选分支的生命周期', () => {
+    const f = fixture();
+    const condition = f.chain(assign('checked', 1));
+    const selected = f.chain(damage());
+    const unselected = f.chain(assign('resetRequired', 1));
+    const entry = f.chain(guard(actionResult(condition), selected, unselected));
+    const retained = Object.keys(f.nodes).sort();
+    f.chain(assign('orphanInputRoute', 1));
+    const result = retainActionGraphEntries({ nodes: f.nodes }, [entry]);
+    expect(Object.keys(result.nodes).sort()).toEqual(retained);
+  });
+
   it('简化图检查表达式但不将常量操作数当作条件序列的最终返回值', () => {
     for (const passed of [true, false]) {
       for (const unusedAction of [assign('unused', 1), damage()]) {
@@ -67,12 +86,14 @@ describe('图侧序列优化', () => {
         const entry = f.chain({
           kind: 'ifElse',
           parameters: { alwaysNext: false },
-          condition: f.chain({
-            kind: 'checkCondition',
-            parameters: {
-              condition: { kind: 'not', condition: constant(!passed) },
-            },
-          }),
+          condition: actionResult(
+            f.chain({
+              kind: 'checkCondition',
+              parameters: {
+                condition: { kind: 'not', condition: constant(!passed) },
+              },
+            }),
+          ),
           whenTrue: passed ? selected : unused,
           whenFalse: passed ? unused : selected,
         });
@@ -82,7 +103,9 @@ describe('图侧序列优化', () => {
         if (branch.kind !== 'ifElse') throw new Error('missing branch');
         const retained = passed ? branch.whenFalse : branch.whenTrue;
         expect(retained.$sequence).not.toBeNull();
-        expect(result.graph.nodes[branch.condition.$sequence!]!.action).toMatchObject({
+        if (branch.condition.kind !== 'checkActionResult')
+          throw new Error('missing result adapter');
+        expect(result.graph.nodes[branch.condition.action.$sequence!]!.action).toMatchObject({
           kind: 'checkCondition',
           parameters: { condition: constant(passed) },
         });
@@ -94,20 +117,20 @@ describe('图侧序列优化', () => {
     const f = fixture();
     const check = f.chain({
       kind: 'checkCondition',
-      parameters: { condition: { kind: 'casterControlled' } },
+      parameters: { condition: { kind: 'checkMainCharacter', target: { kind: 'owner' } } },
     });
     const entry = f.chain(
       {
         kind: 'ifElse',
         parameters: { alwaysNext: true },
-        condition: { $sequence: null },
+        condition: actionResult({ $sequence: null }),
         whenTrue: check,
         whenFalse: { $sequence: null },
       },
       {
         kind: 'ifElse',
         parameters: { alwaysNext: true },
-        condition: check,
+        condition: actionResult(check),
         whenTrue: f.chain(assign('selected', 1)),
         whenFalse: f.chain(assign('selected', 2)),
       },
@@ -159,7 +182,7 @@ describe('图侧序列优化', () => {
       const entry = f.chain({
         kind: 'ifElse',
         parameters: { alwaysNext: true },
-        condition,
+        condition: actionResult(condition),
         whenTrue: { $sequence: null },
         whenFalse: { $sequence: null },
       });
@@ -177,9 +200,14 @@ describe('图侧序列优化', () => {
       {
         kind: 'ifElse',
         parameters: { alwaysNext: true },
-        condition: f.chain(
-          { kind: 'invertNextResult', parameters: {} },
-          { kind: 'checkCondition', parameters: { condition: { kind: 'casterControlled' } } },
+        condition: actionResult(
+          f.chain(
+            { kind: 'invertNextResult', parameters: {} },
+            {
+              kind: 'checkCondition',
+              parameters: { condition: { kind: 'checkMainCharacter', target: { kind: 'owner' } } },
+            },
+          ),
         ),
         whenTrue: { $sequence: null },
         whenFalse: { $sequence: null },
@@ -201,7 +229,7 @@ describe('图侧序列优化', () => {
     };
     expect(execute(result.graph, result.entry)).toEqual(execute(graph, entry));
     const branch = Object.values(result.graph.nodes).find(node => node.action.kind === 'ifElse');
-    expect(branch?.action).toMatchObject({ condition: { $sequence: null } });
+    expect(branch?.action).toMatchObject({ condition: actionResult({ $sequence: null }) });
   });
 
   it.each([1, 2])('原生等价分支有 %i 次写入时保留 NotNext 的执行边界', count => {
@@ -216,7 +244,7 @@ describe('图侧序列优化', () => {
       {
         kind: 'ifElse',
         parameters: { alwaysNext: true },
-        condition,
+        condition: actionResult(condition),
         whenTrue: f.chain(...writes),
         whenFalse: f.chain(...writes),
       },
@@ -424,7 +452,8 @@ describe('图侧序列优化', () => {
       parameters: {
         condition: {
           kind: 'buffIdStackCompare',
-          target: 'enemy',
+          target: { kind: 'fixed', target: 'enemy' },
+          compareZeroWhenTargetMissing: false,
           buffIds: ['bleed'],
           operator: 'greaterOrEqual',
           value: literal(1),
@@ -440,7 +469,7 @@ describe('图侧序列优化', () => {
       parameters: {
         condition: {
           kind: 'entityTagMatch',
-          target: 'enemy',
+          target: { kind: 'fixed', target: 'enemy' },
           tagQueryType: 'hasAny',
           tags: ['Status/Immobilized/Frozen'],
         },
@@ -474,7 +503,8 @@ describe('图侧序列优化', () => {
   it('不把显式伤害身份、随机条件或可能短路的 alwaysNext 分支误合并', () => {
     const buffCondition: CombatCondition = {
       kind: 'buffIdStackCompare',
-      target: 'enemy',
+      target: { kind: 'fixed', target: 'enemy' },
+      compareZeroWhenTargetMissing: false,
       buffIds: ['bleed'],
       operator: 'greaterOrEqual',
       value: literal(1),
@@ -635,7 +665,7 @@ describe('图侧序列优化', () => {
       {
         kind: 'jumpTimeline',
         parameters: { destinationFrame: 30 },
-        condition: jumpCondition,
+        condition: actionResult(jumpCondition),
       },
     );
     const result = optimize({ nodes: f.nodes }, entry);
@@ -663,7 +693,7 @@ describe('图侧序列优化', () => {
     f.node('damageA', damage(), 'tail');
     const tagCondition: CombatCondition = {
       kind: 'entityTagMatch',
-      target: 'enemy',
+      target: { kind: 'fixed', target: 'enemy' },
       tagQueryType: 'hasAny',
       tags: ['Status/Immobilized/Frozen'],
     };
@@ -702,7 +732,7 @@ describe('图侧序列优化', () => {
     const g = fixture();
     const tagCondition: CombatCondition = {
       kind: 'entityTagMatch',
-      target: 'enemy',
+      target: { kind: 'fixed', target: 'enemy' },
       tagQueryType: 'hasAny',
       tags: ['Status/Immobilized/Frozen'],
     };

@@ -1,12 +1,12 @@
-import { SKILL_INTERRUPT_REASONS } from '../../../../packages/game-data-contract/src/conditions';
+import {
+  SKILL_INTERRUPT_REASONS,
+  ABILITY_ENTITY_FINISH_REASONS,
+} from '../../../../packages/game-data-contract/src/conditions';
 import { GAMEPLAY_TAG_MATCH_TYPES } from '../../../../packages/game-data-contract/src/gameplayTags';
 import {
   BUFF_SINGLE_TARGETS,
   COMBAT_CONDITION_KINDS,
-  COMBAT_TARGETS,
-  GLOBAL_COOLDOWN_TARGETS,
   COMPARISON_OPERATORS,
-  HEAL_TARGETS,
   OPERATOR_ROLES,
 } from '../operatorDefinition';
 import { ENEMY_RANKS } from '../enemyRank';
@@ -17,10 +17,10 @@ import {
   DAMAGE_TYPES_SET,
   INFLICTION_ELEMENTS_SET,
   COMBAT_TARGETS_SET,
-  TIMED_MARKER_TARGETS_SET,
   OPERATOR_ATTRIBUTES_SET,
   PHYSICAL_INFLICTION_TYPES_SET,
   SKILL_TYPES_SET,
+  NORMAL_SKILL_SUB_TYPES_SET,
   TAG_QUERY_TYPES_SET,
   push,
   asRecord,
@@ -40,8 +40,6 @@ import {
 const CONDITION_KINDS = new Set<string>(COMBAT_CONDITION_KINDS);
 
 const ENEMY_RANKS_SET = new Set<string>(ENEMY_RANKS);
-
-const HEALTH_TARGETS_SET = new Set<string>([...COMBAT_TARGETS, ...HEAL_TARGETS]);
 
 const BUFF_CONDITION_TARGETS_SET = new Set<string>([...BUFF_SINGLE_TARGETS, 'actionInputTarget']);
 
@@ -73,18 +71,29 @@ export function validateCombatCondition(
   }
 
   switch (kind) {
+    case 'checkActionResult': {
+      const action = asRecord(record.action, `${path}.action`, out);
+      if (
+        action &&
+        (Object.keys(action).length !== 1 ||
+          !Object.hasOwn(action, '$sequence') ||
+          (action.$sequence !== null &&
+            (typeof action.$sequence !== 'string' || !action.$sequence)))
+      )
+        push(out, `${path}.action`, 'expected an action graph reference');
+      break;
+    }
     case 'constant':
       if (typeof record.value !== 'boolean') push(out, `${path}.value`, 'expected boolean');
       break;
     case 'skillHasHit':
     case 'combatActive':
     case 'singleEnemyPresent':
-    case 'casterControlled':
-    case 'casterComboPending':
-    case 'eventSourceMatchesBuffSource':
-    case 'eventSourceMatchesBuffSourceEntitySource':
-    case 'buffSourceMatchesOwner':
     case 'eventSkillCastMatchesBuffSource':
+      break;
+    case 'checkMainCharacter':
+    case 'comboSkillPending':
+      validateTargetQuery(record.target, `${path}.target`, out);
       break;
     case 'ownerSpawnedAbilityEntityPresent':
       if (
@@ -115,7 +124,7 @@ export function validateCombatCondition(
       if (record.outputKey !== undefined) requireString(record, 'outputKey', path, out);
       break;
     case 'operatorRoleIn':
-      requireEnum(record, 'target', new Set(['caster', 'buffOwner', 'eventTarget']), path, out);
+      validateTargetQuery(record.target, `${path}.target`, out);
       if (!Array.isArray(record.roles) || record.roles.length === 0) {
         push(out, `${path}.roles`, 'expected a non-empty array');
       } else {
@@ -131,7 +140,12 @@ export function validateCombatCondition(
       validateTargetQuery(record.parent, `${path}.parent`, out);
       validateTargetQuery(record.child, `${path}.child`, out);
       break;
+    case 'targetsEqual':
+      validateTargetQuery(record.first, `${path}.first`, out);
+      validateTargetQuery(record.second, `${path}.second`, out);
+      break;
     case 'enemyRankIn':
+      validateTargetQuery(record.target, `${path}.target`, out);
       if (!Array.isArray(record.ranks)) {
         push(out, `${path}.ranks`, 'expected an array');
       } else {
@@ -145,6 +159,7 @@ export function validateCombatCondition(
       }
       break;
     case 'enemySuperArmorCompare':
+      validateTargetQuery(record.target, `${path}.target`, out);
       requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
       validateActionValueOperand(record.value, `${path}.value`, out);
       break;
@@ -159,19 +174,13 @@ export function validateCombatCondition(
       requireEnum(record, 'target', COMBAT_TARGETS_SET, path, out);
       break;
     case 'healthCompare':
-      requireEnum(record, 'target', HEALTH_TARGETS_SET, path, out);
-      if (record.target === 'contextTarget') {
-        requireString(record, 'contextKey', path, out);
-      } else if (record.contextKey !== undefined) {
-        push(out, `${path}.contextKey`, 'requires target=contextTarget');
-      }
+      validateTargetQuery(record.target, `${path}.target`, out);
       requireEnum(record, 'valueType', HEALTH_VALUE_TYPES_SET, path, out);
       requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
       validateActionValueOperand(record.value, `${path}.value`, out);
       break;
     case 'poiseCompare':
-      if (record.target !== 'currentTarget' && record.target !== 'actionInputTarget')
-        requireEnum(record, 'target', COMBAT_TARGETS_SET, path, out);
+      validateTargetQuery(record.target, `${path}.target`, out);
       requireBoolean(record, 'returnValueIfMissing', path, out);
       requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
       validateActionValueOperand(record.value, `${path}.value`, out);
@@ -214,10 +223,8 @@ export function validateCombatCondition(
       if (!Number.isInteger(record.value)) push(out, `${path}.value`, 'expected integer');
       if (record.outputKey !== undefined) requireString(record, 'outputKey', path, out);
       break;
-    case 'contextTargetObjectTypeMatch':
-    case 'actionInputTargetObjectTypeMatch':
-      if (record.kind === 'contextTargetObjectTypeMatch')
-        requireString(record, 'contextKey', path, out);
+    case 'targetObjectTypeMatch':
+      validateTargetQuery(record.target, `${path}.target`, out);
       if (
         record.objectTypes !== 'all' &&
         (!Array.isArray(record.objectTypes) ||
@@ -226,57 +233,15 @@ export function validateCombatCondition(
         push(out, `${path}.objectTypes`, 'expected readable object types or all');
       }
       break;
-    case 'actionInputTargetIdentityMatch':
-      requireEnum(
-        record,
-        'other',
-        new Set(['actionSource', 'actionOwner', 'controlledOperator']),
-        path,
-        out,
-      );
-      requireEnum(record, 'operator', new Set(['equal', 'notEqual']), path, out);
-      break;
-    case 'contextTargetIdentityMatch':
-      requireEnum(record, 'selection', new Set(['first', 'all']), path, out);
-      requireString(record, 'contextKey', path, out);
-      requireEnum(
-        record,
-        'other',
-        new Set(['actionSource', 'actionOwner', 'controlledOperator']),
-        path,
-        out,
-      );
-      requireEnum(record, 'operator', new Set(['equal', 'notEqual']), path, out);
-      break;
-    case 'contextTargetEntityTagMatch':
-      requireString(record, 'contextKey', path, out);
-      requireEnum(record, 'tagQueryType', TAG_QUERY_TYPES_SET, path, out);
-      validateGameplayTags(record.tags, `${path}.tags`, out);
-      break;
-    case 'contextTargetBuffStackCompare':
-      requireBoolean(record, 'compareZeroWhenTargetMissing', path, out);
-      requireString(record, 'contextKey', path, out);
-      requireEnum(record, 'tagQueryType', TAG_QUERY_TYPES_SET, path, out);
-      validateGameplayTags(record.buffTags, `${path}.buffTags`, out);
-      requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
-      validateActionValueOperand(record.value, `${path}.value`, out);
-      break;
-    case 'contextTargetBuffIdStackCompare':
-      requireBoolean(record, 'compareZeroWhenTargetMissing', path, out);
-      requireString(record, 'contextKey', path, out);
-      validateNonEmptyStringArray(record.buffIds, `${path}.buffIds`, out);
-      requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
-      validateActionValueOperand(record.value, `${path}.value`, out);
-      break;
     case 'abilityEntityRemainingDurationCompare':
       requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
       validateActionValueOperand(record.value, `${path}.value`, out);
-      if (!currentTargetAvailable) {
-        push(out, path, 'requires a forEachContextTarget body');
-      }
+      validateTargetQuery(record.target, `${path}.target`, out);
+      if (record.outputKey !== undefined) requireString(record, 'outputKey', path, out);
       break;
     case 'buffStackCompare':
-      requireEnum(record, 'target', BUFF_CONDITION_TARGETS_SET, path, out);
+      validateTargetQuery(record.target, `${path}.target`, out);
+      requireBoolean(record, 'compareZeroWhenTargetMissing', path, out);
       requireEnum(record, 'tagQueryType', TAG_QUERY_TYPES_SET, path, out);
       validateGameplayTags(record.buffTags, `${path}.buffTags`, out);
       requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
@@ -286,7 +251,8 @@ export function validateCombatCondition(
       }
       break;
     case 'buffTagIdCountCompare':
-      requireEnum(record, 'target', BUFF_CONDITION_TARGETS_SET, path, out);
+      validateTargetQuery(record.target, `${path}.target`, out);
+      requireBoolean(record, 'compareZeroWhenTargetMissing', path, out);
       requireEnum(record, 'tagQueryType', TAG_QUERY_TYPES_SET, path, out);
       validateGameplayTags(record.buffTags, `${path}.buffTags`, out);
       requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
@@ -297,12 +263,13 @@ export function validateCombatCondition(
       validateActionValueOperand(record.value, `${path}.value`, out);
       break;
     case 'entityTagMatch':
-      requireEnum(record, 'target', BUFF_CONDITION_TARGETS_SET, path, out);
+      validateTargetQuery(record.target, `${path}.target`, out);
       requireEnum(record, 'tagQueryType', TAG_QUERY_TYPES_SET, path, out);
       validateGameplayTags(record.tags, `${path}.tags`, out);
       break;
     case 'buffIdStackCompare':
-      requireEnum(record, 'target', BUFF_CONDITION_TARGETS_SET, path, out);
+      validateTargetQuery(record.target, `${path}.target`, out);
+      requireBoolean(record, 'compareZeroWhenTargetMissing', path, out);
       validateNonEmptyStringArray(record.buffIds, `${path}.buffIds`, out);
       requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
       validateLevelValuesOrActionValueOperand(record.value, `${path}.value`, out);
@@ -312,21 +279,23 @@ export function validateCombatCondition(
       break;
     case 'timedMarkerPresent':
       requireBoolean(record, 'returnTrueIfNotExists', path, out);
-      requireEnum(record, 'target', TIMED_MARKER_TARGETS_SET, path, out);
+      validateTargetQuery(record.target, `${path}.target`, out);
       validateActionStringOperand(record.markerId, `${path}.markerId`, out);
       break;
     case 'globalCooldownPresent':
-      requireEnum(record, 'target', new Set(GLOBAL_COOLDOWN_TARGETS), path, out);
-      requireString(record, 'markerId', path, out);
-      break;
-    case 'abilityEntityTimedMarkerPresent':
+      validateTargetQuery(record.target, `${path}.target`, out);
       requireBoolean(record, 'returnTrueIfNotExists', path, out);
-      validateActionStringOperand(record.markerId, `${path}.markerId`, out);
-      if (record.contextKey !== undefined) requireString(record, 'contextKey', path, out);
+      requireString(record, 'markerId', path, out);
       break;
     case 'eventDamageTagsMatch':
       requireEnum(record, 'match', TAG_QUERY_TYPES_WITH_EXACT_SET, path, out);
       validateDamageTags(record.tags, `${path}.tags`, out);
+      break;
+    case 'eventTransferredPartTagsMatch':
+      requireEnum(record, 'tagQueryType', TAG_QUERY_TYPES_SET, path, out);
+      validateGameplayTags(record.tags, `${path}.tags`, out);
+      if (record.saveToContextKey !== undefined)
+        requireString(record, 'saveToContextKey', path, out);
       break;
     case 'eventDamageGameplayTagsMatch':
       requireEnum(record, 'match', TAG_QUERY_TYPES_WITH_EXACT_SET, path, out);
@@ -375,9 +344,9 @@ export function validateCombatCondition(
       break;
     }
     case 'currentSkillTypeIn':
-      if (record.target !== 'caster' && record.target !== 'buffOwner') {
-        push(out, `${path}.target`, "expected 'caster' or 'buffOwner'");
-      }
+      if (record.normalSkillSubType !== undefined)
+        requireEnum(record, 'normalSkillSubType', NORMAL_SKILL_SUB_TYPES_SET, path, out);
+      validateTargetQuery(record.target, `${path}.target`, out);
       if (!Array.isArray(record.skillTypes) || record.skillTypes.length === 0) {
         push(out, `${path}.skillTypes`, 'expected a non-empty array');
       } else {
@@ -390,6 +359,8 @@ export function validateCombatCondition(
       break;
     case 'eventSkillTypeIn':
     case 'originSkillTypeIn':
+      if (record.kind === 'eventSkillTypeIn' && record.normalSkillSubType !== undefined)
+        requireEnum(record, 'normalSkillSubType', NORMAL_SKILL_SUB_TYPES_SET, path, out);
       if (!Array.isArray(record.skillTypes) || record.skillTypes.length === 0) {
         push(out, `${path}.skillTypes`, 'expected a non-empty array');
       } else {
@@ -419,18 +390,21 @@ export function validateCombatCondition(
       break;
     case 'eventBuffEndedEarly':
       break;
+    case 'eventAbilityEntityFinishReasonIn':
+      if (!Array.isArray(record.reasons)) push(out, `${path}.reasons`, 'expected an array');
+      else
+        record.reasons.forEach((reason, index) => {
+          if (!ABILITY_ENTITY_FINISH_REASONS.some(value => value === reason))
+            push(out, `${path}.reasons[${index}]`, 'expected a known ability entity finish reason');
+        });
+      break;
     case 'eventBuffTagsMatch':
       requireEnum(record, 'match', TAG_QUERY_TYPES_SET, path, out);
       validateGameplayTags(record.buffTags, `${path}.buffTags`, out);
       if (record.buffIdOutputKey !== undefined) requireString(record, 'buffIdOutputKey', path, out);
       break;
-    case 'eventTargetBuffCountCompare':
-      requireEnum(record, 'tagQueryType', TAG_QUERY_TYPES_SET, path, out);
-      validateGameplayTags(record.buffTags, `${path}.buffTags`, out);
-      requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
-      validateActionValueOperand(record.value, `${path}.value`, out);
-      break;
     case 'eventConsumedBuffLayerCompare':
+    case 'eventBuffEnhanceLayerCompare':
       requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
       validateActionValueOperand(record.value, `${path}.value`, out);
       if (record.outputKey !== undefined) requireString(record, 'outputKey', path, out);
@@ -463,9 +437,14 @@ export function validateCombatCondition(
       }
       break;
     case 'deckAttributeCompare':
-      requireEnum(record, 'left', OPERATOR_ATTRIBUTES_SET, path, out);
+      validateTargetQuery(record.target, `${path}.target`, out);
+      if (typeof record.left === 'string')
+        requireEnum(record, 'left', OPERATOR_ATTRIBUTES_SET, path, out);
+      else validateActionValueOperand(record.left, `${path}.left`, out);
       requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
-      requireEnum(record, 'right', OPERATOR_ATTRIBUTES_SET, path, out);
+      if (typeof record.right === 'string')
+        requireEnum(record, 'right', OPERATOR_ATTRIBUTES_SET, path, out);
+      else validateActionValueOperand(record.right, `${path}.right`, out);
       break;
   }
 }
@@ -493,6 +472,10 @@ export function validateTargetQuery(
       'fixed',
       'characterTeam',
       'mainTarget',
+      'abilitySystemSource',
+      'abilityEntityTarget',
+      'ownerSoul',
+      'allyHitBox',
       'fixedPoint',
       'ownerSpawned',
     ]),
@@ -509,11 +492,24 @@ export function validateTargetQuery(
     requireBoolean(query, 'excludeOwner', path, out);
     if (query.owner !== undefined) validateTargetQuery(query.owner, `${path}.owner`, out);
   }
-  if (query.kind === 'mainTarget' || query.kind === 'ownerSpawned' || query.kind === 'fixedPoint')
+  if (
+    query.kind === 'mainTarget' ||
+    query.kind === 'abilitySystemSource' ||
+    query.kind === 'abilityEntityTarget' ||
+    query.kind === 'ownerSoul' ||
+    query.kind === 'allyHitBox' ||
+    query.kind === 'ownerSpawned' ||
+    query.kind === 'fixedPoint'
+  )
     validateTargetQuery(query.owner, `${path}.owner`, out);
   if (query.kind === 'fixedPoint') {
     validateTargetQuery(query.center, `${path}.center`, out);
     validateTargetQuery(query.directionTarget, `${path}.directionTarget`, out);
+  }
+  if (query.kind === 'allyHitBox') {
+    requireBoolean(query, 'checkAlive', path, out);
+    requireBoolean(query, 'containsUnmarkable', path, out);
+    requireBoolean(query, 'replacePartsWithMainBodies', path, out);
   }
   if (query.kind === 'ownerSpawned') {
     if (

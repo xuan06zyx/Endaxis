@@ -193,14 +193,11 @@ expectTypeOf<{
 expectTypeOf<{
   kind: 'eventSkillTypeIn';
   skillTypes: readonly ['finisher'];
-}>().not.toExtend<CompiledBuffConditionSource>();
+}>().toExtend<CompiledBuffConditionSource>();
 expectTypeOf<{
   kind: 'not';
   condition: { kind: 'combatActive' };
 }>().not.toExtend<CompiledBuffConditionSource>();
-expectTypeOf<
-  Extract<CompiledBuffConditionSource, { kind: 'healthCompare' }>['target']
->().toEqualTypeOf<'caster' | 'contextTarget' | 'controlledOperator' | 'currentTarget' | 'enemy'>();
 expectTypeOf<
   Extract<CompiledBuffConditionSource, { kind: 'buffStackCompare' }>['sameSourceSkillCast']
 >().toEqualTypeOf<boolean | undefined>();

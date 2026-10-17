@@ -1,4 +1,5 @@
 import type { SkillInterruptReason } from '../../../../../packages/game-data-contract/src/conditions.ts';
+import type { SkillType } from '../../../../../packages/game-data-contract/src/primitives.ts';
 import { COMBO_CAMERA_ALPHA_SETTINGS } from '../intermediateDefinitions.ts';
 
 import type { TargetReferenceSource } from '../../source/target.ts';
@@ -13,16 +14,13 @@ import {
   projectGameplayTags,
 } from '../combatProjectionCommon.ts';
 import { projectSpGainKind, projectSpGainSource } from '../../source/spGainEnums.ts';
-import { projectGlobalCooldownTarget } from '../actions/globalCooldownProjection.ts';
 import type { NativeActionNodeSource } from '../../source/controlFlow.ts';
 import type { KnownNativeActionLeafSource } from '../../source/actionLeaf.ts';
 import type { NativeConditionSource } from '../../source/condition.ts';
 import { projectObjectTypeSelection } from '../../source/objectType.ts';
 import type { CompiledBuffConditionSource } from '../actions/combatActionProjectionTypes.ts';
 import {
-  type ProjectedTargetGroup,
   type CombatActionProjectionContextSource,
-  requireActionOwnerProjection,
   actionValueOperand,
   DAMAGE_TYPES,
   COMPARISON_OPERATORS,
@@ -45,20 +43,26 @@ export function evaluateFixedScenarioCondition(
 export function compileEventCondition(
   node: NativeActionNodeSource<KnownNativeActionLeafSource>,
   context: CombatActionProjectionContextSource,
-  targetGroups: ReadonlyMap<string, ProjectedTargetGroup>,
 ): CompiledBuffConditionSource | null {
   // 两支均为空且 alwaysNext 时，原生返回恒真；保留返回值供取反和短路使用。
   if (isPureEmptyContinuingBranch(node)) return { kind: 'constant', value: true };
   if (node.body.kind !== 'leaf' || node.body.value.family !== 'condition') return null;
-  return compileConditionLeaf(node.body.value.action, node.sourcePath, context, targetGroups);
+  return compileConditionLeaf(node.body.value.action, node.sourcePath, context);
 }
 
 function compileConditionLeaf(
   condition: NativeConditionSource,
   sourcePath: string,
   context: CombatActionProjectionContextSource,
-  targetGroups: ReadonlyMap<string, ProjectedTargetGroup> = new Map(),
 ): CompiledBuffConditionSource {
+  if (condition.kind === 'damageTransferredSource') {
+    return {
+      kind: 'eventTransferredPartTagsMatch',
+      tagQueryType: condition.tagQuery.queryType,
+      tags: projectGameplayTags(condition.tagQuery.tagIds, context, sourcePath),
+      ...(condition.contextKey === '' ? {} : { saveToContextKey: condition.contextKey }),
+    };
+  }
   if (condition.kind === 'comboCameraAlphaSetting') {
     const setting = COMBO_CAMERA_ALPHA_SETTINGS.find(value => value === condition.desiredSetting);
     if (setting === undefined)
@@ -81,29 +85,12 @@ function compileConditionLeaf(
     };
   }
   if (condition.kind === 'targetAngle') {
-    const selection = (target: typeof condition.target): ActionEntitySelection => {
-      if (
-        target.finderType !== null ||
-        target.validatorTypes.length ||
-        target.postProcessorTypes.length ||
-        target.priorityFilters.length ||
-        target.shuffleTargets.length ||
-        target.distanceValidators.length
-      )
-        throw new Error(`${sourcePath}: unsupported target-angle selector`);
-      if (target.targetSource === 'Context' && target.targetGroupKey !== '')
-        return { kind: 'context', key: target.targetGroupKey };
-      if (target.targetSource === 'Owner') return { kind: 'owner' };
-      if (target.targetSource === 'Source') return { kind: 'source' };
-      if (target.targetSource === 'Target') return { kind: 'inputTarget' };
-      throw new Error(`${sourcePath}: unsupported target-angle source ${target.targetSource}`);
-    };
     if (!['TargetForward', 'TargetBackward'].includes(condition.angleType))
       throw new Error(`${sourcePath}: unsupported target-angle direction`);
     return {
       kind: 'targetFacingAngle',
-      origin: selection(condition.origin),
-      target: selection(condition.target),
+      origin: projectActionTargetQuery(condition.origin, context, `${sourcePath}.origin`),
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.target`),
       angleType: condition.angleType === 'TargetForward' ? 'forward' : 'backward',
       angle: actionValueOperand(condition.angle),
     };
@@ -147,6 +134,9 @@ function compileConditionLeaf(
     if (condition.comparison !== 'LE' || condition.level !== 0)
       throw new Error(`${sourcePath}: unsupported damage ignore-immune-level comparison`);
     return { kind: 'constant', value: true };
+  }
+  if (condition.kind === 'abilityEntityFinishReason') {
+    return { kind: 'eventAbilityEntityFinishReasonIn', reasons: condition.reasons };
   }
   if (condition.kind === 'projectilePerfectDodgeCooldown') {
     if (context.nativeAbilityEvent !== 'OnBeforeHitByProjectile') {
@@ -200,6 +190,7 @@ function compileConditionLeaf(
   // 主动动作/命中回调没有 Buff 事件环境；只有已验收的条件可使用显式木桩 Target。
   if (
     context.actionTargetTarget === 'enemy' &&
+    !(condition.kind === 'skillType' && condition.checkTargetCurrentSkill) &&
     !(
       context.modifierContext === 'damage' &&
       ['damageType', 'damageTypeMask', 'skillCastId'].includes(condition.kind)
@@ -238,6 +229,7 @@ function compileConditionLeaf(
     throw new Error(`${sourcePath}: unaudited single-enemy action condition ${condition.kind}`);
   if (
     context.actionTargetTarget === 'currentAbilityEntity' &&
+    !(condition.kind === 'skillType' && condition.checkTargetCurrentSkill) &&
     ![
       'floatCompare',
       'buffStack',
@@ -254,43 +246,25 @@ function compileConditionLeaf(
     return { kind: 'probability', probability: actionValueOperand(condition.value) };
   }
   if (condition.kind === 'abilityEntityDuration') {
-    const targetsCurrentEntity =
-      condition.target.targetSource === 'Target' &&
-      condition.target.targetGroupKey === '' &&
-      context.actionTargetTarget === 'currentAbilityEntity';
     const operator = COMPARISON_OPERATORS[condition.comparison];
-    if (!targetsCurrentEntity || operator === undefined) {
+    if (operator === undefined) {
       throw new Error(`${sourcePath}: unsupported AbilityEntity duration target or comparison`);
-    }
-    if (condition.saveCurrentDuration) {
-      throw new Error(
-        `${sourcePath}: AbilityEntity duration output has no audited runtime consumer`,
-      );
     }
     return {
       kind: 'abilityEntityRemainingDurationCompare',
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.abilityEntity`),
+      ...(condition.saveCurrentDuration ? { outputKey: condition.outputKey } : {}),
       operator,
       value: actionValueOperand(condition.value),
     };
   }
   if (condition.kind === 'superArmor') {
-    const targetsEnemy =
-      (condition.target.targetSource === 'Target' &&
-        condition.target.targetGroupKey === '' &&
-        (context.actionTargetTarget === 'enemy' ||
-          (context.actionTargetTarget === 'buffOwner' &&
-            context.fixedBuffOwnerTarget === 'enemy'))) ||
-      (condition.target.targetSource === 'Context' &&
-        condition.target.targetGroupKey !== '' &&
-        context.staticEnemyTargetGroupKeys?.has(condition.target.targetGroupKey) === true) ||
-      (condition.target.targetSource === 'Owner' &&
-        condition.target.targetGroupKey === '' &&
-        context.fixedBuffOwnerTarget === 'enemy');
     const operator = COMPARISON_OPERATORS[condition.comparison];
-    if (!targetsEnemy || operator === undefined)
+    if (operator === undefined)
       throw new Error(`${sourcePath}: unsupported super-armor target or comparison`);
     return {
       kind: 'enemySuperArmorCompare',
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.checkTarget`),
       operator,
       value: actionValueOperand(condition.value),
     };
@@ -322,6 +296,8 @@ function compileConditionLeaf(
       'contextBuff',
       'buffStack',
       'targetIdentity',
+      // 受击事件的 Target 已绑定伤害来源；仍由公共输入目标类型条件动态判断。
+      'objectTypeMatch',
       // 接收事件不会改变固定 Buff Owner 的身份。极限闪避监听器检查 Owner 是否为
       // 当前主控，仍由场景控制时间线在执行帧求值，不能在生成阶段折叠。
       'mainOperator',
@@ -339,101 +315,17 @@ function compileConditionLeaf(
   )
     throw new Error(`${sourcePath}: unaudited receiving Buff event condition ${condition.kind}`);
   if (condition.kind === 'mainOperator') {
-    if (condition.targetSource === 'Context' && condition.targetGroupKey !== '') {
-      return {
-        kind: 'contextTargetIdentityMatch',
-        selection: 'first',
-        contextKey: condition.targetGroupKey,
-        other: 'controlledOperator',
-        operator: 'equal',
-      };
-    }
-    if (
-      condition.targetSource === 'Owner' &&
-      context.actionOwnerTarget === 'currentAbilityEntity'
-    ) {
-      // 投射物/能力实体自己的 AbilitySystem 不可能是玩家主控角色。
-      return {
-        kind: 'actionValueCompare',
-        left: { kind: 'constant', value: 0 },
-        operator: 'equal',
-        right: { kind: 'constant', value: 1 },
-      };
-    }
-    if (
-      condition.targetSource === 'Target' &&
-      condition.targetGroupKey === '' &&
-      context.actionTargetTarget === 'enemy'
-    ) {
-      // 静态敌方木桩不可能是玩家主控；用显式假条件保留 alwaysNext/fail 分支结构。
-      return {
-        kind: 'actionValueCompare',
-        left: { kind: 'constant', value: 0 },
-        operator: 'equal',
-        right: { kind: 'constant', value: 1 },
-      };
-    }
-    if (
-      condition.targetSource === 'Target' &&
-      condition.targetGroupKey === '' &&
-      context.actionTargetTarget === 'buffOwner' &&
-      (context.fixedBuffOwnerTarget === 'caster' || context.fixedBuffOwnerTarget === 'enemy')
-    ) {
-      return context.fixedBuffOwnerTarget === 'caster'
-        ? { kind: 'casterControlled' }
-        : {
-            kind: 'actionValueCompare',
-            left: { kind: 'constant', value: 0 },
-            operator: 'equal',
-            right: { kind: 'constant', value: 1 },
-          };
-    }
-    if (
-      condition.targetSource === 'Target' &&
-      condition.targetGroupKey === '' &&
-      (context.actionTargetTarget === 'eventSource' ||
-        context.actionTargetTarget === 'eventTarget' ||
-        context.actionTargetTarget === 'actionInputTarget' ||
-        context.actionTargetTarget === 'currentOperator')
-    ) {
-      return {
-        kind: 'actionInputTargetIdentityMatch',
-        other: 'controlledOperator',
-        operator: 'equal',
-      };
-    }
-    const projectsCaster =
-      (condition.targetSource === 'Owner' &&
-        (context.actionOwnerTarget === 'caster' || context.fixedBuffOwnerTarget === 'caster')) ||
-      (condition.targetSource === 'Source' && context.actionSourceTarget === 'caster');
-    // 固定 Owner/Source 不读取 targetGroupKey；部分原始技能保留了上一个 Context 目标组名。
-    if (!projectsCaster) {
-      throw new Error(`${sourcePath}: unsupported main-character condition target`);
-    }
-    return { kind: 'casterControlled' };
+    return {
+      kind: 'checkMainCharacter',
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.checkTarget`),
+    };
   }
   if (condition.kind === 'profession') {
-    if (condition.target.targetGroupKey !== '') {
-      throw new Error(`${sourcePath}: named profession targets are unsupported`);
-    }
-    let target: 'caster' | 'buffOwner' | 'eventTarget' | undefined;
-    if (condition.target.targetSource === 'Owner') {
-      const owner = requireActionOwnerProjection(context, sourcePath);
-      if (owner === 'caster' || owner === 'buffOwner') target = owner;
-    } else if (condition.target.targetSource === 'Target') {
-      const actionTarget = context.actionTargetTarget;
-      if (
-        actionTarget === 'caster' ||
-        actionTarget === 'buffOwner' ||
-        actionTarget === 'eventTarget'
-      ) {
-        target = actionTarget;
-      }
-    }
-    if (target === undefined) {
-      throw new Error(`${sourcePath}: profession target is not a proven operator identity`);
-    }
-    return { kind: 'operatorRoleIn', target, roles: condition.roles };
+    return {
+      kind: 'operatorRoleIn',
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.checkTarget`),
+      roles: condition.roles,
+    };
   }
   if (condition.kind === 'deckAttributeCompare') {
     const attributes = {
@@ -442,23 +334,25 @@ function compileConditionLeaf(
       Wisd: 'intellect',
       Will: 'will',
     } as const;
-    const left = attributes[condition.leftAttribute as keyof typeof attributes];
-    const right = attributes[condition.rightAttribute as keyof typeof attributes];
+    const left =
+      condition.leftAttribute === 'Blackboard'
+        ? actionValueOperand(condition.leftValue)
+        : attributes[condition.leftAttribute as keyof typeof attributes];
+    const right =
+      condition.rightAttribute === 'Blackboard'
+        ? actionValueOperand(condition.rightValue)
+        : attributes[condition.rightAttribute as keyof typeof attributes];
     const operator = COMPARISON_OPERATORS[condition.comparison];
-    if (
-      condition.targetSource !== 'Owner' ||
-      condition.targetGroupKey !== '' ||
-      condition.leftValue.blackboardKey !== null ||
-      condition.leftValue.value !== 0 ||
-      condition.rightValue.blackboardKey !== null ||
-      condition.rightValue.value !== 0 ||
-      left === undefined ||
-      right === undefined ||
-      operator === undefined
-    ) {
+    if (left === undefined || right === undefined || operator === undefined) {
       throw new Error(`${sourcePath}: unsupported Deck attribute comparison`);
     }
-    return { kind: 'deckAttributeCompare', left, operator, right };
+    return {
+      kind: 'deckAttributeCompare',
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.target`),
+      left,
+      operator,
+      right,
+    };
   }
   if (condition.kind === 'floatCompare') {
     const operator = COMPARISON_OPERATORS[condition.comparison];
@@ -474,42 +368,10 @@ function compileConditionLeaf(
   }
   if (condition.kind === 'health') {
     const operator = COMPARISON_OPERATORS[condition.comparison];
-    const target =
-      condition.targetSource === 'InstantSearch' &&
-      condition.characterTeamSelection?.kind === 'controlledOperator'
-        ? ('controlledOperator' as const)
-        : condition.targetSource === 'Target' && context.actionTargetTarget === 'enemy'
-          ? ('enemy' as const)
-          : condition.targetSource === 'Target' &&
-              (context.actionTargetTarget === 'currentOperator' ||
-                context.actionTargetTarget === 'actionInputTarget')
-            ? ('currentTarget' as const)
-            : condition.targetSource === 'Owner' &&
-                condition.targetGroupKey === '' &&
-                context.fixedBuffOwnerTarget === 'caster'
-              ? ('caster' as const)
-              : condition.targetSource === 'Source' &&
-                  condition.targetGroupKey === '' &&
-                  context.fixedBuffSourceTarget === 'caster'
-                ? ('caster' as const)
-                : condition.targetSource === 'Source' &&
-                    condition.targetGroupKey === '' &&
-                    context.fixedBuffSourceTarget === 'enemy'
-                  ? ('enemy' as const)
-                  : condition.targetSource === 'Context' &&
-                      (targetGroups.get(condition.targetGroupKey) === 'enemy' ||
-                        context.staticEnemyTargetGroupKeys?.has(condition.targetGroupKey) === true)
-                    ? ('enemy' as const)
-                    : condition.targetSource === 'Context' && condition.targetGroupKey !== ''
-                      ? ('contextTarget' as const)
-                      : null;
-    if (target === null || operator === undefined) {
-      throw new Error(`${sourcePath}: unsupported health condition target`);
-    }
+    if (operator === undefined) throw new Error(`${sourcePath}: unsupported health comparison`);
     return {
       kind: 'healthCompare',
-      target,
-      ...(target === 'contextTarget' ? { contextKey: condition.targetGroupKey } : {}),
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.hpOwner`),
       valueType: condition.isRatio ? 'ratio' : 'current',
       operator,
       value: actionValueOperand(condition.value),
@@ -538,28 +400,31 @@ function compileConditionLeaf(
     return { kind: 'skillDamageTypeIn', damageTypes: condition.damageTypes };
   }
   if (condition.kind === 'skillType') {
+    const subtype = condition.normalSkillSubTypeFilter;
+    const subtypeFilter =
+      subtype === undefined || subtype === 'Any'
+        ? {}
+        : {
+            normalSkillSubType:
+              subtype === 'Normal' ? ('normal' as const) : ('additionalNormalSkill' as const),
+          };
     const skillTypes = mapNativeSkillTypes(condition.skillTypes, condition.attackTypeMask);
     if (condition.checkTargetCurrentSkill) {
       const skillOwner = condition.skillOwner;
-      const target =
-        skillOwner?.targetSource === 'Owner'
-          ? ('buffOwner' as const)
-          : skillOwner?.targetSource === 'Source' && context.actionSourceTarget === 'caster'
-            ? ('caster' as const)
-            : null;
-      if (
-        skillOwner === undefined ||
-        target === null ||
-        skillOwner.targetGroupKey !== '' ||
-        condition.mustBeforeExclusiveTime
-      ) {
+      if (skillOwner === undefined || condition.mustBeforeExclusiveTime) {
         throw new Error(`${sourcePath}: unsupported current skill type condition`);
       }
-      return { kind: 'currentSkillTypeIn', target, skillTypes };
+      return {
+        kind: 'currentSkillTypeIn',
+        target: projectActionTargetQuery(skillOwner, context, `${sourcePath}.skillOwner`),
+        skillTypes,
+        ...subtypeFilter,
+      };
     }
     return {
       kind: 'eventSkillTypeIn',
       skillTypes,
+      ...subtypeFilter,
     };
   }
   if (condition.kind === 'customAbilityEvent') {
@@ -614,49 +479,18 @@ function compileConditionLeaf(
     };
   }
   if (condition.kind === 'targetContains') {
-    if (
-      condition.parent.targetSource === 'Target' &&
-      condition.child.targetSource === 'Context' &&
-      condition.child.targetGroupKey !== '' &&
-      context.actionTargetTarget === 'enemy' &&
-      (targetGroups.get(condition.child.targetGroupKey) === 'enemy' ||
-        context.staticEnemyTargetGroupKeys?.has(condition.child.targetGroupKey) === true)
-    ) {
-      // parent Target 是 Channeling 当前迭代的唯一木桩；child Context 由同一 tick 的
-      // MainTargetFinder 写回同一唯一木桩。直接 Target 分支不读取残留 group key。
-      return {
-        kind: 'actionValueCompare',
-        left: { kind: 'constant', value: 1 },
-        operator: 'equal',
-        right: { kind: 'constant', value: 1 },
-      };
-    }
-    if (
-      condition.parent.targetSource !== 'Context' ||
-      condition.parent.targetGroupKey === '' ||
-      condition.child.targetSource !== 'Target' ||
-      condition.child.targetGroupKey !== ''
-    ) {
-      throw new Error(`${sourcePath}: unsupported target containment sources`);
-    }
-    if (
-      context.actionTargetTarget === 'enemy' &&
-      (targetGroups.get(condition.parent.targetGroupKey) === 'enemy' ||
-        context.staticEnemyTargetGroupKeys?.has(condition.parent.targetGroupKey) === true)
-    ) {
-      // 父 Context 已由完整 finder + TargetContainsValidator 数据流证明为当前唯一木桩，
-      // child Target 又是同一主动技能输入，因此 contains 在固定模型下恒真。
-      return {
-        kind: 'actionValueCompare',
-        left: { kind: 'constant', value: 1 },
-        operator: 'equal',
-        right: { kind: 'constant', value: 1 },
-      };
-    }
     return {
       kind: 'targetContains',
-      parent: { kind: 'context', key: condition.parent.targetGroupKey },
-      child: { kind: 'inputTarget' },
+      parent: projectActionTargetQuery(
+        condition.parent,
+        context,
+        `${sourcePath}.parentTargetSettings`,
+      ),
+      child: projectActionTargetQuery(
+        condition.child,
+        context,
+        `${sourcePath}.childTargetSettings`,
+      ),
     };
   }
   if (condition.kind === 'damageTypeMask') {
@@ -750,13 +584,16 @@ function compileConditionLeaf(
       tags: projectGameplayTags(condition.tagIds, context, sourcePath),
     };
   }
-  if (condition.kind === 'consumeBuffLayer') {
+  if (condition.kind === 'consumeBuffLayer' || condition.kind === 'buffEnhanceLayer') {
     const operator = COMPARISON_OPERATORS[condition.comparison];
     if (operator === undefined) {
       throw new Error(`${sourcePath}: unsupported consumed Buff layer comparison`);
     }
     return {
-      kind: 'eventConsumedBuffLayerCompare',
+      kind:
+        condition.kind === 'buffEnhanceLayer'
+          ? 'eventBuffEnhanceLayerCompare'
+          : 'eventConsumedBuffLayerCompare',
       operator,
       value: actionValueOperand(condition.value),
       ...(condition.outputKey === '' ? {} : { outputKey: condition.outputKey }),
@@ -803,34 +640,9 @@ function compileConditionLeaf(
     };
   }
   if (condition.kind === 'objectTypeMatch') {
-    if (
-      context.fixedBuffOwnerTarget === 'caster' &&
-      condition.target.targetSource === 'Owner' &&
-      condition.target.targetGroupKey === ''
-    ) {
-      const types = projectObjectTypeSelection(
-        condition.objectTypeMask,
-        `${sourcePath}.objectTypeMask`,
-      );
-      return { kind: 'constant', value: types === 'all' || types.includes('character') };
-    }
-    if (condition.target.targetSource === 'Target') {
-      return {
-        kind: 'actionInputTargetObjectTypeMatch',
-        objectTypes: projectObjectTypeSelection(
-          condition.objectTypeMask,
-          `${sourcePath}.objectTypeMask`,
-        ),
-      };
-    }
-    if (condition.target.targetSource !== 'Context' || condition.target.targetGroupKey === '') {
-      throw new Error(
-        `${sourcePath}: unsupported object type target; expected named Context group`,
-      );
-    }
     return {
-      kind: 'contextTargetObjectTypeMatch',
-      contextKey: condition.target.targetGroupKey,
+      kind: 'targetObjectTypeMatch',
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.target`),
       objectTypes: projectObjectTypeSelection(
         condition.objectTypeMask,
         `${sourcePath}.objectTypeMask`,
@@ -838,226 +650,11 @@ function compileConditionLeaf(
     };
   }
   if (condition.kind === 'targetIdentity') {
-    const first = condition.first;
-    const second = condition.second;
-    const isPlainReference = (target: typeof first) =>
-      target.finderType === null &&
-      target.validatorTypes.length === 0 &&
-      target.postProcessorTypes.length === 0 &&
-      target.priorityFilters.length === 0 &&
-      target.shuffleTargets.length === 0 &&
-      target.distanceValidators.length === 0;
-    const isStaticEnemyReference = (target: typeof first) =>
-      (target.targetSource === 'Target' &&
-        context.actionTargetTarget === 'enemy' &&
-        isPlainReference(target)) ||
-      (target.targetSource === 'MainTarget' && isPlainReference(target)) ||
-      (target.targetSource === 'Context' &&
-        target.targetGroupKey !== '' &&
-        (context.staticEnemyTargetGroupKeys?.has(target.targetGroupKey) === true ||
-          targetGroups.get(target.targetGroupKey) === 'enemy') &&
-        isPlainReference(target)) ||
-      (target.targetSource === 'InstantSearch' &&
-        target.finderType === 'MainTargetFinder' &&
-        target.validatorTypes.length === 0 &&
-        target.postProcessorTypes.length === 0 &&
-        target.priorityFilters.length === 0 &&
-        target.shuffleTargets.length === 0 &&
-        target.distanceValidators.length === 0);
-    if (isStaticEnemyReference(first) && isStaticEnemyReference(second)) {
-      // 固定唯一木桩模型下，当前 Target、MainTarget 与已证明的敌人 Context 是同一身份。
-      // Target/MainTarget 分支不读取序列化残留的 group key；Context 仍严格要求命名组证明。
-      return {
-        kind: 'actionValueCompare',
-        left: { kind: 'constant', value: 1 },
-        operator: 'equal',
-        right: { kind: 'constant', value: 1 },
-      };
-    }
-    const targetMatchesStaticMainTarget = (target: typeof first, mainTarget: typeof first) =>
-      context.actionTargetTarget === 'enemy' &&
-      target.targetSource === 'Target' &&
-      ((mainTarget.targetSource === 'MainTarget' &&
-        mainTarget.targetGroupKey === '' &&
-        mainTarget.finderType === null) ||
-        (mainTarget.targetSource === 'InstantSearch' &&
-          mainTarget.finderType === 'MainTargetFinder')) &&
-      mainTarget.validatorTypes.length === 0 &&
-      mainTarget.postProcessorTypes.length === 0 &&
-      mainTarget.priorityFilters.length === 0 &&
-      mainTarget.shuffleTargets.length === 0 &&
-      mainTarget.distanceValidators.length === 0;
-    if (
-      targetMatchesStaticMainTarget(first, second) ||
-      targetMatchesStaticMainTarget(second, first)
-    ) {
-      // Target 是当前动作输入，MainTarget / MainTargetFinder 是全局主目标；固定唯一敌人模型已把二者
-      // 证明为同一个木桩。保留显式真条件，避免把来源枚举相等误当成原生比较规则。
-      return {
-        kind: 'actionValueCompare',
-        left: { kind: 'constant', value: 1 },
-        operator: 'equal',
-        right: { kind: 'constant', value: 1 },
-      };
-    }
-    const matchesBuffSourceAndOwner =
-      first.targetGroupKey === '' &&
-      second.targetGroupKey === '' &&
-      ((first.targetSource === 'Source' && second.targetSource === 'Owner') ||
-        (first.targetSource === 'Owner' && second.targetSource === 'Source'));
-    if (matchesBuffSourceAndOwner && context.actionOwnerTarget === 'buffOwner') {
-      return { kind: 'buffSourceMatchesOwner' };
-    }
-    const matchesOwnerAndControlledOperator =
-      first.targetGroupKey === '' &&
-      second.targetGroupKey === '' &&
-      isPlainReference(first) &&
-      isPlainReference(second) &&
-      ((first.targetSource === 'Owner' && second.targetSource === 'MainCharacter') ||
-        (first.targetSource === 'MainCharacter' && second.targetSource === 'Owner'));
-    if (
-      matchesOwnerAndControlledOperator &&
-      (context.actionOwnerTarget === 'caster' || context.fixedBuffOwnerTarget === 'caster')
-    ) {
-      // 宿主是干员不代表当前由玩家主控；每次调用都读取当前主控身份。
-      return { kind: 'casterControlled' };
-    }
-    const isEventInputReference = (target: typeof first) =>
-      target.targetSource === 'Target' && isPlainReference(target);
-    const contextIdentityOther = (
-      target: typeof first,
-      other: typeof first,
-    ): 'actionSource' | 'actionOwner' | 'controlledOperator' | null => {
-      if (
-        target.targetSource !== 'Context' ||
-        target.targetGroupKey === '' ||
-        !isPlainReference(target) ||
-        !isPlainReference(other)
-      )
-        return null;
-      if (other.targetSource === 'Source') return 'actionSource';
-      if (other.targetSource === 'Owner') return 'actionOwner';
-      if (other.targetSource === 'MainCharacter') return 'controlledOperator';
-      return null;
+    return {
+      kind: 'targetsEqual',
+      first: projectActionTargetQuery(condition.first, context, `${sourcePath}.first`),
+      second: projectActionTargetQuery(condition.second, context, `${sourcePath}.second`),
     };
-    const contextOther = contextIdentityOther(first, second) ?? contextIdentityOther(second, first);
-    if (contextOther !== null) {
-      const contextTarget = first.targetSource === 'Context' ? first : second;
-      return {
-        kind: 'contextTargetIdentityMatch',
-        selection: 'all',
-        contextKey: contextTarget.targetGroupKey,
-        other: contextOther,
-        operator: 'equal',
-      };
-    }
-    const eventInputIdentityOther = (
-      target: typeof first,
-      other: typeof first,
-    ): 'actionSource' | 'actionOwner' | 'controlledOperator' | null => {
-      if (!isEventInputReference(target) || !isPlainReference(other)) return null;
-      if (other.targetSource === 'Source') return 'actionSource';
-      if (other.targetSource === 'Owner') return 'actionOwner';
-      if (other.targetSource === 'MainCharacter') return 'controlledOperator';
-      return null;
-    };
-    if (
-      context.actionTargetTarget === 'eventSource' ||
-      context.actionTargetTarget === 'eventTarget'
-    ) {
-      const other =
-        eventInputIdentityOther(first, second) ?? eventInputIdentityOther(second, first);
-      if (other !== null) {
-        return { kind: 'actionInputTargetIdentityMatch', other, operator: 'equal' };
-      }
-    }
-    const isControlledOperatorSearch = (target: typeof first) =>
-      target.targetSource === 'InstantSearch' &&
-      target.targetGroupKey === '' &&
-      target.finderType === 'CharacterTeamFinder' &&
-      target.validatorTypes.length === 1 &&
-      target.validatorTypes[0] === 'MainCharacterValidator' &&
-      target.postProcessorTypes.length === 0 &&
-      target.priorityFilters.length === 0 &&
-      target.shuffleTargets.length === 0 &&
-      target.distanceValidators.length === 0;
-    const contextControlledSearch =
-      first.targetSource === 'Context' && isControlledOperatorSearch(second)
-        ? first
-        : second.targetSource === 'Context' && isControlledOperatorSearch(first)
-          ? second
-          : undefined;
-    if (
-      contextControlledSearch &&
-      contextControlledSearch.targetGroupKey === 'trigger' &&
-      context.contextTargetGroupTargets?.has('trigger') === true &&
-      isPlainReference(contextControlledSearch)
-    ) {
-      // CharacterTeamFinder + MainCharacterValidator 在当前队伍模型中选择主控角色。
-      // 此投影接收已绑定的事件 trigger，运行时仍按完整目标组比较，不从事件名猜来源。
-      return {
-        kind: 'contextTargetIdentityMatch',
-        selection: 'all',
-        contextKey: contextControlledSearch.targetGroupKey,
-        other: 'controlledOperator',
-        operator: 'equal',
-      };
-    }
-    if (
-      (isEventInputReference(first) && isControlledOperatorSearch(second)) ||
-      (isEventInputReference(second) && isControlledOperatorSearch(first))
-    ) {
-      // TargetSource.Target 读取本次事件 input；非 Context 来源不消费序列化残留 group key。
-      // 输入身份由事件绑定提供；此处不再次从事件载荷推断来源。
-      return {
-        kind: 'actionInputTargetIdentityMatch',
-        other: 'controlledOperator',
-        operator: 'equal',
-      };
-    }
-    const matchesEventSourceAndTarget =
-      first.targetGroupKey === '' &&
-      second.targetGroupKey === '' &&
-      ((first.targetSource === 'Target' && second.targetSource === 'Source') ||
-        (first.targetSource === 'Source' && second.targetSource === 'Target'));
-    const isSourceFinderOfActionSource = (target: typeof first) =>
-      target.targetSource === 'InstantSearch' &&
-      target.finderType === 'SourceFinder' &&
-      target.selectorOwner === 'ActionSource' &&
-      target.validatorTypes.length === 0 &&
-      target.postProcessorTypes.length === 0 &&
-      target.priorityFilters.length === 0 &&
-      target.shuffleTargets.length === 0 &&
-      target.distanceValidators.length === 0;
-    const matchesResolvedBuffSourceAndEventSource =
-      ((isSourceFinderOfActionSource(first) && second.targetSource === 'Target') ||
-        (isSourceFinderOfActionSource(second) && first.targetSource === 'Target')) &&
-      first.targetGroupKey === '' &&
-      second.targetGroupKey === '';
-    if (context.actionTargetTarget === 'eventSource') {
-      const matchesEventSourceAndControlledOperator =
-        first.targetGroupKey === '' &&
-        second.targetGroupKey === '' &&
-        ((first.targetSource === 'Target' && second.targetSource === 'MainCharacter') ||
-          (first.targetSource === 'MainCharacter' && second.targetSource === 'Target'));
-      if (matchesEventSourceAndControlledOperator)
-        return {
-          kind: 'actionInputTargetIdentityMatch',
-          other: 'controlledOperator',
-          operator: 'equal',
-        };
-      if (
-        (matchesEventSourceAndTarget || matchesResolvedBuffSourceAndEventSource) &&
-        context.actionSourceTarget === 'buffSource'
-      )
-        return {
-          kind: matchesResolvedBuffSourceAndEventSource
-            ? 'eventSourceMatchesBuffSourceEntitySource'
-            : 'eventSourceMatchesBuffSource',
-        };
-      throw new Error(`${sourcePath}: unsupported receiving Buff event target identity sources`);
-    }
-    throw new Error(`${sourcePath}: unsupported target identity sources`);
   }
   if (condition.kind === 'buffStack') {
     // Environment 不走目标解析，精确读取正在执行的 Buff，而非同 ID 总层数。
@@ -1080,434 +677,119 @@ function compileConditionLeaf(
         value: actionValueOperand(condition.value),
       };
     }
-    if (
-      condition.targetSource === 'Context' &&
-      condition.targetGroupKey !== '' &&
-      context.staticEnemyTargetGroupKeys?.has(condition.targetGroupKey) === true &&
-      condition.buffCheckType === 'Tag' &&
-      condition.countType === 'BuffCount' &&
-      !condition.limitSkillCastId
-    ) {
-      const operator = COMPARISON_OPERATORS[condition.comparison];
-      if (operator === undefined)
-        throw new Error(`${sourcePath}: unsupported Buff stack comparison`);
-      const buffTags = projectGameplayTags(condition.buffTagIds, context, sourcePath);
-      const value = actionValueOperand(condition.value);
-      // NoGuard（破防）仍是 Buff 标签计数，不能替换成失衡槽耗尽的状态判断。
-      return {
-        // 主动技能入口已证明该 Context 恒为唯一木桩，不能再把它当作动态事件目标。
-        kind: 'buffStackCompare',
-        target: 'enemy',
-        tagQueryType: condition.tagQueryType,
-        buffTags,
-        operator,
-        value,
-      };
-    }
-    if (
-      condition.targetSource === 'Context' &&
-      condition.targetGroupKey !== '' &&
-      condition.sourceType === 'CheckBuffStackNumAdvanced' &&
-      condition.buffCheckType === 'Tag' &&
-      condition.countType === 'BuffCount' &&
-      !condition.limitSkillCastId
-    ) {
-      const operator = COMPARISON_OPERATORS[condition.comparison];
-      if (operator === undefined)
-        throw new Error(`${sourcePath}: unsupported Buff stack comparison`);
-      return {
-        kind: 'contextTargetBuffStackCompare',
-        compareZeroWhenTargetMissing: true,
-        contextKey: condition.targetGroupKey,
-        tagQueryType: condition.tagQueryType,
-        buffTags: projectGameplayTags(condition.buffTagIds, context, sourcePath),
-        operator,
-        value: actionValueOperand(condition.value),
-      };
-    }
-    if (
-      condition.targetSource === 'Context' &&
-      condition.targetGroupKey !== '' &&
-      (condition.sourceType === 'CheckBuffStackNum' ||
-        condition.sourceType === 'CheckBuffStackNumAdvanced') &&
-      condition.buffCheckType === 'Id' &&
-      condition.buffIds.length > 0 &&
-      condition.countType === 'BuffCount' &&
-      !condition.limitSkillCastId
-    ) {
-      const operator = COMPARISON_OPERATORS[condition.comparison];
-      if (operator === undefined)
-        throw new Error(`${sourcePath}: unsupported Buff stack comparison`);
-      return {
-        kind: 'contextTargetBuffIdStackCompare',
-        compareZeroWhenTargetMissing: condition.sourceType === 'CheckBuffStackNumAdvanced',
-        contextKey: condition.targetGroupKey,
-        buffIds: condition.buffIds,
-        operator,
-        value: actionValueOperand(condition.value),
-      };
-    }
-    // ByTag 无目标返回 false；不能沿用 Advanced 的零层路径或实例计数。
-    if (
-      condition.targetSource === 'Context' &&
-      condition.targetGroupKey !== '' &&
-      condition.sourceType === 'CheckBuffStackNumByTag' &&
-      condition.buffCheckType === 'Tag' &&
-      condition.countType === 'BuffCount' &&
-      !condition.limitSkillCastId
-    ) {
-      const operator = COMPARISON_OPERATORS[condition.comparison];
-      if (operator === undefined)
-        throw new Error(`${sourcePath}: unsupported Buff stack comparison`);
-      return {
-        kind: 'contextTargetBuffStackCompare',
-        compareZeroWhenTargetMissing: false,
-        contextKey: condition.targetGroupKey,
-        tagQueryType: condition.tagQueryType,
-        buffTags: projectGameplayTags(condition.buffTagIds, context, sourcePath),
-        operator,
-        value: actionValueOperand(condition.value),
-      };
-    }
-    if (
-      (condition.targetSource !== 'Target' &&
-        condition.targetSource !== 'Owner' &&
-        condition.targetSource !== 'Source' &&
-        condition.targetSource !== 'MainCharacter') ||
-      (condition.countType !== 'BuffCount' && condition.countType !== 'BuffIdCount') ||
-      (condition.limitSkillCastId && context.actionEnvironmentSkillCastInfoIsSourceCast !== true)
-    ) {
-      throw new Error(`${sourcePath}: unsupported event target Buff count condition`);
-    }
     const operator = COMPARISON_OPERATORS[condition.comparison];
-    if (operator === undefined) {
-      throw new Error(`${sourcePath}: unsupported event target Buff count comparison`);
-    }
-    if (
-      condition.countType === 'BuffIdCount' &&
-      condition.buffCheckType === 'Tag' &&
-      !condition.limitSkillCastId
-    ) {
-      return {
-        kind: 'buffTagIdCountCompare',
-        target:
-          condition.targetSource === 'Owner'
-            ? buffConditionOwner(context, sourcePath)
-            : condition.targetSource === 'Source'
-              ? context.actionSourceTarget
-              : condition.targetSource === 'MainCharacter'
-                ? 'controlledOperator'
-                : singleBuffConditionTarget(context, sourcePath),
+    if (operator === undefined) throw new Error(`${sourcePath}: unsupported Buff stack comparison`);
+    if (condition.limitSkillCastId && context.actionEnvironmentSkillCastInfoIsSourceCast !== true)
+      throw new Error(`${sourcePath}: Buff count requires source skill cast identity`);
+    const common = {
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.checkTarget`),
+      compareZeroWhenTargetMissing: condition.sourceType === 'CheckBuffStackNumAdvanced',
+      operator,
+      value: actionValueOperand(condition.value),
+    };
+    if (condition.buffCheckType === 'Tag') {
+      const tags = {
         tagQueryType: condition.tagQueryType,
         buffTags: projectGameplayTags(condition.buffTagIds, context, sourcePath),
-        operator,
-        value: actionValueOperand(condition.value),
       };
-    }
-    if (condition.countType === 'BuffCount' && condition.buffCheckType === 'Tag') {
-      const target =
-        condition.targetSource === 'Owner'
-          ? buffConditionOwner(context, sourcePath)
-          : condition.targetSource === 'Source'
-            ? context.actionSourceTarget
-            : condition.targetSource === 'MainCharacter'
-              ? 'controlledOperator'
-              : singleBuffConditionTarget(context, sourcePath);
-      const buffTags = projectGameplayTags(condition.buffTagIds, context, sourcePath);
-      const value = actionValueOperand(condition.value);
-      return {
-        // 原生 BuffCount 累加增强层数；Source/Owner 不能冒充物理事件目标。
-        kind: 'buffStackCompare',
-        target,
-        tagQueryType: condition.tagQueryType,
-        buffTags,
-        operator,
-        value,
-        ...(condition.limitSkillCastId ? { sameSourceSkillCast: true } : {}),
-      };
+      if (condition.countType === 'BuffIdCount' && !condition.limitSkillCastId)
+        return { kind: 'buffTagIdCountCompare', ...common, ...tags };
+      if (condition.countType === 'BuffCount')
+        return {
+          kind: 'buffStackCompare',
+          ...common,
+          ...tags,
+          ...(condition.limitSkillCastId ? { sameSourceSkillCast: true } : {}),
+        };
     }
     if (
-      condition.countType === 'BuffCount' &&
       condition.buffCheckType === 'Id' &&
+      condition.countType === 'BuffCount' &&
       condition.buffIds.every(id => id.length > 0)
-    ) {
-      // 公共目标解析器只在
-      // targetSource=Context 时读取 targetGroupKey。Liino 的监听响应保留了 Owner+"tar"
-      // 这一陈旧组名，仍必须读取 ActionOwner，不能据此改读 Context 或拒绝来源数据。
+    )
       return {
         kind: 'buffIdStackCompare',
-        target:
-          condition.targetSource === 'Owner'
-            ? buffConditionOwner(context, sourcePath)
-            : condition.targetSource === 'Source'
-              ? context.actionSourceTarget
-              : condition.targetSource === 'MainCharacter'
-                ? 'controlledOperator'
-                : singleBuffConditionTarget(context, sourcePath),
+        ...common,
         buffIds: condition.buffIds,
-        operator,
-        value: actionValueOperand(condition.value),
         ...(condition.limitSkillCastId ? { sameSourceSkillCast: true } : {}),
       };
-    }
-    throw new Error(`${sourcePath}: unsupported event target Buff identity condition`);
+    throw new Error(`${sourcePath}: unsupported Buff count mode`);
   }
   if (condition.kind === 'poise') {
-    if (condition.target.targetSource !== 'Target' || condition.target.targetGroupKey !== '')
-      throw new Error(`${sourcePath}: unsupported poise condition target`);
     const operator = COMPARISON_OPERATORS[condition.comparison];
     if (operator === undefined) throw new Error(`${sourcePath}: unsupported poise comparison`);
-    const target =
-      context.actionTargetTarget === 'enemy'
-        ? 'enemy'
-        : context.actionTargetTarget === 'actionInputTarget' ||
-            context.actionTargetTarget === 'currentOperator'
-          ? 'currentTarget'
-          : context.actionTargetTarget === 'eventSource' ||
-              context.actionTargetTarget === 'eventTarget'
-            ? 'actionInputTarget'
-            : null;
-    if (target === null) throw new Error(`${sourcePath}: unsupported poise condition target`);
     return {
       kind: 'poiseCompare',
-      target,
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.poiseOwner`),
       returnValueIfMissing: condition.returnValueIfMissing,
       operator,
       value: actionValueOperand(condition.value),
     };
   }
   if (condition.kind === 'entityTag') {
-    if (
-      condition.targetSource === 'Context' &&
-      condition.targetGroupKey !== '' &&
-      (targetGroups.get(condition.targetGroupKey) === 'enemy' ||
-        context.staticEnemyTargetGroupKeys?.has(condition.targetGroupKey) === true)
-    ) {
-      return {
-        kind: 'entityTagMatch',
-        target: 'enemy',
-        tagQueryType: condition.tagQueryType,
-        tags: projectGameplayTags(condition.tagIds, context, sourcePath),
-      };
-    }
-    if (condition.targetSource === 'Context' && condition.targetGroupKey !== '') {
-      return {
-        kind: 'contextTargetEntityTagMatch',
-        contextKey: condition.targetGroupKey,
-        tagQueryType: condition.tagQueryType,
-        tags: projectGameplayTags(condition.tagIds, context, sourcePath),
-      };
-    }
-    const target =
-      condition.targetSource === 'Owner'
-        ? buffConditionOwner(context, sourcePath)
-        : condition.targetSource === 'Source'
-          ? context.actionSourceTarget
-          : condition.targetSource === 'Target'
-            ? singleBuffConditionTarget(context, sourcePath)
-            : condition.targetSource === 'Context' &&
-                (targetGroups.get(condition.targetGroupKey) === 'enemy' ||
-                  context.staticEnemyTargetGroupKeys?.has(condition.targetGroupKey) === true)
-              ? ('enemy' as const)
-              : null;
-    if (target === null) throw new Error(`${sourcePath}: unsupported entity tag target`);
     return {
       kind: 'entityTagMatch',
-      target,
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.checkTarget`),
       tagQueryType: condition.tagQueryType,
       tags: projectGameplayTags(condition.tagIds, context, sourcePath),
     };
   }
   if (condition.kind === 'globalCooldown') {
-    const target = projectGlobalCooldownTarget(condition, context, sourcePath);
     if (condition.buffId.length === 0) {
       throw new Error(`${sourcePath}: unsupported global cooldown condition target`);
     }
     return {
-      kind: 'not',
-      condition: { kind: 'globalCooldownPresent', target, markerId: condition.buffId },
+      kind: 'globalCooldownPresent',
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.target`),
+      returnTrueIfNotExists: true,
+      markerId: condition.buffId,
     };
   }
   if (condition.kind === 'comboSkillPending') {
-    const owner = condition.owner;
-    const target =
-      owner.targetSource === 'Owner'
-        ? requireActionOwnerProjection(context, sourcePath)
-        : owner.targetSource === 'Source'
-          ? context.actionSourceTarget
-          : undefined;
-    if (
-      target !== 'caster' ||
-      owner.targetGroupKey !== '' ||
-      owner.finderType !== null ||
-      owner.validatorTypes.length > 0 ||
-      owner.postProcessorTypes.length > 0
-    )
-      throw new Error(
-        `${sourcePath}: CheckComboSkillPending requires a proven plain caster target`,
-      );
-    return { kind: 'casterComboPending' };
+    return {
+      kind: 'comboSkillPending',
+      target: projectActionTargetQuery(condition.owner, context, `${sourcePath}.owner`),
+    };
   }
   if (condition.kind === 'skillHasHit') return { kind: 'skillHasHit' };
   if (condition.kind === 'enemyRank') {
-    const target = condition.target;
-    const targetsActiveSkillEnemy =
-      target.targetSource === 'Target' &&
-      target.targetGroupKey === '' &&
-      context.actionTargetTarget === 'enemy';
-    const targetsEnemyBuffOwner =
-      target.targetSource === 'Owner' &&
-      target.targetGroupKey === '' &&
-      context.actionOwnerTarget === 'buffOwner' &&
-      context.fixedBuffOwnerTarget === 'enemy';
-    const targetsProvenEnemyContext =
-      target.targetSource === 'Context' &&
-      target.targetGroupKey.length > 0 &&
-      context.staticEnemyTargetGroupKeys?.has(target.targetGroupKey) === true;
-    if (!targetsActiveSkillEnemy && !targetsEnemyBuffOwner && !targetsProvenEnemyContext) {
-      throw new Error(`${sourcePath}: enemy rank condition requires a proven enemy target`);
-    }
     const ranks = [
       ...(condition.rankMask & 1 ? (['mob'] as const) : []),
       ...(condition.rankMask & 2 ? (['elite'] as const) : []),
       ...(condition.rankMask & 4 ? (['boss'] as const) : []),
     ];
-    return { kind: 'enemyRankIn', ranks };
+    return {
+      kind: 'enemyRankIn',
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.checkTarget`),
+      ranks,
+    };
   }
   if (condition.kind === 'timedMarker') {
-    if (context.restrictEventSourceTargetProjection === true && condition.targetSource === 'Target')
-      throw new Error(`${sourcePath}: unaudited receiving Buff event marker target`);
-    if (
-      condition.targetSource === 'Context' &&
-      condition.targetGroupKey.length > 0 &&
-      targetGroups.get(condition.targetGroupKey) === 'abilityEntity'
-    ) {
-      if (
-        condition.useBlackboardKey
-          ? condition.blackboardKey.length === 0
-          : condition.markerId.length === 0
-      )
-        throw new Error(`${sourcePath}: timed marker condition has no marker id`);
-      const present = {
-        kind: 'abilityEntityTimedMarkerPresent' as const,
-        returnTrueIfNotExists: condition.returnTrueIfNotExists,
-        contextKey: condition.targetGroupKey,
-        markerId: condition.useBlackboardKey
-          ? { blackboardKey: condition.blackboardKey }
-          : condition.markerId,
-      };
-      return present;
-    }
-    if (
-      condition.targetSource === 'Owner' &&
-      condition.targetGroupKey === '' &&
-      context.actionOwnerTarget === 'currentAbilityEntity'
-    ) {
-      if (
-        condition.useBlackboardKey
-          ? condition.blackboardKey.length === 0
-          : condition.markerId.length === 0
-      )
-        throw new Error(`${sourcePath}: timed marker condition has no marker id`);
-      const present = {
-        kind: 'abilityEntityTimedMarkerPresent' as const,
-        returnTrueIfNotExists: condition.returnTrueIfNotExists,
-        markerId: condition.useBlackboardKey
-          ? { blackboardKey: condition.blackboardKey }
-          : condition.markerId,
-      };
-      return present;
-    }
-    const target =
-      condition.targetSource === 'Target'
-        ? context.actionTargetTarget === 'enemy'
-          ? ('enemy' as const)
-          : ('eventTarget' as const)
-        : condition.targetSource === 'Owner'
-          ? requireActionOwnerProjection(context, sourcePath)
-          : condition.targetSource === 'Source'
-            ? context.actionSourceTarget
-            : null;
-    if (
-      (target !== 'caster' &&
-        target !== 'enemy' &&
-        target !== 'eventTarget' &&
-        target !== 'buffOwner' &&
-        target !== 'buffSource') ||
-      (condition.targetSource !== 'Target' && condition.targetGroupKey !== '') ||
-      (condition.useBlackboardKey
-        ? condition.blackboardKey.length === 0
-        : condition.markerId.length === 0)
-    ) {
-      throw new Error(
-        `${sourcePath}: unsupported timed marker condition ` +
-          JSON.stringify({
-            target,
-            actionTargetTarget: context.actionTargetTarget,
-            targetSource: condition.targetSource,
-            targetGroupKey: condition.targetGroupKey,
-            useBlackboardKey: condition.useBlackboardKey,
-            blackboardKey: condition.blackboardKey,
-            markerId: condition.markerId,
-          }),
-      );
-    }
-    const present = {
-      kind: 'timedMarkerPresent' as const,
+    return {
+      kind: 'timedMarkerPresent',
+      target: projectActionTargetQuery(condition.target, context, `${sourcePath}.checkTarget`),
       returnTrueIfNotExists: condition.returnTrueIfNotExists,
-      target,
       markerId: condition.useBlackboardKey
         ? { blackboardKey: condition.blackboardKey }
         : condition.markerId,
     };
-    return present;
   }
   throw new Error(`${sourcePath}: unsupported Buff runtime condition ${condition.kind}`);
 }
 
-function singleBuffConditionTarget(
-  context: CombatActionProjectionContextSource,
-  sourcePath: string,
-):
-  | 'enemy'
-  | 'buffOwner'
-  | 'currentAbilityEntity'
-  | 'eventTarget'
-  | 'actionInputTarget'
-  | 'currentTarget' {
-  if (context.actionTargetTarget === 'currentOperator') return 'currentTarget';
-  if (context.actionTargetTarget === 'actionInputTarget') return 'actionInputTarget';
-  if (context.actionTargetTarget === 'eventSource' || context.actionTargetTarget === 'eventTarget')
-    return 'actionInputTarget';
-  if (
-    context.actionTargetTarget === 'enemy' ||
-    context.actionTargetTarget === 'buffOwner' ||
-    context.actionTargetTarget === 'currentAbilityEntity'
-  ) {
-    return context.actionTargetTarget;
-  }
-  throw new Error(`${sourcePath}: unsupported single Buff condition target`);
-}
-
-function buffConditionOwner(context: CombatActionProjectionContextSource, sourcePath: string) {
-  return context.actionOwnerTarget === 'currentAbilityEntity'
-    ? ('currentAbilityEntity' as const)
-    : requireActionOwnerProjection(context, sourcePath);
-}
-
-const SKILL_TYPES: Readonly<Record<string, 'battleSkill' | 'comboSkill' | 'ultimate'>> = {
+const SKILL_TYPES: Readonly<Record<string, SkillType>> = {
   NormalSkill: 'battleSkill',
   ComboSkill: 'comboSkill',
   UltimateSkill: 'ultimate',
+  BreakingAttack: 'finisher',
+  Dodge: 'dodge',
 };
 
 function mapNativeSkillTypes(
   nativeSkillTypes: readonly string[],
   attackTypeMask: string | number | undefined,
-): readonly ('basicAttack' | 'plungingAttack' | 'battleSkill' | 'comboSkill' | 'ultimate')[] {
-  const output = new Set<
-    'basicAttack' | 'plungingAttack' | 'battleSkill' | 'comboSkill' | 'ultimate'
-  >();
+): readonly SkillType[] {
+  const output = new Set<SkillType>();
   for (const skillType of nativeSkillTypes) {
     // Next 不把原生 ExtraActiveSkill 猜成处决技；没有该原生类型的运行时实例可命中。
     if (skillType === 'ExtraActiveSkill') continue;
@@ -1604,6 +886,12 @@ export function projectActionTargetQuery(
       center: selection(target.centerType, target.centerContextKey),
     };
   }
+  if (
+    target.finderType === 'SourceFinder' &&
+    target.validatorTypes.length === 0 &&
+    target.postProcessorTypes.length === 0
+  )
+    return { kind: 'abilitySystemSource', owner: owner() };
   if (
     target.finderType === 'MainTargetFinder' &&
     target.validatorTypes.length === 0 &&

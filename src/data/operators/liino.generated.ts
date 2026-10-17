@@ -246,13 +246,6 @@ export const liinoChr_0035_liino_combo_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_20: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_14' } },
-        },
-        next: null,
-      },
       applyBuff_24: {
         action: {
           kind: 'applyBuff',
@@ -286,18 +279,11 @@ export const liinoChr_0035_liino_combo_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_22: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_15' } },
-        },
-        next: null,
-      },
       ifElse_25: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_22' },
+          condition: { kind: 'conditionNode', nodeId: 'data_14' },
           whenTrue: { $sequence: 'inheritBuffById_23' },
           whenFalse: { $sequence: 'applyBuff_24' },
         },
@@ -307,7 +293,7 @@ export const liinoChr_0035_liino_combo_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_20' },
+          condition: { kind: 'conditionNode', nodeId: 'data_15' },
           whenTrue: { $sequence: 'inheritBuffById_21' },
           whenFalse: { $sequence: null },
         },
@@ -364,18 +350,11 @@ export const liinoChr_0035_liino_combo_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_28: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_16' } },
-        },
-        next: null,
-      },
       ifElse_31: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_28' },
+          condition: { kind: 'conditionNode', nodeId: 'data_16' },
           whenTrue: { $sequence: 'inheritBuffById_29' },
           whenFalse: { $sequence: 'applyBuff_30' },
         },
@@ -452,40 +431,44 @@ export const liinoChr_0035_liino_combo_skillActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_normalskill_music_tag'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_normalskill_music_tag'],
         },
       },
       data_14: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_attack'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide'],
         },
       },
       data_15: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_attack'],
         },
       },
       data_16: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_audio'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio'],
         },
       },
       data_17: { type: 'number', expression: { kind: 'blackboard', key: 'remainingtime' } },
@@ -494,11 +477,12 @@ export const liinoChr_0035_liino_combo_skillActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'caster',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/chr_0035_liino/UltSkillMusic'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/chr_0035_liino/UltSkillMusic'],
         },
       },
     },
@@ -526,6 +510,7 @@ export const liinoChr_0035_liino_combo_skill: SkillDefinition = {
   naturalDurationFrames: 150,
   exclusiveFrame: 98,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       {
@@ -581,18 +566,11 @@ export const liinoChr_0035_liino_attack1ActionGraph = {
         },
         next: null,
       },
-      checkCondition_3: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       ifElse_5: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'startTimeDilation_4' },
           whenFalse: { $sequence: null },
         },
@@ -618,7 +596,10 @@ export const liinoChr_0035_liino_attack1ActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
     },
   },
@@ -863,18 +844,11 @@ export const liinoChr_0035_liino_attack3ActionGraph = {
         },
         next: null,
       },
-      checkCondition_20: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_23: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_20' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'inheritBuffById_21' },
           whenFalse: { $sequence: 'applyBuff_22' },
         },
@@ -915,18 +889,11 @@ export const liinoChr_0035_liino_attack3ActionGraph = {
         },
         next: null,
       },
-      checkCondition_24: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
       ifElse_27: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_24' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'inheritBuffById_25' },
           whenFalse: { $sequence: 'applyBuff_26' },
         },
@@ -973,18 +940,11 @@ export const liinoChr_0035_liino_attack3ActionGraph = {
         },
         next: null,
       },
-      checkCondition_28: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
-        },
-        next: null,
-      },
       ifElse_31: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_28' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: 'inheritBuffById_29' },
           whenFalse: { $sequence: 'applyBuff_30' },
         },
@@ -1025,18 +985,11 @@ export const liinoChr_0035_liino_attack3ActionGraph = {
         },
         next: null,
       },
-      checkCondition_32: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-        },
-        next: null,
-      },
       ifElse_35: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_32' },
+          condition: { kind: 'conditionNode', nodeId: 'data_5' },
           whenTrue: { $sequence: 'inheritBuffById_33' },
           whenFalse: { $sequence: 'applyBuff_34' },
         },
@@ -1056,40 +1009,44 @@ export const liinoChr_0035_liino_attack3ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_attack'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_attack'],
         },
       },
       data_3: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_fire'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_fire'],
         },
       },
       data_4: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_audio'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio'],
         },
       },
       data_5: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_audio_fire'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio_fire'],
         },
       },
     },
@@ -1259,18 +1216,11 @@ export const liinoChr_0035_liino_attack4ActionGraph = {
         },
         next: null,
       },
-      checkCondition_21: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       ifElse_24: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_21' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'inheritBuffById_22' },
           whenFalse: { $sequence: 'applyBuff_23' },
         },
@@ -1311,18 +1261,11 @@ export const liinoChr_0035_liino_attack4ActionGraph = {
         },
         next: null,
       },
-      checkCondition_25: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_28: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_25' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'inheritBuffById_26' },
           whenFalse: { $sequence: 'applyBuff_27' },
         },
@@ -1369,18 +1312,11 @@ export const liinoChr_0035_liino_attack4ActionGraph = {
         },
         next: null,
       },
-      checkCondition_29: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
       ifElse_32: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_29' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'inheritBuffById_30' },
           whenFalse: { $sequence: 'applyBuff_31' },
         },
@@ -1421,18 +1357,11 @@ export const liinoChr_0035_liino_attack4ActionGraph = {
         },
         next: null,
       },
-      checkCondition_33: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
-        },
-        next: null,
-      },
       ifElse_36: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_33' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: 'inheritBuffById_34' },
           whenFalse: { $sequence: 'applyBuff_35' },
         },
@@ -1451,40 +1380,44 @@ export const liinoChr_0035_liino_attack4ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_attack'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_attack'],
         },
       },
       data_2: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_fire'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_fire'],
         },
       },
       data_3: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_audio'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio'],
         },
       },
       data_4: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_audio_fire'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio_fire'],
         },
       },
     },
@@ -1567,18 +1500,11 @@ export const liinoChr_0035_liino_attack5ActionGraph = {
         },
         next: null,
       },
-      checkCondition_3: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_4: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'changeResource_2' },
           whenFalse: { $sequence: null },
         },
@@ -1603,7 +1529,7 @@ export const liinoChr_0035_liino_attack5ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'startTimeDilation_5' },
           whenFalse: { $sequence: null },
         },
@@ -1618,18 +1544,31 @@ export const liinoChr_0035_liino_attack5ActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'electric',
-            attackScale: { kind: 'valueNode', nodeId: 'data_3' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_4' },
             tags: ['normalAttack', 'normalAttackLastCombo'],
-            stagger: { kind: 'valueNode', nodeId: 'data_4' },
+            stagger: { kind: 'valueNode', nodeId: 'data_5' },
             staggerOnlyWhenCasterControlled: true,
           },
         },
         next: 'once_7',
       },
-      checkCondition_9: {
+      applyBuff_11: {
         action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_chr_0035_liino_showhide_attack' }],
+            targets: { kind: 'source' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+            finishByAction: true,
+            inheritToNextSkillIds: [
+              'chr_0035_liino_attack3',
+              'chr_0035_liino_attack4',
+              'chr_0035_liino_attack5',
+              'chr_0035_liino_power_attack',
+              'chr_0035_liino_normal_skill',
+            ],
+          },
         },
         next: null,
       },
@@ -1652,57 +1591,13 @@ export const liinoChr_0035_liino_attack5ActionGraph = {
         },
         next: null,
       },
-      applyBuff_11: {
-        action: {
-          kind: 'applyBuff',
-          parameters: {
-            buffs: [{ buffId: 'buff_chr_0035_liino_showhide_attack' }],
-            targets: { kind: 'source' },
-            source: { kind: 'source' },
-            inheritSourceSkillCastInfo: true,
-            finishByAction: true,
-            inheritToNextSkillIds: [
-              'chr_0035_liino_attack3',
-              'chr_0035_liino_attack4',
-              'chr_0035_liino_attack5',
-              'chr_0035_liino_power_attack',
-              'chr_0035_liino_normal_skill',
-            ],
-          },
-        },
-        next: null,
-      },
       ifElse_12: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_9' },
+          condition: { kind: 'conditionNode', nodeId: 'data_6' },
           whenTrue: { $sequence: 'inheritBuffById_10' },
           whenFalse: { $sequence: 'applyBuff_11' },
-        },
-        next: null,
-      },
-      checkCondition_13: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
-        },
-        next: null,
-      },
-      inheritBuffById_14: {
-        action: {
-          kind: 'inheritBuffById',
-          parameters: {
-            target: 'caster',
-            buffId: 'buff_chr_0035_liino_showhide_fire',
-            inheritToNextSkillIds: [
-              'chr_0035_liino_attack3',
-              'chr_0035_liino_attack4',
-              'chr_0035_liino_attack5',
-            ],
-            finishByAction: true,
-            finishWithNextSkillIfNotInherited: true,
-          },
         },
         next: null,
       },
@@ -1724,40 +1619,30 @@ export const liinoChr_0035_liino_attack5ActionGraph = {
         },
         next: null,
       },
-      ifElse_16: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_13' },
-          whenTrue: { $sequence: 'inheritBuffById_14' },
-          whenFalse: { $sequence: 'applyBuff_15' },
-        },
-        next: null,
-      },
-      checkCondition_17: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_7' } },
-        },
-        next: null,
-      },
-      inheritBuffById_18: {
+      inheritBuffById_14: {
         action: {
           kind: 'inheritBuffById',
           parameters: {
             target: 'caster',
-            buffId: 'buff_chr_0035_liino_showhide_audio',
+            buffId: 'buff_chr_0035_liino_showhide_fire',
             inheritToNextSkillIds: [
-              'chr_0035_liino_normal_skill',
               'chr_0035_liino_attack3',
               'chr_0035_liino_attack4',
               'chr_0035_liino_attack5',
-              'chr_0035_liino_combo_skill',
-              'chr_0035_liino_power_attack',
             ],
             finishByAction: true,
             finishWithNextSkillIfNotInherited: true,
           },
+        },
+        next: null,
+      },
+      ifElse_16: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_7' },
+          whenTrue: { $sequence: 'inheritBuffById_14' },
+          whenFalse: { $sequence: 'applyBuff_15' },
         },
         next: null,
       },
@@ -1782,37 +1667,33 @@ export const liinoChr_0035_liino_attack5ActionGraph = {
         },
         next: null,
       },
-      ifElse_20: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_17' },
-          whenTrue: { $sequence: 'inheritBuffById_18' },
-          whenFalse: { $sequence: 'applyBuff_19' },
-        },
-        next: null,
-      },
-      checkCondition_21: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_8' } },
-        },
-        next: null,
-      },
-      inheritBuffById_22: {
+      inheritBuffById_18: {
         action: {
           kind: 'inheritBuffById',
           parameters: {
             target: 'caster',
-            buffId: 'buff_chr_0035_liino_showhide_audio_fire',
+            buffId: 'buff_chr_0035_liino_showhide_audio',
             inheritToNextSkillIds: [
+              'chr_0035_liino_normal_skill',
               'chr_0035_liino_attack3',
               'chr_0035_liino_attack4',
               'chr_0035_liino_attack5',
+              'chr_0035_liino_combo_skill',
+              'chr_0035_liino_power_attack',
             ],
             finishByAction: true,
             finishWithNextSkillIfNotInherited: true,
           },
+        },
+        next: null,
+      },
+      ifElse_20: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_8' },
+          whenTrue: { $sequence: 'inheritBuffById_18' },
+          whenFalse: { $sequence: 'applyBuff_19' },
         },
         next: null,
       },
@@ -1834,11 +1715,28 @@ export const liinoChr_0035_liino_attack5ActionGraph = {
         },
         next: null,
       },
+      inheritBuffById_22: {
+        action: {
+          kind: 'inheritBuffById',
+          parameters: {
+            target: 'caster',
+            buffId: 'buff_chr_0035_liino_showhide_audio_fire',
+            inheritToNextSkillIds: [
+              'chr_0035_liino_attack3',
+              'chr_0035_liino_attack4',
+              'chr_0035_liino_attack5',
+            ],
+            finishByAction: true,
+            finishWithNextSkillIfNotInherited: true,
+          },
+        },
+        next: null,
+      },
       ifElse_24: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_21' },
+          condition: { kind: 'conditionNode', nodeId: 'data_9' },
           whenTrue: { $sequence: 'inheritBuffById_22' },
           whenFalse: { $sequence: 'applyBuff_23' },
         },
@@ -1854,47 +1752,58 @@ export const liinoChr_0035_liino_attack5ActionGraph = {
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
-      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
-      data_5: {
+      data_2: {
         type: 'boolean',
-        expression: {
-          kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_attack'],
-          operator: 'greaterOrEqual',
-          value: { kind: 'constant', value: 1 },
-        },
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
       },
+      data_3: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
+      data_5: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
       data_6: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_fire'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_attack'],
         },
       },
       data_7: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_audio'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_fire'],
         },
       },
       data_8: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_audio_fire'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio'],
+        },
+      },
+      data_9: {
+        type: 'boolean',
+        expression: {
+          kind: 'buffIdStackCompare',
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio_fire'],
         },
       },
     },
@@ -2088,30 +1997,6 @@ export const liinoChr_0035_liino_power_attackActionGraph = {
         },
         next: null,
       },
-      checkCondition_9: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
-      inheritBuffById_10: {
-        action: {
-          kind: 'inheritBuffById',
-          parameters: {
-            target: 'caster',
-            buffId: 'buff_chr_0035_liino_showhide_attack',
-            inheritToNextSkillIds: [
-              'chr_0035_liino_attack3',
-              'chr_0035_liino_attack4',
-              'chr_0035_liino_attack5',
-            ],
-            finishByAction: true,
-            finishWithNextSkillIfNotInherited: true,
-          },
-        },
-        next: null,
-      },
       applyBuff_11: {
         action: {
           kind: 'applyBuff',
@@ -2130,23 +2015,16 @@ export const liinoChr_0035_liino_power_attackActionGraph = {
         },
         next: null,
       },
-      checkCondition_12: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
-      inheritBuffById_13: {
+      inheritBuffById_10: {
         action: {
           kind: 'inheritBuffById',
           parameters: {
             target: 'caster',
             buffId: 'buff_chr_0035_liino_showhide_attack',
             inheritToNextSkillIds: [
-              'chr_0035_liino_power_attack',
-              'chr_0035_liino_normal_skill',
-              'chr_0035_liino_combo_skill',
+              'chr_0035_liino_attack3',
+              'chr_0035_liino_attack4',
+              'chr_0035_liino_attack5',
             ],
             finishByAction: true,
             finishWithNextSkillIfNotInherited: true,
@@ -2172,11 +2050,28 @@ export const liinoChr_0035_liino_power_attackActionGraph = {
         },
         next: null,
       },
+      inheritBuffById_13: {
+        action: {
+          kind: 'inheritBuffById',
+          parameters: {
+            target: 'caster',
+            buffId: 'buff_chr_0035_liino_showhide_attack',
+            inheritToNextSkillIds: [
+              'chr_0035_liino_power_attack',
+              'chr_0035_liino_normal_skill',
+              'chr_0035_liino_combo_skill',
+            ],
+            finishByAction: true,
+            finishWithNextSkillIfNotInherited: true,
+          },
+        },
+        next: null,
+      },
       ifElse_15: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_12' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'inheritBuffById_13' },
           whenFalse: { $sequence: 'applyBuff_14' },
         },
@@ -2186,7 +2081,7 @@ export const liinoChr_0035_liino_power_attackActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_9' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'inheritBuffById_10' },
           whenFalse: { $sequence: 'applyBuff_11' },
         },
@@ -2201,33 +2096,6 @@ export const liinoChr_0035_liino_power_attackActionGraph = {
             source: { kind: 'source' },
             inheritSourceSkillCastInfo: true,
             finishByAction: true,
-          },
-        },
-        next: null,
-      },
-      checkCondition_18: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
-        },
-        next: null,
-      },
-      inheritBuffById_19: {
-        action: {
-          kind: 'inheritBuffById',
-          parameters: {
-            target: 'caster',
-            buffId: 'buff_chr_0035_liino_showhide_audio',
-            inheritToNextSkillIds: [
-              'chr_0035_liino_normal_skill',
-              'chr_0035_liino_attack3',
-              'chr_0035_liino_attack4',
-              'chr_0035_liino_attack5',
-              'chr_0035_liino_combo_skill',
-              'chr_0035_liino_power_attack',
-            ],
-            finishByAction: true,
-            finishWithNextSkillIfNotInherited: true,
           },
         },
         next: null,
@@ -2253,11 +2121,31 @@ export const liinoChr_0035_liino_power_attackActionGraph = {
         },
         next: null,
       },
+      inheritBuffById_19: {
+        action: {
+          kind: 'inheritBuffById',
+          parameters: {
+            target: 'caster',
+            buffId: 'buff_chr_0035_liino_showhide_audio',
+            inheritToNextSkillIds: [
+              'chr_0035_liino_normal_skill',
+              'chr_0035_liino_attack3',
+              'chr_0035_liino_attack4',
+              'chr_0035_liino_attack5',
+              'chr_0035_liino_combo_skill',
+              'chr_0035_liino_power_attack',
+            ],
+            finishByAction: true,
+            finishWithNextSkillIfNotInherited: true,
+          },
+        },
+        next: null,
+      },
       ifElse_21: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_18' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: 'inheritBuffById_19' },
           whenFalse: { $sequence: 'applyBuff_20' },
         },
@@ -2283,30 +2171,33 @@ export const liinoChr_0035_liino_power_attackActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_attack'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide'],
         },
       },
       data_3: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_attack'],
         },
       },
       data_4: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_audio'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio'],
         },
       },
     },
@@ -2322,6 +2213,7 @@ export const liinoChr_0035_liino_power_attack: SkillDefinition = {
   naturalDurationFrames: 219,
   exclusiveFrame: 68,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       {
@@ -2480,18 +2372,11 @@ export const liinoChr_0035_liino_plunging_attack_endActionGraph = {
         },
         next: null,
       },
-      checkCondition_11: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
       ifElse_14: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_11' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'inheritBuffById_12' },
           whenFalse: { $sequence: 'applyBuff_13' },
         },
@@ -2556,18 +2441,11 @@ export const liinoChr_0035_liino_plunging_attack_endActionGraph = {
         },
         next: null,
       },
-      checkCondition_16: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
-        },
-        next: null,
-      },
       ifElse_19: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_16' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: 'inheritBuffById_17' },
           whenFalse: { $sequence: 'applyBuff_18' },
         },
@@ -2599,20 +2477,22 @@ export const liinoChr_0035_liino_plunging_attack_endActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_attack'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_attack'],
         },
       },
       data_4: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_audio'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio'],
         },
       },
     },
@@ -2756,7 +2636,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                   {
                                     startFrame: 0,
                                     endFrame: 4,
-                                    sequence: { $sequence: 'dealDamage_2' },
+                                    sequence: { $sequence: 'forEachContextTarget_3' },
                                   },
                                 ],
                                 actionGraph: {
@@ -2773,6 +2653,16 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                           },
                                         },
                                         next: null,
+                                      },
+                                      forEachContextTarget_3: {
+                                        action: {
+                                          kind: 'forEachContextTarget',
+                                          parameters: {
+                                            targets: { kind: 'fixed', target: 'enemy' },
+                                          },
+                                          body: { $sequence: null },
+                                        },
+                                        next: 'dealDamage_2',
                                       },
                                     },
                                     dataNodes: {
@@ -2826,7 +2716,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                   {
                                     startFrame: 0,
                                     endFrame: 4,
-                                    sequence: { $sequence: 'dealDamage_2' },
+                                    sequence: { $sequence: 'forEachContextTarget_3' },
                                   },
                                 ],
                                 actionGraph: {
@@ -2843,6 +2733,16 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                           },
                                         },
                                         next: null,
+                                      },
+                                      forEachContextTarget_3: {
+                                        action: {
+                                          kind: 'forEachContextTarget',
+                                          parameters: {
+                                            targets: { kind: 'fixed', target: 'enemy' },
+                                          },
+                                          body: { $sequence: null },
+                                        },
+                                        next: 'dealDamage_2',
                                       },
                                     },
                                     dataNodes: {
@@ -2864,18 +2764,11 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                         },
                         next: null,
                       },
-                      checkCondition_1: {
-                        action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-                        },
-                        next: null,
-                      },
                       ifElse_4: {
                         action: {
                           kind: 'ifElse',
                           parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_1' },
+                          condition: { kind: 'conditionNode', nodeId: 'data_1' },
                           whenTrue: { $sequence: 'launchProjectile_2' },
                           whenFalse: { $sequence: 'launchProjectile_3' },
                         },
@@ -2975,7 +2868,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                   {
                                     startFrame: 0,
                                     endFrame: 4,
-                                    sequence: { $sequence: 'dealDamage_2' },
+                                    sequence: { $sequence: 'forEachContextTarget_3' },
                                   },
                                 ],
                                 actionGraph: {
@@ -2993,6 +2886,16 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                           },
                                         },
                                         next: null,
+                                      },
+                                      forEachContextTarget_3: {
+                                        action: {
+                                          kind: 'forEachContextTarget',
+                                          parameters: {
+                                            targets: { kind: 'fixed', target: 'enemy' },
+                                          },
+                                          body: { $sequence: null },
+                                        },
+                                        next: 'dealDamage_2',
                                       },
                                     },
                                     dataNodes: {
@@ -3046,7 +2949,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                   {
                                     startFrame: 0,
                                     endFrame: 4,
-                                    sequence: { $sequence: 'dealDamage_2' },
+                                    sequence: { $sequence: 'forEachContextTarget_3' },
                                   },
                                 ],
                                 actionGraph: {
@@ -3064,6 +2967,16 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                           },
                                         },
                                         next: null,
+                                      },
+                                      forEachContextTarget_3: {
+                                        action: {
+                                          kind: 'forEachContextTarget',
+                                          parameters: {
+                                            targets: { kind: 'fixed', target: 'enemy' },
+                                          },
+                                          body: { $sequence: null },
+                                        },
+                                        next: 'dealDamage_2',
                                       },
                                     },
                                     dataNodes: {
@@ -3085,18 +2998,11 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                         },
                         next: null,
                       },
-                      checkCondition_1: {
-                        action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-                        },
-                        next: null,
-                      },
                       ifElse_4: {
                         action: {
                           kind: 'ifElse',
                           parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_1' },
+                          condition: { kind: 'conditionNode', nodeId: 'data_1' },
                           whenTrue: { $sequence: 'launchProjectile_2' },
                           whenFalse: { $sequence: 'launchProjectile_3' },
                         },
@@ -3196,7 +3102,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                   {
                                     startFrame: 0,
                                     endFrame: 4,
-                                    sequence: { $sequence: 'dealDamage_2' },
+                                    sequence: { $sequence: 'forEachContextTarget_3' },
                                   },
                                 ],
                                 actionGraph: {
@@ -3213,6 +3119,16 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                           },
                                         },
                                         next: null,
+                                      },
+                                      forEachContextTarget_3: {
+                                        action: {
+                                          kind: 'forEachContextTarget',
+                                          parameters: {
+                                            targets: { kind: 'fixed', target: 'enemy' },
+                                          },
+                                          body: { $sequence: null },
+                                        },
+                                        next: 'dealDamage_2',
                                       },
                                     },
                                     dataNodes: {
@@ -3266,7 +3182,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                   {
                                     startFrame: 0,
                                     endFrame: 4,
-                                    sequence: { $sequence: 'dealDamage_2' },
+                                    sequence: { $sequence: 'forEachContextTarget_3' },
                                   },
                                 ],
                                 actionGraph: {
@@ -3283,6 +3199,16 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                           },
                                         },
                                         next: null,
+                                      },
+                                      forEachContextTarget_3: {
+                                        action: {
+                                          kind: 'forEachContextTarget',
+                                          parameters: {
+                                            targets: { kind: 'fixed', target: 'enemy' },
+                                          },
+                                          body: { $sequence: null },
+                                        },
+                                        next: 'dealDamage_2',
                                       },
                                     },
                                     dataNodes: {
@@ -3304,18 +3230,11 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                         },
                         next: null,
                       },
-                      checkCondition_1: {
-                        action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-                        },
-                        next: null,
-                      },
                       ifElse_4: {
                         action: {
                           kind: 'ifElse',
                           parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_1' },
+                          condition: { kind: 'conditionNode', nodeId: 'data_1' },
                           whenTrue: { $sequence: 'launchProjectile_2' },
                           whenFalse: { $sequence: 'launchProjectile_3' },
                         },
@@ -3415,7 +3334,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                   {
                                     startFrame: 0,
                                     endFrame: 4,
-                                    sequence: { $sequence: 'dealDamage_2' },
+                                    sequence: { $sequence: 'forEachContextTarget_3' },
                                   },
                                 ],
                                 actionGraph: {
@@ -3432,6 +3351,16 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                           },
                                         },
                                         next: null,
+                                      },
+                                      forEachContextTarget_3: {
+                                        action: {
+                                          kind: 'forEachContextTarget',
+                                          parameters: {
+                                            targets: { kind: 'fixed', target: 'enemy' },
+                                          },
+                                          body: { $sequence: null },
+                                        },
+                                        next: 'dealDamage_2',
                                       },
                                     },
                                     dataNodes: {
@@ -3485,7 +3414,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                   {
                                     startFrame: 0,
                                     endFrame: 4,
-                                    sequence: { $sequence: 'dealDamage_2' },
+                                    sequence: { $sequence: 'forEachContextTarget_3' },
                                   },
                                 ],
                                 actionGraph: {
@@ -3502,6 +3431,16 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                           },
                                         },
                                         next: null,
+                                      },
+                                      forEachContextTarget_3: {
+                                        action: {
+                                          kind: 'forEachContextTarget',
+                                          parameters: {
+                                            targets: { kind: 'fixed', target: 'enemy' },
+                                          },
+                                          body: { $sequence: null },
+                                        },
+                                        next: 'dealDamage_2',
                                       },
                                     },
                                     dataNodes: {
@@ -3523,18 +3462,11 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                         },
                         next: null,
                       },
-                      checkCondition_1: {
-                        action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-                        },
-                        next: null,
-                      },
                       ifElse_4: {
                         action: {
                           kind: 'ifElse',
                           parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_1' },
+                          condition: { kind: 'conditionNode', nodeId: 'data_1' },
                           whenTrue: { $sequence: 'launchProjectile_2' },
                           whenFalse: { $sequence: 'launchProjectile_3' },
                         },
@@ -3634,7 +3566,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                   {
                                     startFrame: 0,
                                     endFrame: 4,
-                                    sequence: { $sequence: 'dealDamage_2' },
+                                    sequence: { $sequence: 'forEachContextTarget_3' },
                                   },
                                 ],
                                 actionGraph: {
@@ -3651,6 +3583,16 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                           },
                                         },
                                         next: null,
+                                      },
+                                      forEachContextTarget_3: {
+                                        action: {
+                                          kind: 'forEachContextTarget',
+                                          parameters: {
+                                            targets: { kind: 'fixed', target: 'enemy' },
+                                          },
+                                          body: { $sequence: null },
+                                        },
+                                        next: 'dealDamage_2',
                                       },
                                     },
                                     dataNodes: {
@@ -3704,7 +3646,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                   {
                                     startFrame: 0,
                                     endFrame: 4,
-                                    sequence: { $sequence: 'dealDamage_2' },
+                                    sequence: { $sequence: 'forEachContextTarget_3' },
                                   },
                                 ],
                                 actionGraph: {
@@ -3721,6 +3663,16 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                                           },
                                         },
                                         next: null,
+                                      },
+                                      forEachContextTarget_3: {
+                                        action: {
+                                          kind: 'forEachContextTarget',
+                                          parameters: {
+                                            targets: { kind: 'fixed', target: 'enemy' },
+                                          },
+                                          body: { $sequence: null },
+                                        },
+                                        next: 'dealDamage_2',
                                       },
                                     },
                                     dataNodes: {
@@ -3742,18 +3694,11 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
                         },
                         next: null,
                       },
-                      checkCondition_1: {
-                        action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-                        },
-                        next: null,
-                      },
                       ifElse_4: {
                         action: {
                           kind: 'ifElse',
                           parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_1' },
+                          condition: { kind: 'conditionNode', nodeId: 'data_1' },
                           whenTrue: { $sequence: 'launchProjectile_2' },
                           whenFalse: { $sequence: 'launchProjectile_3' },
                         },
@@ -3811,7 +3756,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 1967 },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
         },
         next: null,
       },
@@ -3823,7 +3768,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
             skill: { kind: 'id', skillId: 'chr_0035_liino_normal_skill' },
             operation: 'set',
             basis: 'absoluteSeconds',
-            value: { kind: 'valueNode', nodeId: 'data_1' },
+            value: { kind: 'valueNode', nodeId: 'data_2' },
           },
         },
         next: 'jumpTimeline_11',
@@ -3859,7 +3804,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
       checkCondition_15: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
         },
         next: 'applyBuff_14',
       },
@@ -3899,7 +3844,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
       checkCondition_19: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
         },
         next: 'finishBuffsById_18',
       },
@@ -4055,13 +4000,6 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_28: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
-        },
-        next: null,
-      },
       applyBuff_33: {
         action: {
           kind: 'applyBuff',
@@ -4097,18 +4035,11 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_31: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-        },
-        next: null,
-      },
       ifElse_34: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_31' },
+          condition: { kind: 'conditionNode', nodeId: 'data_5' },
           whenTrue: { $sequence: 'inheritBuffById_32' },
           whenFalse: { $sequence: 'applyBuff_33' },
         },
@@ -4118,7 +4049,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_28' },
+          condition: { kind: 'conditionNode', nodeId: 'data_6' },
           whenTrue: { $sequence: 'inheritBuffById_29' },
           whenFalse: { $sequence: 'applyBuff_30' },
         },
@@ -4181,18 +4112,11 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_37: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
-        },
-        next: null,
-      },
       ifElse_40: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_37' },
+          condition: { kind: 'conditionNode', nodeId: 'data_7' },
           whenTrue: { $sequence: 'inheritBuffById_38' },
           whenFalse: { $sequence: 'applyBuff_39' },
         },
@@ -4221,7 +4145,7 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_7' },
+            amount: { kind: 'valueNode', nodeId: 'data_8' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -4250,18 +4174,11 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
         },
         next: 'checkCondition_44',
       },
-      checkCondition_42: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_8' } },
-        },
-        next: null,
-      },
       ifElse_46: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_42' },
+          condition: { kind: 'conditionNode', nodeId: 'data_9' },
           whenTrue: { $sequence: 'finishBuffsById_45' },
           whenFalse: { $sequence: null },
         },
@@ -4288,57 +4205,65 @@ export const liinoChr_0035_liino_normal_skillActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'set_cd' } },
-      data_2: {
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'set_cd' } },
+      data_3: {
         type: 'boolean',
         expression: {
           kind: 'eventBuffIdMatch',
           buffIds: ['buff_chr_0035_liino_normalskill_end_active'],
         },
       },
-      data_3: {
-        type: 'boolean',
-        expression: { kind: 'eventBuffIdMatch', buffIds: ['buff_chr_0035_liino_normalskill_end'] },
-      },
       data_4: {
         type: 'boolean',
-        expression: {
-          kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide'],
-          operator: 'greaterOrEqual',
-          value: { kind: 'constant', value: 1 },
-        },
+        expression: { kind: 'eventBuffIdMatch', buffIds: ['buff_chr_0035_liino_normalskill_end'] },
       },
       data_5: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_attack'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_attack'],
         },
       },
       data_6: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_audio'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide'],
         },
       },
-      data_7: { type: 'number', expression: { kind: 'blackboard', key: 'potential_atb_return' } },
-      data_8: {
+      data_7: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_potential_enterfight'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio'],
+        },
+      },
+      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'potential_atb_return' } },
+      data_9: {
+        type: 'boolean',
+        expression: {
+          kind: 'buffIdStackCompare',
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_potential_enterfight'],
         },
       },
     },
@@ -4433,6 +4358,50 @@ export const liinoChr_0035_liino_normal_skill: SkillDefinition = {
   actionGraph: liinoChr_0035_liino_normal_skillActionGraph,
 };
 
+export const liinoChr_0035_liino_normal_skill_endActionGraph = {
+  main: {
+    nodes: {
+      applyBuff_1: {
+        action: {
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_chr_0035_liino_skill_end' }],
+            targets: { kind: 'fixed', target: 'caster' },
+            inheritSourceSkillCastInfo: true,
+          },
+        },
+        next: null,
+      },
+    },
+  },
+  macros: {},
+} as const satisfies ActionGraphResourceDefinition;
+
+export const liinoChr_0035_liino_normal_skill_end: SkillDefinition = {
+  actionGraph: liinoChr_0035_liino_normal_skill_endActionGraph,
+  normalSkillSubType: 'additionalNormalSkill',
+  key: 'chr_0035_liino_normal_skill_end',
+  element: 'electric',
+  blackboard: {},
+  timelineBlockFrames: 1,
+  naturalDurationFrames: 1,
+  exclusiveFrame: 0,
+  offsetRecordFrame: 0,
+  dontInterruptCombo: true,
+  costFrame: 0,
+  scheduledSequences: [],
+  defaultTarget: 'enemy',
+  switchToBuffCast: {
+    currentSkillTypes: ['battleSkill', 'ultimate'],
+    asSkillCast: false,
+    sequence: { $sequence: 'applyBuff_1' },
+  },
+  icon: 'endaxis:operators/liino/battle_02',
+  skillType: 'battleSkill',
+  levelSource: 'battleSkill',
+  nativeSkillType: 'extraActiveSkill',
+};
+
 export const liinoChr_0035_liino_normal_skill_comboActionGraph = {
   main: {
     nodes: {
@@ -4457,7 +4426,7 @@ export const liinoChr_0035_liino_normal_skill_comboActionGraph = {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 1938 },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
         },
         next: null,
       },
@@ -4473,7 +4442,7 @@ export const liinoChr_0035_liino_normal_skill_comboActionGraph = {
             skill: { kind: 'id', skillId: 'chr_0035_liino_normal_skill' },
             operation: 'set',
             basis: 'absoluteSeconds',
-            value: { kind: 'valueNode', nodeId: 'data_1' },
+            value: { kind: 'valueNode', nodeId: 'data_2' },
           },
         },
         next: 'jumpTimeline_2',
@@ -4509,7 +4478,7 @@ export const liinoChr_0035_liino_normal_skill_comboActionGraph = {
       checkCondition_8: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
         },
         next: 'applyBuff_7',
       },
@@ -4549,7 +4518,7 @@ export const liinoChr_0035_liino_normal_skill_comboActionGraph = {
       checkCondition_12: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
         },
         next: 'finishBuffsById_11',
       },
@@ -4661,18 +4630,11 @@ export const liinoChr_0035_liino_normal_skill_comboActionGraph = {
         },
         next: null,
       },
-      checkCondition_21: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
-        },
-        next: null,
-      },
       ifElse_24: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_21' },
+          condition: { kind: 'conditionNode', nodeId: 'data_5' },
           whenTrue: { $sequence: 'inheritBuffById_22' },
           whenFalse: { $sequence: 'applyBuff_23' },
         },
@@ -4749,18 +4711,11 @@ export const liinoChr_0035_liino_normal_skill_comboActionGraph = {
         },
         next: null,
       },
-      checkCondition_28: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-        },
-        next: null,
-      },
       ifElse_31: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_28' },
+          condition: { kind: 'conditionNode', nodeId: 'data_6' },
           whenTrue: { $sequence: 'inheritBuffById_29' },
           whenFalse: { $sequence: 'applyBuff_30' },
         },
@@ -4811,7 +4766,7 @@ export const liinoChr_0035_liino_normal_skill_comboActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_28' },
+          condition: { kind: 'conditionNode', nodeId: 'data_7' },
           whenTrue: { $sequence: 'inheritBuffById_33' },
           whenFalse: { $sequence: 'applyBuff_34' },
         },
@@ -4837,36 +4792,53 @@ export const liinoChr_0035_liino_normal_skill_comboActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'set_cd' } },
-      data_2: {
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'set_cd' } },
+      data_3: {
         type: 'boolean',
         expression: {
           kind: 'eventBuffIdMatch',
           buffIds: ['buff_chr_0035_liino_normalskill_end_active'],
         },
       },
-      data_3: {
-        type: 'boolean',
-        expression: { kind: 'eventBuffIdMatch', buffIds: ['buff_chr_0035_liino_normalskill_end'] },
-      },
       data_4: {
         type: 'boolean',
-        expression: {
-          kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide'],
-          operator: 'greaterOrEqual',
-          value: { kind: 'constant', value: 1 },
-        },
+        expression: { kind: 'eventBuffIdMatch', buffIds: ['buff_chr_0035_liino_normalskill_end'] },
       },
       data_5: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_showhide_audio'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide'],
+        },
+      },
+      data_6: {
+        type: 'boolean',
+        expression: {
+          kind: 'buffIdStackCompare',
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio'],
+        },
+      },
+      data_7: {
+        type: 'boolean',
+        expression: {
+          kind: 'buffIdStackCompare',
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
+          operator: 'greaterOrEqual',
+          value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_showhide_audio'],
         },
       },
     },
@@ -4922,48 +4894,6 @@ export const liinoChr_0035_liino_normal_skill_combo: SkillDefinition = {
   actionGraph: liinoChr_0035_liino_normal_skill_comboActionGraph,
 };
 
-export const liinoChr_0035_liino_normal_skill_endActionGraph = {
-  main: {
-    nodes: {
-      applyBuff_1: {
-        action: {
-          kind: 'applyBuff',
-          parameters: {
-            buffs: [{ buffId: 'buff_chr_0035_liino_skill_end' }],
-            targets: { kind: 'fixed', target: 'caster' },
-            inheritSourceSkillCastInfo: true,
-          },
-        },
-        next: null,
-      },
-    },
-  },
-  macros: {},
-} as const satisfies ActionGraphResourceDefinition;
-
-export const liinoChr_0035_liino_normal_skill_end: SkillDefinition = {
-  actionGraph: liinoChr_0035_liino_normal_skill_endActionGraph,
-  key: 'chr_0035_liino_normal_skill_end',
-  element: 'electric',
-  blackboard: {},
-  timelineBlockFrames: 1,
-  naturalDurationFrames: 1,
-  exclusiveFrame: 0,
-  offsetRecordFrame: 0,
-  costFrame: 0,
-  scheduledSequences: [],
-  defaultTarget: 'enemy',
-  switchToBuffCast: {
-    currentSkillTypes: ['battleSkill', 'ultimate'],
-    asSkillCast: false,
-    sequence: { $sequence: 'applyBuff_1' },
-  },
-  icon: 'endaxis:operators/liino/battle_02',
-  skillType: 'battleSkill',
-  levelSource: 'battleSkill',
-  nativeSkillType: 'extraActiveSkill',
-};
-
 export const liinoChr_0035_liino_ultimate_skillActionGraph = {
   main: {
     nodes: {
@@ -4989,7 +4919,7 @@ export const liinoChr_0035_liino_ultimate_skillActionGraph = {
             priority: 10,
             curve: { kind: 'named', key: 'RESETto1' },
             finishByAction: false,
-            targets: ['caster'],
+            targets: [{ kind: 'owner' }],
           },
         },
         next: null,
@@ -5160,10 +5090,11 @@ export const liinoChr_0035_liino_ultimate_skillActionGraph = {
                         type: 'boolean',
                         expression: {
                           kind: 'buffIdStackCompare',
-                          target: 'caster',
-                          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
+                          target: { kind: 'source' },
+                          compareZeroWhenTargetMissing: true,
                           operator: 'greaterOrEqual',
                           value: { kind: 'constant', value: 1 },
+                          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
                         },
                       },
                       data_2: {
@@ -5222,7 +5153,7 @@ export const liinoChr_0035_liino_ultimate_skillActionGraph = {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 540 },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_5' },
         },
         next: null,
       },
@@ -5253,7 +5184,7 @@ export const liinoChr_0035_liino_ultimate_skillActionGraph = {
       checkCondition_18: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
         },
         next: 'applyBuff_17',
       },
@@ -5306,23 +5237,16 @@ export const liinoChr_0035_liino_ultimate_skillActionGraph = {
           parameters: {
             key: 'fnlatk_up',
             operation: 'assign',
-            value: { kind: 'valueNode', nodeId: 'data_6' },
+            value: { kind: 'valueNode', nodeId: 'data_7' },
           },
         },
         next: 'applyBuff_22',
-      },
-      checkCondition_20: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_9' } },
-        },
-        next: null,
       },
       ifElse_24: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_20' },
+          condition: { kind: 'conditionNode', nodeId: 'data_10' },
           whenTrue: { $sequence: 'applyBuff_22' },
           whenFalse: { $sequence: 'modifyActionValue_23' },
         },
@@ -5336,7 +5260,7 @@ export const liinoChr_0035_liino_ultimate_skillActionGraph = {
             stage: 'finalNonConverted',
             useFloor: false,
             divisor: { kind: 'constant', value: 1 },
-            multiplier: { kind: 'valueNode', nodeId: 'data_10' },
+            multiplier: { kind: 'valueNode', nodeId: 'data_11' },
             base: { kind: 'constant', value: 0 },
             targetKey: 'fnlatk_up',
           },
@@ -5448,23 +5372,6 @@ export const liinoChr_0035_liino_ultimate_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_33: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_11' } },
-        },
-        next: null,
-      },
-      ifElse_34: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_33' },
-          whenTrue: { $sequence: null },
-          whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'ultheal_value' } },
@@ -5473,36 +5380,32 @@ export const liinoChr_0035_liino_ultimate_skillActionGraph = {
       data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_3' } },
       data_5: {
         type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_6: {
+        type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'caster',
-          buffIds: ['buff_chr_0035_liino_ultskill_end'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_ultskill_end'],
         },
       },
-      data_6: { type: 'number', expression: { kind: 'blackboard', key: 'will_max' } },
-      data_7: { type: 'number', expression: { kind: 'blackboard', key: 'fnlatk_up', fallback: 0 } },
-      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'will_max', fallback: 0 } },
-      data_9: {
+      data_7: { type: 'number', expression: { kind: 'blackboard', key: 'will_max' } },
+      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'fnlatk_up', fallback: 0 } },
+      data_9: { type: 'number', expression: { kind: 'blackboard', key: 'will_max', fallback: 0 } },
+      data_10: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_7' },
+          left: { kind: 'valueNode', nodeId: 'data_8' },
           operator: 'lessOrEqual',
-          right: { kind: 'valueNode', nodeId: 'data_8' },
+          right: { kind: 'valueNode', nodeId: 'data_9' },
         },
       },
-      data_10: { type: 'number', expression: { kind: 'blackboard', key: 'will_up' } },
-      data_11: {
-        type: 'boolean',
-        expression: {
-          kind: 'entityTagMatch',
-          target: 'caster',
-          tagQueryType: 'hasAny',
-          tags: ['Skill/Character/chr_0035_liino/ComboSkill'],
-        },
-      },
+      data_11: { type: 'number', expression: { kind: 'blackboard', key: 'will_up' } },
     },
   },
   macros: {},
@@ -5577,7 +5480,6 @@ export const liinoChr_0035_liino_ultimate_skill: SkillDefinition = {
     { startFrame: 0, endFrame: 80, sequence: { $sequence: 'applyBuff_30' } },
     { startFrame: 0, endFrame: 77, sequence: { $sequence: 'hideUi_31' } },
     { startFrame: 0, endFrame: 77, sequence: { $sequence: 'startUltimateTimeDilation_32' } },
-    { startFrame: 77, endFrame: 406, sequence: { $sequence: 'ifElse_34' } },
   ],
   defaultTarget: 'enemy',
   cooldownFrames: 600,
@@ -5609,6 +5511,112 @@ export const liinoCommon_character_perfect_dodge: SkillDefinition = {
   nativeSkillType: 'dodge',
 };
 
+export const liinoChr_0035_liino_plunging_attack_startActionGraph = {
+  main: {
+    nodes: {
+      applyBuff_1: {
+        action: {
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_chr_0035_liino_showhide_attack' }],
+            targets: { kind: 'source' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+            finishByAction: true,
+            inheritToNextSkillIds: [
+              'chr_0035_liino_attack4',
+              'chr_0035_liino_attack5',
+              'chr_0035_liino_attack3',
+              'chr_0035_liino_power_attack',
+              'chr_0035_liino_plunging_attack_end',
+            ],
+          },
+        },
+        next: null,
+      },
+      applyBuff_2: {
+        action: {
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_chr_0035_liino_showhide_fire' }],
+            targets: { kind: 'source' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+            finishByAction: true,
+            inheritToNextSkillIds: [
+              'chr_0035_liino_normal_skill',
+              'chr_0035_liino_attack4',
+              'chr_0035_liino_attack5',
+            ],
+          },
+        },
+        next: null,
+      },
+      applyBuff_3: {
+        action: {
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_chr_0035_liino_showhide_audio' }],
+            targets: { kind: 'source' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+            finishByAction: true,
+            inheritToNextSkillIds: [
+              'chr_0035_liino_normal_skill',
+              'chr_0035_liino_attack4',
+              'chr_0035_liino_attack5',
+              'chr_0035_liino_plunging_attack_end',
+              'chr_0035_liino_attack3',
+            ],
+          },
+        },
+        next: null,
+      },
+      applyBuff_4: {
+        action: {
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_chr_0035_liino_showhide_audio_fire' }],
+            targets: { kind: 'source' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+            finishByAction: true,
+            inheritToNextSkillIds: [
+              'chr_0035_liino_normal_skill',
+              'chr_0035_liino_attack4',
+              'chr_0035_liino_attack5',
+            ],
+          },
+        },
+        next: null,
+      },
+    },
+  },
+  macros: {},
+} as const satisfies ActionGraphResourceDefinition;
+
+export const liinoChr_0035_liino_plunging_attack_start: SkillDefinition = {
+  actionGraph: liinoChr_0035_liino_plunging_attack_startActionGraph,
+  key: 'chr_0035_liino_plunging_attack_start',
+  element: 'physical',
+  blackboard: {},
+  timelineBlockFrames: 1501,
+  naturalDurationFrames: 1500,
+  exclusiveFrame: 1500,
+  offsetRecordFrame: 0,
+  costFrame: 0,
+  scheduledSequences: [
+    { startFrame: 5, endFrame: 1500, sequence: { $sequence: 'applyBuff_1' } },
+    { startFrame: 13, endFrame: 1500, sequence: { $sequence: 'applyBuff_2' } },
+    { startFrame: 12, endFrame: 1500, sequence: { $sequence: 'applyBuff_3' } },
+    { startFrame: 13, endFrame: 1500, sequence: { $sequence: 'applyBuff_4' } },
+  ],
+  defaultTarget: 'enemy',
+  skillType: 'plungingAttack',
+  nativeSkillType: 'attack',
+  levelSource: 'basicAttack',
+};
+
 const liinoComboCondition1ActionGraph = {
   main: {
     nodes: {
@@ -5632,11 +5640,12 @@ const liinoComboCondition1ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffTagIdCountCompare',
-          target: 'caster',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/chr_0035_liino/NormalSkillMusic'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/chr_0035_liino/NormalSkillMusic'],
         },
       },
       data_2: {
@@ -5691,11 +5700,12 @@ const liinoComboCondition2ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffTagIdCountCompare',
-          target: 'caster',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/chr_0035_liino/NormalSkillMusic'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/chr_0035_liino/NormalSkillMusic'],
         },
       },
       data_2: {
@@ -5827,18 +5837,11 @@ const liinoBuff3ActionGraph = {
         },
         next: 'finishParentGlobalBuff_10',
       },
-      checkCondition_7: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_15: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_7' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'changeResource_9' },
           whenFalse: { $sequence: 'findTargets_12' },
         },
@@ -5851,18 +5854,11 @@ const liinoBuff3ActionGraph = {
         },
         next: 'ifElse_15',
       },
-      checkCondition_13: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-        },
-        next: null,
-      },
       ifElse_17: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_13' },
+          condition: { kind: 'conditionNode', nodeId: 'data_5' },
           whenTrue: { $sequence: 'ifElse_15' },
           whenFalse: { $sequence: 'checkCondition_16' },
         },
@@ -6137,11 +6133,12 @@ const liinoBuff4ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'buffOwner',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/chr_0035_liino/UltSkillMusic'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/chr_0035_liino/UltSkillMusic'],
         },
       },
       data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
@@ -6168,10 +6165,11 @@ const liinoBuff4ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffOwner',
-          buffIds: ['buff_chr_0035_liino_normalskill_music_tag'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_normalskill_music_tag'],
         },
       },
     },
@@ -6617,18 +6615,11 @@ const liinoBuff12ActionGraph = {
                         },
                         next: 'heal_2',
                       },
-                      checkCondition_1: {
-                        action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-                        },
-                        next: null,
-                      },
                       ifElse_6: {
                         action: {
                           kind: 'ifElse',
                           parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_1' },
+                          condition: { kind: 'conditionNode', nodeId: 'data_5' },
                           whenTrue: { $sequence: 'storeSourceAttributeValue_3' },
                           whenFalse: { $sequence: 'checkCondition_5' },
                         },
@@ -6640,10 +6631,11 @@ const liinoBuff12ActionGraph = {
                         type: 'boolean',
                         expression: {
                           kind: 'buffIdStackCompare',
-                          target: 'caster',
-                          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
+                          target: { kind: 'source' },
+                          compareZeroWhenTargetMissing: true,
                           operator: 'greaterOrEqual',
                           value: { kind: 'constant', value: 1 },
+                          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
                         },
                       },
                       data_2: {
@@ -6661,7 +6653,8 @@ const liinoBuff12ActionGraph = {
                       data_5: {
                         type: 'boolean',
                         expression: {
-                          kind: 'actionInputTargetObjectTypeMatch',
+                          kind: 'targetObjectTypeMatch',
+                          target: { kind: 'inputTarget' },
                           objectTypes: ['character'],
                         },
                       },
@@ -6758,18 +6751,11 @@ const liinoBuff12ActionGraph = {
                         },
                         next: 'heal_2',
                       },
-                      checkCondition_1: {
-                        action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-                        },
-                        next: null,
-                      },
                       ifElse_6: {
                         action: {
                           kind: 'ifElse',
                           parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_1' },
+                          condition: { kind: 'conditionNode', nodeId: 'data_5' },
                           whenTrue: { $sequence: 'storeSourceAttributeValue_3' },
                           whenFalse: { $sequence: 'checkCondition_5' },
                         },
@@ -6781,10 +6767,11 @@ const liinoBuff12ActionGraph = {
                         type: 'boolean',
                         expression: {
                           kind: 'buffIdStackCompare',
-                          target: 'caster',
-                          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
+                          target: { kind: 'source' },
+                          compareZeroWhenTargetMissing: true,
                           operator: 'greaterOrEqual',
                           value: { kind: 'constant', value: 1 },
+                          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
                         },
                       },
                       data_2: {
@@ -6802,7 +6789,8 @@ const liinoBuff12ActionGraph = {
                       data_5: {
                         type: 'boolean',
                         expression: {
-                          kind: 'actionInputTargetObjectTypeMatch',
+                          kind: 'targetObjectTypeMatch',
+                          target: { kind: 'fixed', target: 'enemy' },
                           objectTypes: ['character'],
                         },
                       },
@@ -6829,10 +6817,11 @@ const liinoBuff12ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffOwner',
-          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
         },
       },
     },
@@ -7111,12 +7100,35 @@ const liinoBuff14: SkillBuffDefinition = {
 const liinoBuff15ActionGraph = {
   main: {
     nodes: {
-      checkCondition_1: {
+      applyBuff_4: {
         action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [
+              {
+                buffId: 'buff_chr_0035_liino_normalskill_music_animation_hitr',
+                copiedBlackboardAssignments: { atk_scale_2: 'atk_scale_2' },
+              },
+            ],
+            targets: { kind: 'source' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+            asChildBuff: true,
+          },
         },
         next: null,
+      },
+      calculateActionValue_5: {
+        action: {
+          kind: 'calculateActionValue',
+          parameters: {
+            key: 'hit_check',
+            operation: 'multiply',
+            left: { kind: 'valueNode', nodeId: 'data_1' },
+            right: { kind: 'constant', value: -1 },
+          },
+        },
+        next: 'applyBuff_4',
       },
       applyBuff_2: {
         action: {
@@ -7142,47 +7154,17 @@ const liinoBuff15ActionGraph = {
           parameters: {
             key: 'hit_check',
             operation: 'multiply',
-            left: { kind: 'valueNode', nodeId: 'data_3' },
+            left: { kind: 'valueNode', nodeId: 'data_1' },
             right: { kind: 'constant', value: -1 },
           },
         },
         next: 'applyBuff_2',
       },
-      applyBuff_4: {
-        action: {
-          kind: 'applyBuff',
-          parameters: {
-            buffs: [
-              {
-                buffId: 'buff_chr_0035_liino_normalskill_music_animation_hitr',
-                copiedBlackboardAssignments: { atk_scale_2: 'atk_scale_2' },
-              },
-            ],
-            targets: { kind: 'source' },
-            source: { kind: 'source' },
-            inheritSourceSkillCastInfo: true,
-            asChildBuff: true,
-          },
-        },
-        next: null,
-      },
-      calculateActionValue_5: {
-        action: {
-          kind: 'calculateActionValue',
-          parameters: {
-            key: 'hit_check',
-            operation: 'multiply',
-            left: { kind: 'valueNode', nodeId: 'data_3' },
-            right: { kind: 'constant', value: -1 },
-          },
-        },
-        next: 'applyBuff_4',
-      },
       ifElse_6: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'calculateActionValue_3' },
           whenFalse: { $sequence: 'calculateActionValue_5' },
         },
@@ -7245,24 +7227,24 @@ const liinoBuff15ActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'hit_check', fallback: 0 } },
-      data_2: {
+      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'hit_check' } },
+      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'hit_check', fallback: 0 } },
+      data_3: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_1' },
+          left: { kind: 'valueNode', nodeId: 'data_2' },
           operator: 'greater',
           right: { kind: 'constant', value: 0 },
         },
       },
-      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'hit_check' } },
       data_4: { type: 'number', expression: { kind: 'blackboard', key: 'hit_duration' } },
       data_5: {
         type: 'boolean',
         expression: {
           kind: 'timedMarkerPresent',
+          target: { kind: 'owner' },
           returnTrueIfNotExists: true,
-          target: 'buffOwner',
           markerId: 'liino_normalskill_hit',
         },
       },
@@ -7338,11 +7320,12 @@ const liinoBuff16ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'caster',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/chr_0035_liino/NormalSkillMusic'],
+          target: { kind: 'source' },
+          compareZeroWhenTargetMissing: true,
           operator: 'lessOrEqual',
           value: { kind: 'constant', value: 0 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/chr_0035_liino/NormalSkillMusic'],
         },
       },
     },
@@ -7464,25 +7447,6 @@ const liinoBuff22: SkillBuffDefinition = {
 const liinoBuff23ActionGraph = {
   main: {
     nodes: {
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
-      applyBuff_2: {
-        action: {
-          kind: 'applyBuff',
-          parameters: {
-            buffs: [{ buffId: 'buff_chr_0035_liino_normalskill_end_active' }],
-            targets: { kind: 'owner' },
-            source: { kind: 'source' },
-            inheritSourceSkillCastInfo: true,
-          },
-        },
-        next: null,
-      },
       applyBuff_3: {
         action: {
           kind: 'applyBuff',
@@ -7498,15 +7462,27 @@ const liinoBuff23ActionGraph = {
       checkCondition_4: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
         },
         next: 'applyBuff_3',
+      },
+      applyBuff_2: {
+        action: {
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_chr_0035_liino_normalskill_end_active' }],
+            targets: { kind: 'owner' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+          },
+        },
+        next: null,
       },
       ifElse_5: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'applyBuff_2' },
           whenFalse: { $sequence: 'checkCondition_4' },
         },
@@ -7518,13 +7494,17 @@ const liinoBuff23ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'currentSkillTypeIn',
-          target: 'buffOwner',
-          skillTypes: ['battleSkill'],
+          target: { kind: 'owner' },
+          skillTypes: ['ultimate'],
         },
       },
       data_2: {
         type: 'boolean',
-        expression: { kind: 'currentSkillTypeIn', target: 'buffOwner', skillTypes: ['ultimate'] },
+        expression: {
+          kind: 'currentSkillTypeIn',
+          target: { kind: 'owner' },
+          skillTypes: ['battleSkill'],
+        },
       },
     },
   },
@@ -7953,15 +7933,16 @@ const liinoBuff33ActionGraph = {
                   ultheal_value: 0,
                 },
                 scheduledSequences: [
-                  { startFrame: 0, endFrame: 0, sequence: { $sequence: 'ifElse_9' } },
+                  { startFrame: 0, endFrame: 0, sequence: { $sequence: 'ifElse_10' } },
                 ],
                 actionGraph: {
                   main: {
                     nodes: {
-                      dealDamage_2: {
+                      dealDamage_6: {
                         action: {
                           kind: 'dealDamage',
                           parameters: {
+                            target: 'actionInputTarget',
                             damageType: 'electric',
                             attackScale: { kind: 'valueNode', nodeId: 'data_1' },
                             tags: ['ultimateSkill'],
@@ -7969,22 +7950,16 @@ const liinoBuff33ActionGraph = {
                         },
                         next: null,
                       },
-                      checkCondition_1: {
+                      anyCondition_7: {
                         action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
+                          kind: 'anyCondition',
+                          parameters: {},
+                          conditions: [
+                            { kind: 'conditionNode', nodeId: 'data_2' },
+                            { kind: 'conditionNode', nodeId: 'data_3' },
+                          ],
                         },
-                        next: null,
-                      },
-                      ifElse_6: {
-                        action: {
-                          kind: 'ifElse',
-                          parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_1' },
-                          whenTrue: { $sequence: 'dealDamage_2' },
-                          whenFalse: { $sequence: null },
-                        },
-                        next: null,
+                        next: 'dealDamage_6',
                       },
                       heal_4: {
                         action: {
@@ -7993,7 +7968,7 @@ const liinoBuff33ActionGraph = {
                             target: 'actionInputTarget',
                             alwaysNext: true,
                             tags: ['Skill/Character/Common/Heal/UltimateSkillHeal'],
-                            amount: { kind: 'valueNode', nodeId: 'data_3' },
+                            amount: { kind: 'valueNode', nodeId: 'data_4' },
                           },
                         },
                         next: null,
@@ -8006,21 +7981,14 @@ const liinoBuff33ActionGraph = {
                             stage: 'finalNonConverted',
                             useFloor: false,
                             divisor: { kind: 'constant', value: 1 },
-                            multiplier: { kind: 'valueNode', nodeId: 'data_4' },
-                            base: { kind: 'valueNode', nodeId: 'data_5' },
+                            multiplier: { kind: 'valueNode', nodeId: 'data_5' },
+                            base: { kind: 'valueNode', nodeId: 'data_6' },
                             targetKey: 'final_heal_value',
                           },
                         },
                         next: 'heal_4',
                       },
-                      checkCondition_3: {
-                        action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
-                        },
-                        next: null,
-                      },
-                      applyBuff_7: {
+                      applyBuff_8: {
                         action: {
                           kind: 'applyBuff',
                           parameters: {
@@ -8032,22 +8000,22 @@ const liinoBuff33ActionGraph = {
                         },
                         next: null,
                       },
-                      checkCondition_8: {
+                      checkCondition_9: {
                         action: {
                           kind: 'checkCondition',
                           parameters: { condition: { kind: 'conditionNode', nodeId: 'data_7' } },
                         },
-                        next: 'applyBuff_7',
+                        next: 'applyBuff_8',
                       },
-                      ifElse_9: {
+                      ifElse_10: {
                         action: {
                           kind: 'ifElse',
                           parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_3' },
+                          condition: { kind: 'conditionNode', nodeId: 'data_8' },
                           whenTrue: { $sequence: 'storeSourceAttributeValue_5' },
-                          whenFalse: { $sequence: 'ifElse_6' },
+                          whenFalse: { $sequence: 'anyCondition_7' },
                         },
-                        next: 'checkCondition_8',
+                        next: 'checkCondition_9',
                       },
                     },
                     dataNodes: {
@@ -8058,37 +8026,49 @@ const liinoBuff33ActionGraph = {
                       data_2: {
                         type: 'boolean',
                         expression: {
-                          kind: 'actionInputTargetObjectTypeMatch',
+                          kind: 'targetObjectTypeMatch',
+                          target: { kind: 'inputTarget' },
                           objectTypes: ['enemy'],
                         },
                       },
                       data_3: {
-                        type: 'number',
-                        expression: { kind: 'blackboard', key: 'final_heal_value' },
+                        type: 'boolean',
+                        expression: {
+                          kind: 'entityTagMatch',
+                          target: { kind: 'inputTarget' },
+                          tagQueryType: 'hasAny',
+                          tags: ['Skill/Character/chr_0036_jsspsi/soul/inksoul'],
+                        },
                       },
                       data_4: {
                         type: 'number',
-                        expression: { kind: 'blackboard', key: 'ultheal_value' },
+                        expression: { kind: 'blackboard', key: 'final_heal_value' },
                       },
                       data_5: {
                         type: 'number',
-                        expression: { kind: 'blackboard', key: 'ultheal_rate' },
+                        expression: { kind: 'blackboard', key: 'ultheal_value' },
                       },
                       data_6: {
-                        type: 'boolean',
-                        expression: {
-                          kind: 'actionInputTargetObjectTypeMatch',
-                          objectTypes: ['character'],
-                        },
+                        type: 'number',
+                        expression: { kind: 'blackboard', key: 'ultheal_rate' },
                       },
                       data_7: {
                         type: 'boolean',
                         expression: {
                           kind: 'buffIdStackCompare',
-                          target: 'caster',
-                          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
+                          target: { kind: 'source' },
+                          compareZeroWhenTargetMissing: true,
                           operator: 'greaterOrEqual',
                           value: { kind: 'constant', value: 1 },
+                          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
+                        },
+                      },
+                      data_8: {
+                        type: 'boolean',
+                        expression: {
+                          kind: 'targetObjectTypeMatch',
+                          target: { kind: 'inputTarget' },
+                          objectTypes: ['character'],
                         },
                       },
                     },
@@ -8131,12 +8111,12 @@ const liinoBuff33ActionGraph = {
                   ultheal_value: 0,
                 },
                 scheduledSequences: [
-                  { startFrame: 0, endFrame: 0, sequence: { $sequence: 'ifElse_9' } },
+                  { startFrame: 0, endFrame: 0, sequence: { $sequence: 'ifElse_10' } },
                 ],
                 actionGraph: {
                   main: {
                     nodes: {
-                      dealDamage_2: {
+                      dealDamage_6: {
                         action: {
                           kind: 'dealDamage',
                           parameters: {
@@ -8147,22 +8127,16 @@ const liinoBuff33ActionGraph = {
                         },
                         next: null,
                       },
-                      checkCondition_1: {
+                      anyCondition_7: {
                         action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
+                          kind: 'anyCondition',
+                          parameters: {},
+                          conditions: [
+                            { kind: 'conditionNode', nodeId: 'data_2' },
+                            { kind: 'conditionNode', nodeId: 'data_3' },
+                          ],
                         },
-                        next: null,
-                      },
-                      ifElse_6: {
-                        action: {
-                          kind: 'ifElse',
-                          parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_1' },
-                          whenTrue: { $sequence: 'dealDamage_2' },
-                          whenFalse: { $sequence: null },
-                        },
-                        next: null,
+                        next: 'dealDamage_6',
                       },
                       heal_4: {
                         action: {
@@ -8171,7 +8145,7 @@ const liinoBuff33ActionGraph = {
                             target: 'actionInputTarget',
                             alwaysNext: true,
                             tags: ['Skill/Character/Common/Heal/UltimateSkillHeal'],
-                            amount: { kind: 'valueNode', nodeId: 'data_3' },
+                            amount: { kind: 'valueNode', nodeId: 'data_4' },
                           },
                         },
                         next: null,
@@ -8184,21 +8158,14 @@ const liinoBuff33ActionGraph = {
                             stage: 'finalNonConverted',
                             useFloor: false,
                             divisor: { kind: 'constant', value: 1 },
-                            multiplier: { kind: 'valueNode', nodeId: 'data_4' },
-                            base: { kind: 'valueNode', nodeId: 'data_5' },
+                            multiplier: { kind: 'valueNode', nodeId: 'data_5' },
+                            base: { kind: 'valueNode', nodeId: 'data_6' },
                             targetKey: 'final_heal_value',
                           },
                         },
                         next: 'heal_4',
                       },
-                      checkCondition_3: {
-                        action: {
-                          kind: 'checkCondition',
-                          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
-                        },
-                        next: null,
-                      },
-                      applyBuff_7: {
+                      applyBuff_8: {
                         action: {
                           kind: 'applyBuff',
                           parameters: {
@@ -8210,22 +8177,22 @@ const liinoBuff33ActionGraph = {
                         },
                         next: null,
                       },
-                      checkCondition_8: {
+                      checkCondition_9: {
                         action: {
                           kind: 'checkCondition',
                           parameters: { condition: { kind: 'conditionNode', nodeId: 'data_7' } },
                         },
-                        next: 'applyBuff_7',
+                        next: 'applyBuff_8',
                       },
-                      ifElse_9: {
+                      ifElse_10: {
                         action: {
                           kind: 'ifElse',
                           parameters: { alwaysNext: true },
-                          condition: { $sequence: 'checkCondition_3' },
+                          condition: { kind: 'conditionNode', nodeId: 'data_8' },
                           whenTrue: { $sequence: 'storeSourceAttributeValue_5' },
-                          whenFalse: { $sequence: 'ifElse_6' },
+                          whenFalse: { $sequence: 'anyCondition_7' },
                         },
-                        next: 'checkCondition_8',
+                        next: 'checkCondition_9',
                       },
                     },
                     dataNodes: {
@@ -8236,37 +8203,49 @@ const liinoBuff33ActionGraph = {
                       data_2: {
                         type: 'boolean',
                         expression: {
-                          kind: 'actionInputTargetObjectTypeMatch',
+                          kind: 'targetObjectTypeMatch',
+                          target: { kind: 'fixed', target: 'enemy' },
                           objectTypes: ['enemy'],
                         },
                       },
                       data_3: {
-                        type: 'number',
-                        expression: { kind: 'blackboard', key: 'final_heal_value' },
+                        type: 'boolean',
+                        expression: {
+                          kind: 'entityTagMatch',
+                          target: { kind: 'fixed', target: 'enemy' },
+                          tagQueryType: 'hasAny',
+                          tags: ['Skill/Character/chr_0036_jsspsi/soul/inksoul'],
+                        },
                       },
                       data_4: {
                         type: 'number',
-                        expression: { kind: 'blackboard', key: 'ultheal_value' },
+                        expression: { kind: 'blackboard', key: 'final_heal_value' },
                       },
                       data_5: {
                         type: 'number',
-                        expression: { kind: 'blackboard', key: 'ultheal_rate' },
+                        expression: { kind: 'blackboard', key: 'ultheal_value' },
                       },
                       data_6: {
-                        type: 'boolean',
-                        expression: {
-                          kind: 'actionInputTargetObjectTypeMatch',
-                          objectTypes: ['character'],
-                        },
+                        type: 'number',
+                        expression: { kind: 'blackboard', key: 'ultheal_rate' },
                       },
                       data_7: {
                         type: 'boolean',
                         expression: {
                           kind: 'buffIdStackCompare',
-                          target: 'caster',
-                          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
+                          target: { kind: 'source' },
+                          compareZeroWhenTargetMissing: true,
                           operator: 'greaterOrEqual',
                           value: { kind: 'constant', value: 1 },
+                          buffIds: ['buff_chr_0035_liino_chrdung_armorbreak'],
+                        },
+                      },
+                      data_8: {
+                        type: 'boolean',
+                        expression: {
+                          kind: 'targetObjectTypeMatch',
+                          target: { kind: 'fixed', target: 'enemy' },
+                          objectTypes: ['character'],
                         },
                       },
                     },
@@ -8655,41 +8634,57 @@ export const liino: OperatorDefinition = {
     normalBuffId: 'buff_chr_0035_liino_normalskill_music_tag',
     ultimateBuffId: 'buff_chr_0035_liino_ultskill_music_tag',
   },
+  skills: [
+    liinoChr_0035_liino_combo_skill,
+    liinoChr_0035_liino_attack1,
+    liinoChr_0035_liino_attack2,
+    liinoChr_0035_liino_attack3,
+    liinoChr_0035_liino_attack4,
+    liinoChr_0035_liino_attack5,
+    liinoChr_0035_liino_power_attack,
+    liinoChr_0035_liino_plunging_attack_end,
+    liinoChr_0035_liino_normal_skill,
+    liinoChr_0035_liino_normal_skill_end,
+    liinoChr_0035_liino_normal_skill_combo,
+    liinoChr_0035_liino_ultimate_skill,
+    liinoCommon_character_perfect_dodge,
+    liinoChr_0035_liino_plunging_attack_start,
+  ],
   skillGroups: [
-    { key: 'comboSkill', operationType: 'comboSkill', skills: liinoChr_0035_liino_combo_skill },
+    { key: 'comboSkill', operationType: 'comboSkill', skillIds: ['chr_0035_liino_combo_skill'] },
     {
       key: 'basicAttack',
       operationType: 'basicAttack',
-      skills: [
-        liinoChr_0035_liino_attack1,
-        liinoChr_0035_liino_attack2,
-        liinoChr_0035_liino_attack3,
-        liinoChr_0035_liino_attack4,
-        liinoChr_0035_liino_attack5,
+      skillIds: [
+        'chr_0035_liino_attack1',
+        'chr_0035_liino_attack2',
+        'chr_0035_liino_attack3',
+        'chr_0035_liino_attack4',
+        'chr_0035_liino_attack5',
       ],
     },
-    { key: 'finisher', operationType: 'finisher', skills: liinoChr_0035_liino_power_attack },
+    { key: 'finisher', operationType: 'finisher', skillIds: ['chr_0035_liino_power_attack'] },
     {
       key: 'plungingAttack',
       operationType: 'plungingAttack',
-      skills: liinoChr_0035_liino_plunging_attack_end,
+      skillIds: ['chr_0035_liino_plunging_attack_end'],
     },
-    {
-      key: 'battleSkill',
-      operationType: 'battleSkill',
-      skills: liinoChr_0035_liino_normal_skill,
-      replacementSkills: [liinoChr_0035_liino_normal_skill_combo],
-      replacementSkillPlacements: { chr_0035_liino_normal_skill_combo: 'internal' },
-    },
+    { key: 'battleSkill', operationType: 'battleSkill', skillIds: ['chr_0035_liino_normal_skill'] },
     {
       key: 'stanceTermination',
       operationType: 'battleSkill',
       nameKey: 'skillNames.stanceTermination',
-      skills: liinoChr_0035_liino_normal_skill_end,
+      skillIds: ['chr_0035_liino_normal_skill_end'],
     },
-    { key: 'ultimate', operationType: 'ultimate', skills: liinoChr_0035_liino_ultimate_skill },
+    { key: 'ultimate', operationType: 'ultimate', skillIds: ['chr_0035_liino_ultimate_skill'] },
   ],
-  dodgeSkill: liinoCommon_character_perfect_dodge,
+  dodgeSkillId: 'common_character_perfect_dodge',
+  plungingAttack: {
+    startSkillId: 'chr_0035_liino_plunging_attack_start',
+    endSkillId: 'chr_0035_liino_plunging_attack_end',
+    startDurationSeconds: 0.633,
+    endDurationSeconds: 4.333,
+  },
   dashBuffs: [
     { buffId: 'buff_common_dash', blackboard: { dodgeSkillId: 'common_character_perfect_dodge' } },
   ],
@@ -9008,6 +9003,7 @@ export const liino: OperatorDefinition = {
   },
   abilityEntityDefinitions: {
     abilityentity_chr_0035_liino_ult_skill_projhit: {
+      faction: 'good',
       bornTags: [
         'Immune',
         'SelectCategory/Unmarkable',
@@ -9053,122 +9049,6 @@ export const liino: OperatorDefinition = {
                   },
                 },
                 next: null,
-              },
-              launchProjectile_5: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_5/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: null,
-              },
-              launchProjectile_6: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_6/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: 'launchProjectile_5',
               },
               launchProjectile_3: {
                 action: {
@@ -9286,138 +9166,131 @@ export const liino: OperatorDefinition = {
                 },
                 next: 'launchProjectile_3',
               },
-              checkCondition_2: {
+              launchProjectile_5: {
                 action: {
-                  kind: 'checkCondition',
-                  parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_5/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
                 },
                 next: null,
+              },
+              launchProjectile_6: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_6/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: 'launchProjectile_5',
               },
               ifElse_7: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_2' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_1' },
                   whenTrue: { $sequence: 'launchProjectile_4' },
                   whenFalse: { $sequence: 'launchProjectile_6' },
                 },
                 next: null,
-              },
-              launchProjectile_11: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_11/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: null,
-              },
-              launchProjectile_12: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_12/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: 'launchProjectile_11',
               },
               launchProjectile_9: {
                 action: {
@@ -9535,131 +9408,131 @@ export const liino: OperatorDefinition = {
                 },
                 next: 'launchProjectile_9',
               },
+              launchProjectile_11: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_11/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: null,
+              },
+              launchProjectile_12: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_12/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: 'launchProjectile_11',
+              },
               ifElse_13: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_2' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_2' },
                   whenTrue: { $sequence: 'launchProjectile_10' },
                   whenFalse: { $sequence: 'launchProjectile_12' },
                 },
                 next: null,
-              },
-              launchProjectile_17: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_17/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: null,
-              },
-              launchProjectile_18: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_18/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: 'launchProjectile_17',
               },
               launchProjectile_15: {
                 action: {
@@ -9777,131 +9650,131 @@ export const liino: OperatorDefinition = {
                 },
                 next: 'launchProjectile_15',
               },
+              launchProjectile_17: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_17/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: null,
+              },
+              launchProjectile_18: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_18/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: 'launchProjectile_17',
+              },
               ifElse_19: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_2' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_3' },
                   whenTrue: { $sequence: 'launchProjectile_16' },
                   whenFalse: { $sequence: 'launchProjectile_18' },
                 },
                 next: null,
-              },
-              launchProjectile_23: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit_r',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_23/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: null,
-              },
-              launchProjectile_24: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit_l',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_24/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: 'launchProjectile_23',
               },
               launchProjectile_21: {
                 action: {
@@ -10019,17 +9892,7 @@ export const liino: OperatorDefinition = {
                 },
                 next: 'launchProjectile_21',
               },
-              ifElse_25: {
-                action: {
-                  kind: 'ifElse',
-                  parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_2' },
-                  whenTrue: { $sequence: 'launchProjectile_22' },
-                  whenFalse: { $sequence: 'launchProjectile_24' },
-                },
-                next: null,
-              },
-              launchProjectile_29: {
+              launchProjectile_23: {
                 action: {
                   kind: 'launchProjectile',
                   parameters: {
@@ -10067,7 +9930,7 @@ export const liino: OperatorDefinition = {
                                     takeAttackSnapshot: true,
                                     tags: ['ultimateSkill'],
                                   },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_29/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_23/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
                                 },
                                 next: null,
                               },
@@ -10087,7 +9950,7 @@ export const liino: OperatorDefinition = {
                 },
                 next: null,
               },
-              launchProjectile_30: {
+              launchProjectile_24: {
                 action: {
                   kind: 'launchProjectile',
                   parameters: {
@@ -10125,7 +9988,7 @@ export const liino: OperatorDefinition = {
                                     takeAttackSnapshot: true,
                                     tags: ['ultimateSkill'],
                                   },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_30/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_24/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
                                 },
                                 next: null,
                               },
@@ -10143,7 +10006,17 @@ export const liino: OperatorDefinition = {
                     },
                   ],
                 },
-                next: 'launchProjectile_29',
+                next: 'launchProjectile_23',
+              },
+              ifElse_25: {
+                action: {
+                  kind: 'ifElse',
+                  parameters: { alwaysNext: true },
+                  condition: { kind: 'conditionNode', nodeId: 'data_4' },
+                  whenTrue: { $sequence: 'launchProjectile_22' },
+                  whenFalse: { $sequence: 'launchProjectile_24' },
+                },
+                next: null,
               },
               launchProjectile_27: {
                 action: {
@@ -10261,131 +10134,131 @@ export const liino: OperatorDefinition = {
                 },
                 next: 'launchProjectile_27',
               },
+              launchProjectile_29: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit_r',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_29/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: null,
+              },
+              launchProjectile_30: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit_l',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_30/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: 'launchProjectile_29',
+              },
               ifElse_31: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_2' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_5' },
                   whenTrue: { $sequence: 'launchProjectile_28' },
                   whenFalse: { $sequence: 'launchProjectile_30' },
                 },
                 next: null,
-              },
-              launchProjectile_35: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_35/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: null,
-              },
-              launchProjectile_36: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_36/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: 'launchProjectile_35',
               },
               launchProjectile_33: {
                 action: {
@@ -10503,131 +10376,131 @@ export const liino: OperatorDefinition = {
                 },
                 next: 'launchProjectile_33',
               },
+              launchProjectile_35: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_35/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: null,
+              },
+              launchProjectile_36: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_36/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: 'launchProjectile_35',
+              },
               ifElse_37: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_2' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_6' },
                   whenTrue: { $sequence: 'launchProjectile_34' },
                   whenFalse: { $sequence: 'launchProjectile_36' },
                 },
                 next: null,
-              },
-              launchProjectile_41: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_41/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: null,
-              },
-              launchProjectile_42: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_42/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: 'launchProjectile_41',
               },
               launchProjectile_39: {
                 action: {
@@ -10745,65 +10618,36 @@ export const liino: OperatorDefinition = {
                 },
                 next: 'launchProjectile_39',
               },
-              ifElse_43: {
-                action: {
-                  kind: 'ifElse',
-                  parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_2' },
-                  whenTrue: { $sequence: 'launchProjectile_40' },
-                  whenFalse: { $sequence: 'launchProjectile_42' },
-                },
-                next: null,
-              },
-              launchProjectile_46: {
+              launchProjectile_41: {
                 action: {
                   kind: 'launchProjectile',
                   parameters: {
                     inheritActionBlackboard: true,
                     entityInitialValues: {},
                     finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.133333340287209,
+                    recycleDelaySeconds: 0.100000001490116,
                   },
                   callbacks: [
                     {
                       event: 'reach',
                       skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit_damage_02',
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
                         nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 4,
+                        naturalDurationFrames: 3,
                         castResource: {
                           costFrame: 0,
                           cooldownSeconds: 0,
                           maxChargeTime: 1,
                           cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
                         },
-                        blackboard: { atk_scale_2: 0.1, count: 1, poise: 10 },
+                        blackboard: { atk_scale: 0.1 },
                         scheduledSequences: [
-                          {
-                            startFrame: 0,
-                            endFrame: 4,
-                            sequence: { $sequence: 'forceSpellStatus_4' },
-                          },
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
                         ],
                         actionGraph: {
                           main: {
                             nodes: {
-                              startTimeDilation_2: {
-                                action: {
-                                  kind: 'startTimeDilation',
-                                  parameters: {
-                                    scope: 'entity',
-                                    durationSeconds: { kind: 'constant', value: 0.25 },
-                                    slot: 'TimeDilation/Layer/Entity/HitStop',
-                                    priority: 10,
-                                    curve: { kind: 'named', key: 'char_hard_stop' },
-                                    finishByAction: false,
-                                    targets: ['enemy', 'caster'],
-                                  },
-                                },
-                                next: null,
-                              },
-                              dealDamage_3: {
+                              dealDamage_2: {
                                 action: {
                                   kind: 'dealDamage',
                                   parameters: {
@@ -10811,40 +10655,16 @@ export const liino: OperatorDefinition = {
                                     attackScale: { kind: 'valueNode', nodeId: 'data_1' },
                                     takeAttackSnapshot: true,
                                     tags: ['ultimateSkill'],
-                                    features: ['canBreakWeakness'],
-                                    stagger: { kind: 'valueNode', nodeId: 'data_2' },
                                   },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_46/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_3/action',
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_41/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
                                 },
-                                next: 'startTimeDilation_2',
-                              },
-                              forceSpellStatus_4: {
-                                action: {
-                                  kind: 'forceSpellStatus',
-                                  parameters: {
-                                    target: 'enemy',
-                                    element: 'electric',
-                                    consumedElement: 'electric',
-                                    consumedLayers: { kind: 'constant', value: 0 },
-                                    count: { kind: 'valueNode', nodeId: 'data_3' },
-                                    isExtra: false,
-                                  },
-                                },
-                                next: 'dealDamage_3',
+                                next: null,
                               },
                             },
                             dataNodes: {
                               data_1: {
                                 type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale_2' },
-                              },
-                              data_2: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'poise' },
-                              },
-                              data_3: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'count' },
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
                               },
                             },
                           },
@@ -10853,6 +10673,74 @@ export const liino: OperatorDefinition = {
                       },
                     },
                   ],
+                },
+                next: null,
+              },
+              launchProjectile_42: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_42/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: 'launchProjectile_41',
+              },
+              ifElse_43: {
+                action: {
+                  kind: 'ifElse',
+                  parameters: { alwaysNext: true },
+                  condition: { kind: 'conditionNode', nodeId: 'data_7' },
+                  whenTrue: { $sequence: 'launchProjectile_40' },
+                  whenFalse: { $sequence: 'launchProjectile_42' },
                 },
                 next: null,
               },
@@ -10957,131 +10845,116 @@ export const liino: OperatorDefinition = {
                 },
                 next: null,
               },
+              launchProjectile_46: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.133333340287209,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit_damage_02',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 4,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale_2: 0.1, count: 1, poise: 10 },
+                        scheduledSequences: [
+                          {
+                            startFrame: 0,
+                            endFrame: 4,
+                            sequence: { $sequence: 'forceSpellStatus_4' },
+                          },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              startTimeDilation_2: {
+                                action: {
+                                  kind: 'startTimeDilation',
+                                  parameters: {
+                                    scope: 'entity',
+                                    durationSeconds: { kind: 'constant', value: 0.25 },
+                                    slot: 'TimeDilation/Layer/Entity/HitStop',
+                                    priority: 10,
+                                    curve: { kind: 'named', key: 'char_hard_stop' },
+                                    finishByAction: false,
+                                    targets: ['enemy', 'caster'],
+                                  },
+                                },
+                                next: null,
+                              },
+                              dealDamage_3: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                    features: ['canBreakWeakness'],
+                                    stagger: { kind: 'valueNode', nodeId: 'data_2' },
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_46/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_3/action',
+                                },
+                                next: 'startTimeDilation_2',
+                              },
+                              forceSpellStatus_4: {
+                                action: {
+                                  kind: 'forceSpellStatus',
+                                  parameters: {
+                                    target: 'enemy',
+                                    element: 'electric',
+                                    consumedElement: 'electric',
+                                    consumedLayers: { kind: 'constant', value: 0 },
+                                    count: { kind: 'valueNode', nodeId: 'data_3' },
+                                    isExtra: false,
+                                  },
+                                },
+                                next: 'dealDamage_3',
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale_2' },
+                              },
+                              data_2: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'poise' },
+                              },
+                              data_3: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'count' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: null,
+              },
               ifElse_47: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_2' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_8' },
                   whenTrue: { $sequence: 'launchProjectile_45' },
                   whenFalse: { $sequence: 'launchProjectile_46' },
                 },
                 next: null,
-              },
-              launchProjectile_51: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_51/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: null,
-              },
-              launchProjectile_52: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_52/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: 'launchProjectile_51',
               },
               launchProjectile_49: {
                 action: {
@@ -11199,131 +11072,131 @@ export const liino: OperatorDefinition = {
                 },
                 next: 'launchProjectile_49',
               },
+              launchProjectile_51: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_51/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: null,
+              },
+              launchProjectile_52: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_52/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: 'launchProjectile_51',
+              },
               ifElse_53: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_2' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_9' },
                   whenTrue: { $sequence: 'launchProjectile_50' },
                   whenFalse: { $sequence: 'launchProjectile_52' },
                 },
                 next: null,
-              },
-              launchProjectile_57: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_57/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: null,
-              },
-              launchProjectile_58: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_58/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: 'launchProjectile_57',
               },
               launchProjectile_55: {
                 action: {
@@ -11441,131 +11314,131 @@ export const liino: OperatorDefinition = {
                 },
                 next: 'launchProjectile_55',
               },
+              launchProjectile_57: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_57/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: null,
+              },
+              launchProjectile_58: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_58/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: 'launchProjectile_57',
+              },
               ifElse_59: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_2' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_10' },
                   whenTrue: { $sequence: 'launchProjectile_56' },
                   whenFalse: { $sequence: 'launchProjectile_58' },
                 },
                 next: null,
-              },
-              launchProjectile_63: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_63/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: null,
-              },
-              launchProjectile_64: {
-                action: {
-                  kind: 'launchProjectile',
-                  parameters: {
-                    inheritActionBlackboard: true,
-                    entityInitialValues: {},
-                    finish: 'firstTickReach',
-                    recycleDelaySeconds: 0.100000001490116,
-                  },
-                  callbacks: [
-                    {
-                      event: 'reach',
-                      skill: {
-                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
-                        nativeSkillType: 'normalSkill',
-                        naturalDurationFrames: 3,
-                        castResource: {
-                          costFrame: 0,
-                          cooldownSeconds: 0,
-                          maxChargeTime: 1,
-                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                        },
-                        blackboard: { atk_scale: 0.1 },
-                        scheduledSequences: [
-                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
-                        ],
-                        actionGraph: {
-                          main: {
-                            nodes: {
-                              dealDamage_2: {
-                                action: {
-                                  kind: 'dealDamage',
-                                  parameters: {
-                                    damageType: 'electric',
-                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-                                    takeAttackSnapshot: true,
-                                    tags: ['ultimateSkill'],
-                                  },
-                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_64/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
-                                },
-                                next: null,
-                              },
-                            },
-                            dataNodes: {
-                              data_1: {
-                                type: 'number',
-                                expression: { kind: 'blackboard', key: 'atk_scale' },
-                              },
-                            },
-                          },
-                          macros: {},
-                        },
-                      },
-                    },
-                  ],
-                },
-                next: 'launchProjectile_63',
               },
               launchProjectile_61: {
                 action: {
@@ -11683,11 +11556,127 @@ export const liino: OperatorDefinition = {
                 },
                 next: 'launchProjectile_61',
               },
+              launchProjectile_63: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_63/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: null,
+              },
+              launchProjectile_64: {
+                action: {
+                  kind: 'launchProjectile',
+                  parameters: {
+                    inheritActionBlackboard: true,
+                    entityInitialValues: {},
+                    finish: 'firstTickReach',
+                    recycleDelaySeconds: 0.100000001490116,
+                  },
+                  callbacks: [
+                    {
+                      event: 'reach',
+                      skill: {
+                        skillId: 'chr_0035_liino_ultimate_skill_projhit',
+                        nativeSkillType: 'normalSkill',
+                        naturalDurationFrames: 3,
+                        castResource: {
+                          costFrame: 0,
+                          cooldownSeconds: 0,
+                          maxChargeTime: 1,
+                          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+                        },
+                        blackboard: { atk_scale: 0.1 },
+                        scheduledSequences: [
+                          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'dealDamage_2' } },
+                        ],
+                        actionGraph: {
+                          main: {
+                            nodes: {
+                              dealDamage_2: {
+                                action: {
+                                  kind: 'dealDamage',
+                                  parameters: {
+                                    damageType: 'electric',
+                                    attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+                                    takeAttackSnapshot: true,
+                                    tags: ['ultimateSkill'],
+                                  },
+                                  key: 'abilityentity_chr_0035_liino_ult_skill_projhit:chr_0035_liino_ultimate_skill_projhit_abilityentity:/childSkill/actionGraph/main/nodes/launchProjectile_64/action/callbacks/0/skill/actionGraph/main/nodes/dealDamage_2/action',
+                                },
+                                next: null,
+                              },
+                            },
+                            dataNodes: {
+                              data_1: {
+                                type: 'number',
+                                expression: { kind: 'blackboard', key: 'atk_scale' },
+                              },
+                            },
+                          },
+                          macros: {},
+                        },
+                      },
+                    },
+                  ],
+                },
+                next: 'launchProjectile_63',
+              },
               ifElse_65: {
                 action: {
                   kind: 'ifElse',
                   parameters: { alwaysNext: true },
-                  condition: { $sequence: 'checkCondition_2' },
+                  condition: { kind: 'conditionNode', nodeId: 'data_11' },
                   whenTrue: { $sequence: 'launchProjectile_62' },
                   whenFalse: { $sequence: 'launchProjectile_64' },
                 },
@@ -11699,7 +11688,117 @@ export const liino: OperatorDefinition = {
                 type: 'boolean',
                 expression: {
                   kind: 'entityCountCompare',
-                  target: { kind: 'fixed', target: 'enemy' },
+                  target: { kind: 'inputTarget' },
+                  containsHittableTarget: false,
+                  excludeDeadEntity: false,
+                  operator: 'greaterOrEqual',
+                  value: 1,
+                },
+              },
+              data_2: {
+                type: 'boolean',
+                expression: {
+                  kind: 'entityCountCompare',
+                  target: { kind: 'inputTarget' },
+                  containsHittableTarget: false,
+                  excludeDeadEntity: false,
+                  operator: 'greaterOrEqual',
+                  value: 1,
+                },
+              },
+              data_3: {
+                type: 'boolean',
+                expression: {
+                  kind: 'entityCountCompare',
+                  target: { kind: 'inputTarget' },
+                  containsHittableTarget: false,
+                  excludeDeadEntity: false,
+                  operator: 'greaterOrEqual',
+                  value: 1,
+                },
+              },
+              data_4: {
+                type: 'boolean',
+                expression: {
+                  kind: 'entityCountCompare',
+                  target: { kind: 'inputTarget' },
+                  containsHittableTarget: false,
+                  excludeDeadEntity: false,
+                  operator: 'greaterOrEqual',
+                  value: 1,
+                },
+              },
+              data_5: {
+                type: 'boolean',
+                expression: {
+                  kind: 'entityCountCompare',
+                  target: { kind: 'inputTarget' },
+                  containsHittableTarget: false,
+                  excludeDeadEntity: false,
+                  operator: 'greaterOrEqual',
+                  value: 1,
+                },
+              },
+              data_6: {
+                type: 'boolean',
+                expression: {
+                  kind: 'entityCountCompare',
+                  target: { kind: 'inputTarget' },
+                  containsHittableTarget: false,
+                  excludeDeadEntity: false,
+                  operator: 'greaterOrEqual',
+                  value: 1,
+                },
+              },
+              data_7: {
+                type: 'boolean',
+                expression: {
+                  kind: 'entityCountCompare',
+                  target: { kind: 'inputTarget' },
+                  containsHittableTarget: false,
+                  excludeDeadEntity: false,
+                  operator: 'greaterOrEqual',
+                  value: 1,
+                },
+              },
+              data_8: {
+                type: 'boolean',
+                expression: {
+                  kind: 'entityCountCompare',
+                  target: { kind: 'inputTarget' },
+                  containsHittableTarget: false,
+                  excludeDeadEntity: false,
+                  operator: 'greaterOrEqual',
+                  value: 1,
+                },
+              },
+              data_9: {
+                type: 'boolean',
+                expression: {
+                  kind: 'entityCountCompare',
+                  target: { kind: 'inputTarget' },
+                  containsHittableTarget: false,
+                  excludeDeadEntity: false,
+                  operator: 'greaterOrEqual',
+                  value: 1,
+                },
+              },
+              data_10: {
+                type: 'boolean',
+                expression: {
+                  kind: 'entityCountCompare',
+                  target: { kind: 'inputTarget' },
+                  containsHittableTarget: false,
+                  excludeDeadEntity: false,
+                  operator: 'greaterOrEqual',
+                  value: 1,
+                },
+              },
+              data_11: {
+                type: 'boolean',
+                expression: {
+                  kind: 'entityCountCompare',
+                  target: { kind: 'inputTarget' },
                   containsHittableTarget: false,
                   excludeDeadEntity: false,
                   operator: 'greaterOrEqual',

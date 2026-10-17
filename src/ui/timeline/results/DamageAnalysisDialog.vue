@@ -9,6 +9,7 @@ import type { PieSeriesOption } from 'echarts/charts';
 import type { LegendComponentOption, TooltipComponentOption } from 'echarts/components';
 import { EaDialog } from '../../../design-system/index';
 import { useAppearance } from '../../appearance/useAppearance';
+import { lightenColor } from '../../gameColors';
 import '../../../utils/echartsSetup';
 import InputRegionBoundary from '../../keyboard/InputRegionBoundary.vue';
 import type { TimelineDamageAnalysis, TimelineDamageAnalysisEntry } from './timelineDamageAnalysis';
@@ -32,7 +33,6 @@ const props = defineProps<{
     totalDamage: string;
     expectedTotalDamage: string;
     sampledTotalDamage: string;
-    expectedModeDescription: string;
     sampledModeDescription: (seed: string) => string;
     rotationTime: string;
     dps: string;
@@ -150,8 +150,10 @@ const contributionChartOption = computed<ChartOption>(() => {
               name: `${part.label} · ${t(`objectOrigins.contributionParts.${part.kind}`)}`,
               value: part.value,
               itemStyle: {
-                color: part.color ?? '#888888',
-                opacity: part.kind === 'self' ? 1 : 0.6,
+                color:
+                  part.kind === 'self'
+                    ? (part.color ?? '#888888')
+                    : lightenColor(part.color ?? '#888888', 0.45),
               },
             })),
         ),
@@ -167,7 +169,6 @@ const damageTypeChartOption = computed(() => pieOption(props.analysis.byDamageTy
     <EaDialog
       :model-value="visible"
       width="90vw"
-      top="3vh"
       append-to-body
       destroy-on-close
       class="damage-analysis-dialog custom-dialog"
@@ -183,12 +184,8 @@ const damageTypeChartOption = computed(() => pieOption(props.analysis.byDamageTy
           <span class="warning-text">{{ labels.warning }}</span>
         </div>
 
-        <div class="analysis-mode">
-          {{
-            randomMode === 'expected'
-              ? labels.expectedModeDescription
-              : labels.sampledModeDescription(String(globalRandomSeed))
-          }}
+        <div v-if="randomMode === 'sampled'" class="analysis-mode">
+          {{ labels.sampledModeDescription(String(globalRandomSeed)) }}
         </div>
 
         <div v-if="!hasData" class="empty-state">

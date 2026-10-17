@@ -1,6 +1,7 @@
 import { readDirectionType } from './targetEnums.ts';
 import {
   nativeActionName,
+  readOptionalReferenceKey,
   requireArray,
   requireBoolean,
   requireExactFields,
@@ -20,6 +21,7 @@ import {
   readCompareType,
   readDamageDecorateMaskCheckType,
   readSkillType,
+  readNormalSkillSubTypeFilter,
 } from './nativeEnums.ts';
 import {
   parseScalarSource,
@@ -28,12 +30,12 @@ import {
   type ScalarSource,
   type StringScalarSource,
 } from './scalar.ts';
-import { parseCharacterTeamSelection, type CharacterTeamSelectionSource } from './selectorFacts.ts';
 import {
   parseTagIdsSource,
   parseTagQuerySource,
   projectNativeTagQueryType,
   type TagQueryType,
+  type TagQuerySource,
 } from './tagQuery.ts';
 import { parseTargetReferenceSource, type TargetReferenceSource } from './target.ts';
 import type {
@@ -59,6 +61,18 @@ function parseAttackTypeMaskSource(value: unknown, path: string): AttackTypeMask
 }
 
 export type NativeConditionSource =
+  | (ConditionIdentity & {
+      readonly kind: 'damageTransferredSource';
+      readonly tagQuery: TagQuerySource;
+      /** 匹配成功时保存部位目标；失败不清空原目标组。 */
+      readonly contextKey: string;
+    })
+  | (ConditionIdentity & {
+      readonly kind: 'abilityEntityFinishReason';
+      readonly reasons: readonly (
+        'other' | 'lifetime' | 'stackEvicted' | 'sourceDied' | 'targetDied' | 'soulMainBodyDied'
+      )[];
+    })
   | (ConditionIdentity & { readonly kind: 'constant'; readonly value: boolean })
   | (ConditionIdentity & {
       readonly kind: 'perfectDodgeDirection';
@@ -120,8 +134,7 @@ export type NativeConditionSource =
     })
   | (ConditionIdentity & {
       readonly kind: 'mainOperator';
-      readonly targetSource: string;
-      readonly targetGroupKey: string;
+      readonly target: TargetReferenceSource;
     })
   | (ConditionIdentity & {
       readonly kind: 'profession';
@@ -151,8 +164,7 @@ export type NativeConditionSource =
   | (ConditionIdentity & BuffStackConditionSource)
   | (ConditionIdentity & {
       readonly kind: 'entityTag';
-      readonly targetSource: string;
-      readonly targetGroupKey: string;
+      readonly target: TargetReferenceSource;
       readonly tagQueryType: TagQueryType;
       readonly tagIds: readonly number[];
     })
@@ -163,8 +175,7 @@ export type NativeConditionSource =
     })
   | (ConditionIdentity & {
       readonly kind: 'timedMarker';
-      readonly targetSource: string;
-      readonly targetGroupKey: string;
+      readonly target: TargetReferenceSource;
       readonly markerId: string;
       readonly blackboardKey: string;
       readonly useBlackboardKey: boolean;
@@ -172,17 +183,16 @@ export type NativeConditionSource =
     })
   | (ConditionIdentity & {
       readonly kind: 'health';
-      readonly targetSource: string;
-      readonly targetGroupKey: string;
+      readonly target: TargetReferenceSource;
       readonly comparison: string;
       readonly isRatio: boolean;
       readonly value: ScalarSource;
-      readonly characterTeamSelection: CharacterTeamSelectionSource | null;
     })
   | (ConditionIdentity & { readonly kind: 'probability'; readonly value: ScalarSource })
   | (ConditionIdentity & {
       readonly kind: 'skillType';
       readonly checkTargetCurrentSkill?: boolean;
+      readonly normalSkillSubTypeFilter?: 'Any' | 'Normal' | 'AdditionalNormalSkill';
       readonly skillOwner?: TargetReferenceSource;
       readonly mustBeforeExclusiveTime?: boolean;
       readonly skillTypes: readonly string[];
@@ -253,8 +263,7 @@ export type NativeConditionSource =
     })
   | (ConditionIdentity & {
       readonly kind: 'deckAttributeCompare';
-      readonly targetSource: string;
-      readonly targetGroupKey: string;
+      readonly target: TargetReferenceSource;
       readonly leftAttribute: string;
       readonly leftValue: ScalarSource;
       readonly comparison: string;
@@ -304,15 +313,14 @@ export type NativeConditionSource =
     })
   | (ConditionIdentity & {
       /** OnConsumeBuff 事件保存的消费层数；命中后可写入动作黑板。 */
-      readonly kind: 'consumeBuffLayer';
+      readonly kind: 'consumeBuffLayer' | 'buffEnhanceLayer';
       readonly comparison: string;
       readonly value: ScalarSource;
       readonly outputKey: string;
     })
   | (ConditionIdentity & {
       readonly kind: 'globalCooldown';
-      readonly targetSource: string;
-      readonly targetGroupKey: string;
+      readonly target: TargetReferenceSource;
       readonly buffId: string;
     })
   | (ConditionIdentity & { readonly kind: 'skillHasHit' })
@@ -360,8 +368,7 @@ export type NativeConditionSource =
 
 export interface BuffStackConditionSource {
   readonly kind: 'buffStack';
-  readonly targetSource: string;
-  readonly targetGroupKey: string;
+  readonly target: TargetReferenceSource;
   readonly buffCheckType: string;
   readonly buffIds: readonly string[];
   readonly tagQueryType: TagQueryType;
@@ -385,6 +392,59 @@ export function parseConditionLeafSource(
   const sourceType = typeof condition.$type === 'string' ? nativeActionName(condition.$type) : '';
 
   switch (sourceType) {
+    case 'CheckDamageTransferredSource': {
+      requireExactFields(
+        condition,
+        new Set([
+          '$type',
+          'isEnable',
+          'priorityLevel',
+          'priorityOffset',
+          'serverActionIndex',
+          'tagQuery',
+          'contextKey',
+        ]),
+        path,
+      );
+      return {
+        kind: 'damageTransferredSource',
+        sourceType,
+        tagQuery: parseTagQuerySource(condition.tagQuery, `${path}.tagQuery`),
+        contextKey: readOptionalReferenceKey(condition.contextKey, `${path}.contextKey`),
+      };
+    }
+    case 'CheckAbilityEntityFinishReason': {
+      requireExactFields(
+        condition,
+        new Set([
+          '$type',
+          'isEnable',
+          'priorityLevel',
+          'priorityOffset',
+          'serverActionIndex',
+          'reasonList',
+        ]),
+        path,
+      );
+      const names = {
+        Other: 'other',
+        LifeTime: 'lifetime',
+        StackEvicted: 'stackEvicted',
+        SourceDied: 'sourceDied',
+        TargetDied: 'targetDied',
+        SoulMainBodyDied: 'soulMainBodyDied',
+      } as const;
+      return {
+        kind: 'abilityEntityFinishReason',
+        sourceType,
+        reasons: requireArray(condition.reasonList, `${path}.reasonList`).map((value, index) => {
+          const key = requireString(value, `${path}.reasonList[${index}]`);
+          if (!Object.hasOwn(names, key))
+            throw new Error(`${path}.reasonList[${index}]: unknown finish reason '${key}'`);
+          return names[key as keyof typeof names];
+        }),
+      };
+    }
     case 'CheckProjectileInPerfectDodgeCd':
       requireExactFields(
         condition,
@@ -666,6 +726,9 @@ export function parseConditionLeafSource(
     case 'CheckBuffStackNumByTag':
       return parseTagBuffStack(condition, path, sourceType, inheritedBlackboard);
     case 'CheckTagMatch':
+    // CheckPartTagMatch 直接检查句柄指向的实体；保留 sourceType，不能在来源层
+    // 将其改成主体查询。当前 entityTag 投影检查实际目标自身的标签。
+    case 'CheckPartTagMatch':
       return parseEntityTag(condition, path, sourceType);
     case 'CheckTimedMarkerCondition':
       return parseTimedMarker(condition, path, sourceType);
@@ -711,6 +774,7 @@ export function parseConditionLeafSource(
           'priorityOffset',
           'serverActionIndex',
           'checkTargetCurSkill',
+          ...('normalSkillSubTypeFilter' in condition ? ['normalSkillSubTypeFilter'] : []),
           'skillOwner',
           'mustBeforeExclusiveTime',
           'skillTypeList',
@@ -725,6 +789,14 @@ export function parseConditionLeafSource(
           condition.checkTargetCurSkill,
           `${path}.checkTargetCurSkill`,
         ),
+        ...('normalSkillSubTypeFilter' in condition
+          ? {
+              normalSkillSubTypeFilter: readNormalSkillSubTypeFilter(
+                condition.normalSkillSubTypeFilter,
+                `${path}.normalSkillSubTypeFilter`,
+              ),
+            }
+          : {}),
         skillOwner: parseTargetReferenceSource(condition.skillOwner, `${path}.skillOwner`),
         mustBeforeExclusiveTime: requireBoolean(
           condition.mustBeforeExclusiveTime,
@@ -929,7 +1001,7 @@ export function parseConditionLeafSource(
         kind: 'physicalInflictionType',
         sourceType,
         types: parsePhysicalInflictionMask(condition.mask, `${path}.mask`),
-        savedKey: requireString(condition.savedKey, `${path}.savedKey`),
+        savedKey: readOptionalReferenceKey(condition.savedKey, `${path}.savedKey`),
       };
     case 'CompareDeckAttr':
       return parseDeckAttribute(condition, path, sourceType, inheritedBlackboard);
@@ -987,6 +1059,7 @@ export function parseConditionLeafSource(
     case 'CheckBuffIdInContextAdvanced':
       return parseAdvancedContextBuff(condition, path, sourceType);
     case 'CheckConsumeBuffLayer':
+    case 'CheckBuffEnhanceChangedLayer':
       requireExactFields(
         condition,
         new Set([
@@ -1002,19 +1075,18 @@ export function parseConditionLeafSource(
         path,
       );
       return {
-        kind: 'consumeBuffLayer',
+        kind:
+          sourceType === 'CheckBuffEnhanceChangedLayer' ? 'buffEnhanceLayer' : 'consumeBuffLayer',
         sourceType,
         comparison: requireNonEmptyString(condition.compareType, `${path}.compareType`),
         value: parseScalarSource(condition.num, `${path}.num`, inheritedBlackboard),
-        outputKey: requireString(condition.storeKey, `${path}.storeKey`),
+        outputKey: readOptionalReferenceKey(condition.storeKey, `${path}.storeKey`),
       };
     case 'CheckGlobalCDTimerAction': {
-      const target = requireRecord(condition.target, `${path}.target`);
       return {
         kind: 'globalCooldown',
         sourceType,
-        targetSource: readTargetSource(target.targetSource, `${path}.target.targetSource`),
-        targetGroupKey: requireString(target.targetGroupKey, `${path}.target.targetGroupKey`),
+        target: parseTargetReferenceSource(condition.target, `${path}.target`),
         buffId: requireNonEmptyString(condition.buffId, `${path}.buffId`),
       };
     }
@@ -1142,12 +1214,10 @@ function parseMainOperator(
   path: string,
   sourceType: string,
 ): NativeConditionSource {
-  const target = requireRecord(condition.checkTarget, `${path}.checkTarget`);
   return {
     kind: 'mainOperator',
     sourceType,
-    targetSource: readTargetSource(target.targetSource, `${path}.checkTarget.targetSource`),
-    targetGroupKey: requireString(target.targetGroupKey, `${path}.checkTarget.targetGroupKey`),
+    target: parseTargetReferenceSource(condition.checkTarget, `${path}.checkTarget`),
   };
 }
 
@@ -1166,7 +1236,10 @@ function parseEntityCount(
     sourceType,
     ...(parsedTarget === undefined ? {} : { target: parsedTarget }),
     targetSource: readTargetSource(target.targetSource, `${path}.checkTarget.targetSource`),
-    targetGroupKey: requireString(target.targetGroupKey, `${path}.checkTarget.targetGroupKey`),
+    targetGroupKey: readOptionalReferenceKey(
+      target.targetGroupKey,
+      `${path}.checkTarget.targetGroupKey`,
+    ),
     minimumCount: requireInteger(condition.minNum, `${path}.minNum`),
     comparison: readCompareType(condition.compareType, `${path}.compareType`),
     containsHittableTarget: requireBoolean(
@@ -1174,7 +1247,7 @@ function parseEntityCount(
       `${path}.containsHittableTarget`,
     ),
     excludeDeadEntity: requireBoolean(condition.excludeDeadEntity, `${path}.excludeDeadEntity`),
-    storeKey: requireString(condition.storeKey, `${path}.storeKey`),
+    storeKey: readOptionalReferenceKey(condition.storeKey, `${path}.storeKey`),
   };
 }
 
@@ -1257,8 +1330,7 @@ function createBuffStack(
   return {
     kind: 'buffStack',
     sourceType,
-    targetSource: readTargetSource(target.targetSource, `${path}.checkTarget.targetSource`),
-    targetGroupKey: requireString(target.targetGroupKey, `${path}.checkTarget.targetGroupKey`),
+    target: parseTargetReferenceSource(target, `${path}.checkTarget`),
     buffCheckType,
     buffIds,
     tagQueryType,
@@ -1280,8 +1352,7 @@ function parseEntityTag(
   return {
     kind: 'entityTag',
     sourceType,
-    targetSource: readTargetSource(target.targetSource, `${path}.checkTarget.targetSource`),
-    targetGroupKey: requireString(target.targetGroupKey, `${path}.checkTarget.targetGroupKey`),
+    target: parseTargetReferenceSource(target, `${path}.checkTarget`),
     tagQueryType: query.queryType,
     tagIds: query.tagIds,
   };
@@ -1292,14 +1363,15 @@ function parseTimedMarker(
   path: string,
   sourceType: string,
 ): NativeConditionSource {
-  const target = requireRecord(condition.checkTarget, `${path}.checkTarget`);
   return {
     kind: 'timedMarker',
     sourceType,
-    targetSource: readTargetSource(target.targetSource, `${path}.checkTarget.targetSource`),
-    targetGroupKey: requireString(target.targetGroupKey, `${path}.checkTarget.targetGroupKey`),
+    target: parseTargetReferenceSource(condition.checkTarget, `${path}.checkTarget`),
     markerId: requireString(condition.id, `${path}.id`),
-    blackboardKey: requireString(condition.blackboardKey, `${path}.blackboardKey`),
+    blackboardKey:
+      condition.useBlackboardKey === false && condition.blackboardKey === null
+        ? ''
+        : requireString(condition.blackboardKey, `${path}.blackboardKey`),
     useBlackboardKey: requireBoolean(condition.useBlackboardKey, `${path}.useBlackboardKey`),
     returnTrueIfNotExists: requireBoolean(
       condition.returnTrueIfNotExists,
@@ -1314,20 +1386,13 @@ function parseHealth(
   sourceType: string,
   inheritedBlackboard: BlackboardLevelValues,
 ): NativeConditionSource {
-  const target = requireRecord(condition.hpOwner, `${path}.hpOwner`);
-  const targetSource = readTargetSource(target.targetSource, `${path}.hpOwner.targetSource`);
   return {
     kind: 'health',
     sourceType,
-    targetSource,
-    targetGroupKey: requireString(target.targetGroupKey, `${path}.hpOwner.targetGroupKey`),
+    target: parseTargetReferenceSource(condition.hpOwner, `${path}.hpOwner`),
     comparison: requireNonEmptyString(condition.compare, `${path}.compare`),
     isRatio: requireBoolean(condition.isRatio, `${path}.isRatio`),
     value: parseScalarSource(condition.value, `${path}.value`, inheritedBlackboard),
-    characterTeamSelection:
-      targetSource === 'InstantSearch'
-        ? parseCharacterTeamSelection(target.selectorData, `${path}.hpOwner.selectorData`)
-        : null,
   };
 }
 
@@ -1374,7 +1439,7 @@ function parseInflictionType(
     kind: 'inflictionType',
     sourceType,
     elements: elements as string[],
-    savedKey: requireString(condition.savedKey, `${path}.savedKey`),
+    savedKey: readOptionalReferenceKey(condition.savedKey, `${path}.savedKey`),
   };
 }
 
@@ -1388,8 +1453,7 @@ function parseDeckAttribute(
   return {
     kind: 'deckAttributeCompare',
     sourceType,
-    targetSource: target.targetSource,
-    targetGroupKey: target.targetGroupKey,
+    target,
     leftAttribute: requireNonEmptyString(condition.lhsType, `${path}.lhsType`),
     leftValue: parseScalarSource(condition.lhsValue, `${path}.lhsValue`, inheritedBlackboard),
     comparison: requireNonEmptyString(condition.compare, `${path}.compare`),
@@ -1405,7 +1469,7 @@ function parseContextBuff(
 ): NativeConditionSource {
   const checkType = requireNonEmptyString(condition.checkType, `${path}.checkType`);
   const rawBuffIds = requireArray(condition.buffIdList, `${path}.buffIdList`);
-  const blackboardKey = requireString(condition.blackboardKey, `${path}.blackboardKey`);
+  const blackboardKey = readOptionalReferenceKey(condition.blackboardKey, `${path}.blackboardKey`);
   let matcher: Extract<NativeConditionSource, { readonly kind: 'contextBuff' }>['matcher'];
   if (checkType === 'Id') {
     matcher = {
@@ -1479,7 +1543,7 @@ function parseAdvancedContextBuff(
     }
     return { kind: 'constant' as const, value: directValue };
   };
-  const blackboardKey = requireString(condition.blackboardKey, `${path}.blackboardKey`);
+  const blackboardKey = readOptionalReferenceKey(condition.blackboardKey, `${path}.blackboardKey`);
   let matcher: Extract<NativeConditionSource, { readonly kind: 'contextBuff' }>['matcher'];
   if (checkType === 'Id') {
     matcher = { kind: 'id', buffIds: buffIdList.map(parseId) };

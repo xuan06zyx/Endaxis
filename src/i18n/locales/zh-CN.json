@@ -540,7 +540,10 @@
       "talents": "天赋",
       "potentials": "潜能",
       "passiveSkills": "常驻被动",
-      "dodgeSkill": "闪避技能",
+      "dodgeSkillId": "闪避技能",
+      "startSkillId": "起始技能",
+      "endSkillId": "落地技能",
+      "skillIds": "技能段",
       "blackboard": "变量初值",
       "entityBlackboard": "实体变量初值",
       "traits": "词条",
@@ -589,6 +592,7 @@
       "naturalDurationFrames": "技能自然时长（帧）",
       "exclusiveFrame": "不可中断帧数",
       "offsetRecordFrame": "连段记录帧",
+      "dontInterruptCombo": "保留普攻连段",
       "inputWindows": "输入窗口",
       "commandMappings": "普攻输入对应技能",
       "input": "输入操作",
@@ -627,7 +631,7 @@
       "igniteEventResponses": "点燃响应",
       "placementSequenceSkillKeys": "顺序放置的技能",
       "replacementSkills": "替换技能",
-      "routedReplacementSkills": "跨组路由技能",
+      "routedReplacementSkills": "技能执行路由",
       "presentationVariants": "展示形态"
     },
     "focusSubtree": "聚焦此子树",
@@ -657,6 +661,20 @@
     "noMatchingNodes": "没有匹配的节点",
     "addNode": "添加节点…",
     "options": {
+      "fixed": "固定伤害",
+      "definite": "确定值",
+      "none": "无",
+      "final": "最终值",
+      "real": "实际值",
+      "overflow": "溢出值",
+      "specificTime": "指定时刻",
+      "lifetime": "生命周期结束",
+      "stackEvicted": "超出叠加上限",
+      "sourceDied": "来源死亡",
+      "targetDied": "目标死亡",
+      "soulMainBodyDied": "墨魂本体死亡",
+      "normal": "普通",
+      "additionalNormalSkill": "额外战技",
       "first": "首个目标",
       "all": "全部目标",
       "allOperators": "全队干员",
@@ -860,9 +878,52 @@
     "scopeUnknown": "尚未连接，作用域未确定",
     "searchNodes": "搜索节点",
     "fields": {
+      "replacePartsWithMainBodies": {
+        "name": "将部件替换为本体"
+      },
+      "excludeTargets": {
+        "name": "排除目标"
+      },
+      "caster": {
+        "name": "施放者"
+      },
+      "calculationValue": {
+        "name": "计算值"
+      },
+      "calculationValueScale": {
+        "name": "计算值倍率"
+      },
+      "slotIndex": {
+        "name": "队伍位置"
+      },
+      "defaultValue": {
+        "name": "默认值"
+      },
+      "minimum": {
+        "name": "下限（含）"
+      },
+      "maximum": {
+        "name": "上限（不含）"
+      },
+      "emitters": {
+        "name": "发射点"
+      },
+      "executeOnMatch": {
+        "name": "匹配时执行"
+      },
+      "sequence": {
+        "name": "动作序列"
+      },
+      "normalSkillSubType": {
+        "name": "战技子类型"
+      },
       "variableKey": {
         "name": "变量名",
         "help": "选择当前作用域内的变量。局部变量只能在所属作用域内读写。"
+      },
+      "action": {
+        "name": "执行行为",
+        "help": "求值时调用的行为入口，通过画布上的行为引脚连接。"
       },
       "key": {
         "name": "引用名称",
@@ -913,6 +974,22 @@
       "callbacks": {
         "name": "投射物回调",
         "help": "投射物命中、阻挡、到达或结束时启动的完整回调技能。"
+      },
+      "startHeightOffset": {
+        "name": "起点高度偏移",
+        "help": "相对于查询对象位置的向上偏移。"
+      },
+      "maxDistance": {
+        "name": "最大检测距离",
+        "help": "竖直向下检测地面的最大距离。"
+      },
+      "whenHit": {
+        "name": "命中地面",
+        "help": "检测到地面时执行的行为。"
+      },
+      "whenMiss": {
+        "name": "未命中地面",
+        "help": "未检测到地面时执行的行为。"
       },
       "saveToContextKey": {
         "name": "保存到目标组",
@@ -1656,6 +1733,8 @@
         "name": "父目标组",
         "help": "在此目标组中查找子目标。"
       },
+      "first": { "name": "第一组目标", "help": "参与相等比较的第一组查询结果。" },
+      "second": { "name": "第二组目标", "help": "参与相等比较的第二组查询结果。" },
       "child": {
         "name": "查找对象",
         "help": "在目标组中查找的对象。"
@@ -1795,6 +1874,38 @@
       "number": "数值"
     },
     "nodes": {
+      "saveTransferredSource": {
+        "name": "保存转移来源",
+        "help": "将首个来源目标对应的转移部位保存到目标组；没有转移记录时保留原目标。"
+      },
+      "findCharacterBySquadSlot": {
+        "name": "按队伍位置查找干员",
+        "help": "将指定队伍位置的干员保存到目标组。"
+      },
+      "storeCharacterTypeBySquadSlot": {
+        "name": "读取队伍位置属性",
+        "help": "读取指定队伍位置干员的属性并写入黑板。"
+      },
+      "storeEventDamageValue": {
+        "name": "读取事件伤害值",
+        "help": "读取当前伤害事件的数值并写入黑板；没有上下文时写入零。"
+      },
+      "storeRandomInteger": {
+        "name": "保存随机整数",
+        "help": "从包含下限、不含上限的整数范围取样并写入黑板。"
+      },
+      "listenForTagQuery": {
+        "name": "监听标签匹配",
+        "help": "监听标签查询结果变化，并按匹配状态执行回调。"
+      },
+      "eventAbilityEntityFinishReasonIn": {
+        "name": "检查能力实体结束原因",
+        "help": "检查当前事件中的能力实体结束原因是否匹配。"
+      },
+      "eventBuffEnhanceLayerCompare": {
+        "name": "比较 Buff 增强变化层数",
+        "help": "比较当前 Buff 增强变化事件中的层数。"
+      },
       "triggerSpellBurst": {
         "name": "触发法术爆发",
         "help": "触发指定元素的法术爆发。"
@@ -2059,13 +2170,21 @@
         "name": "检查条件",
         "help": "检查通过才继续执行当前序列的后续动作。"
       },
+      "physicsCast": {
+        "name": "地面射线查询",
+        "help": "从查询对象上方沿竖直方向检测地面，将命中点写入目标上下文，并执行命中或未命中分支。"
+      },
+      "checkActionResult": {
+        "name": "检查执行结果",
+        "help": "在读取结果的位置即时执行连接的行为序列，返回该序列是否允许继续。不会提前执行或缓存结果。"
+      },
       "ifElse": {
         "name": "条件分支",
-        "help": "先执行条件序列，再执行成立或不成立分支。条件中的动作可以读写变量。"
+        "help": "读取布尔条件，再执行成立或不成立分支。需要在判断时执行行为，可连接“检查执行结果”节点。"
       },
       "anyCondition": {
         "name": "任一条件成立",
-        "help": "依次执行各条件序列；一项通过即停止，全部失败则返回失败。"
+        "help": "按顺序读取布尔条件；一项成立即停止，全部不成立则返回失败。需要在求值时执行动作，可连接检查执行结果节点。"
       },
       "invertNextResult": {
         "name": "反转下一动作结果",
@@ -2171,9 +2290,9 @@
         "name": "只有一个敌人？",
         "help": "检查是否存在单个敌人。"
       },
-      "casterControlled": {
-        "name": "施放者是主控？",
-        "help": "检查施放者是否为当前主控干员。"
+      "checkMainCharacter": {
+        "name": "检查主控干员",
+        "help": "检查指定目标是否为当前主控干员。"
       },
       "characterTypeIn": {
         "name": "元素类型匹配？",
@@ -2231,33 +2350,13 @@
         "name": "检查实体数量",
         "help": "统计查询结果中的实体。可排除死亡实体，并在比较成功时把数量写入变量。"
       },
-      "contextTargetObjectTypeMatch": {
-        "name": "目标组对象类型匹配？",
-        "help": "目标组中有对象属于指定类型时通过。"
+      "targetObjectTypeMatch": {
+        "name": "目标对象类型匹配？",
+        "help": "查询结果中任一目标属于指定类型时通过。"
       },
-      "actionInputTargetObjectTypeMatch": {
-        "name": "输入目标类型匹配？",
-        "help": "检查当前动作收到的目标类型。"
-      },
-      "actionInputTargetIdentityMatch": {
-        "name": "输入目标是指定对象？",
-        "help": "比较输入目标与指定对象是否相同。"
-      },
-      "contextTargetIdentityMatch": {
-        "name": "目标组身份匹配？",
-        "help": "选择比较首个目标或全部目标。首目标缺失时不匹配；全组比较要求两组互相包含。"
-      },
-      "contextTargetEntityTagMatch": {
-        "name": "全部目标标签匹配？",
-        "help": "检查目标组中所有实体的标签。没有有效实体时不通过。"
-      },
-      "contextTargetBuffStackCompare": {
-        "name": "比较首个目标的 Buff 层数",
-        "help": "按标签统计目标组首个对象的 Buff 层数。空组不通过。"
-      },
-      "contextTargetBuffIdStackCompare": {
-        "name": "比较首个目标的指定 Buff",
-        "help": "按 Buff 编号统计目标组首个对象的层数。空组不通过。"
+      "targetsEqual": {
+        "name": "两组目标相同？",
+        "help": "比较两组目标是否互相包含，不考虑顺序和重复次数；两组都为空时通过。"
       },
       "abilityEntityRemainingDurationCompare": {
         "name": "比较召唤物剩余时间",
@@ -2287,17 +2386,13 @@
         "name": "公共冷却中？",
         "help": "检查指定公共冷却是否尚未结束。"
       },
-      "casterComboPending": {
+      "comboSkillPending": {
         "name": "存在连携候选？",
-        "help": "检查施放者是否已有连携候选；不代表冷却等其他施放条件满足。"
+        "help": "检查首个目标是否已有连携候选；不代表冷却等其他施放条件满足。"
       },
       "timedMarkerPresent": {
         "name": "存在限时标记？",
         "help": "检查目标上指定标记是否仍有效。"
-      },
-      "abilityEntityTimedMarkerPresent": {
-        "name": "召唤物存在标记？",
-        "help": "检查当前召唤物或目标组中的召唤物是否有指定有效标记。"
       },
       "eventDamageTagsMatch": {
         "name": "本次伤害分类匹配？",
@@ -2306,6 +2401,10 @@
       "eventDamageGameplayTagsMatch": {
         "name": "本次伤害标签匹配？",
         "help": "检查触发事件的伤害所携带的效果标签。"
+      },
+      "eventTransferredPartTagsMatch": {
+        "name": "伤害转移部位标签匹配？",
+        "help": "读取当前事件中主体对应的转移部位，检查标签；成功时可保存部位目标，失败保留原目标组。"
       },
       "eventDamageFeaturesMatch": {
         "name": "本次伤害特征匹配？",
@@ -2367,10 +2466,6 @@
         "name": "本次 Buff 标签匹配？",
         "help": "检查事件中新施加 Buff 的标签。"
       },
-      "eventTargetBuffCountCompare": {
-        "name": "比较事件目标的 Buff 数量",
-        "help": "统计事件目标上符合标签的 Buff 实例数，不是层数。"
-      },
       "eventHealTagsMatch": {
         "name": "本次治疗标签匹配？",
         "help": "检查触发事件的治疗标签。"
@@ -2386,18 +2481,6 @@
       "eventOverheal": {
         "name": "本次治疗溢出？",
         "help": "检查治疗是否超过缺失生命，可保存溢出量、治疗量和实际恢复量。"
-      },
-      "eventSourceMatchesBuffSource": {
-        "name": "事件来源是 Buff 来源？",
-        "help": "比较事件来源与当前 Buff 的来源对象。"
-      },
-      "eventSourceMatchesBuffSourceEntitySource": {
-        "name": "事件来源是召唤者？",
-        "help": "当前 Buff 来自召唤物时，检查事件来源是否为该召唤物的来源。"
-      },
-      "buffSourceMatchesOwner": {
-        "name": "Buff 来源是持有者？",
-        "help": "检查当前 Buff 的来源和持有者是否为同一个对象。"
       },
       "ownerSpawnedAbilityEntityPresent": {
         "name": "存在指定召唤物？",
@@ -2945,6 +3028,13 @@
     "zhCNShort": "中"
   },
   "timeline": {
+    "legacyConversion": {
+      "title": "转换旧版本存档",
+      "question": "检测到旧版本存档，是否转换？",
+      "notice": "转换存档不会修改硬盘上保存的JSON文件，但会覆盖浏览器缓存的数据。部分技能时长、命中、附着、Buff的时机可能发生变化，转换后可能需要调整。",
+      "download": "下载旧版本JSON",
+      "confirm": "确认转换"
+    },
     "random": {
       "mode": "随机计算",
       "expected": "期望",
@@ -3037,7 +3127,6 @@
       "totalDamage": "总伤害",
       "expectedTotalDamage": "期望口径总伤害",
       "sampledTotalDamage": "本次随机总伤害",
-      "expectedModeDescription": "期望模式：每个 Hit 按数学期望结算；Buff、资源和触发等离散行为按固定频率序列发生。",
       "sampledModeDescription": "随机模式：本次结果使用全局种子 {seed}；设有独立种子的技能块使用自身种子。",
       "rotationTime": "循环时间",
       "dps": "DPS（仅供参考）",
@@ -3052,14 +3141,16 @@
       "warning": "伤害统计仅供优化配队使用，请勿用来拉踩攻击他人。",
       "unattributedDamage": "未归属伤害 {value}：回执没有技能块或轨道来源。",
       "faqTitle": "常见问题",
-      "faq1Q": "为什么伤害和游戏里不一样？",
-      "faq1A": "分析使用当前版本游戏数据和已经编译的战斗规则。未接入的机制、空间简化、版本差异以及游戏界面的取整方式都可能造成差异；具体规则应以原生证据和模拟诊断为准。",
-      "faq2Q": "伤害计算有哪些局限？",
-      "faq2A": "分析只统计正式模拟已经产生的伤害回执，不补算未编译的行为，也不猜测距离、目标数量或其他缺失条件。模拟诊断中报告的问题可能让部分技能不执行。",
-      "faq3Q": "干员贡献是怎么计算的？",
-      "faq3A": "未分解的伤害计入攻击者自身。当前外部直接加成的贡献分配尚未接入，因此贡献图暂按自身伤害展示；它不表示队友增益没有作用。",
+      "faq1Q": "“按干员分类”和“干员贡献”有什么区别？",
+      "faq1A": "前者看谁打出了伤害；后者会把其中由队友增益带来的部分分给提供增益的干员。贡献图内环是每位干员的总贡献，外环区分自身伤害和为队友提供的增益贡献。悬停扇区可查看数值和占比。",
+      "faq2Q": "多个干员一起增伤，会重复计算吗？",
+      "faq2A": "不会。每次命中的伤害只分配一次，再汇总到各干员。多个增益同时生效时，会共同分配增加的伤害，不会把同一份增伤完整算给每个人。",
+      "faq3Q": "为什么辅助的贡献比我想的低？",
+      "faq3A": "贡献图主要统计命中时直接提高伤害的效果。帮助队友回能、创造连携机会或提前施加附着等作用，不一定会折算成贡献；目前也不会按附着层数重新分配异常收益。尚不能分配的伤害仍计入攻击者自身，因此不能只凭这张图判断干员的价值。",
       "faq4Q": "统计范围怎么确定？",
-      "faq4A": "统计从场景设置的模拟起点开始，忽略更早的准备阶段伤害；循环时间计算到最后一次有效伤害。没有有效伤害时 DPS 为 0。"
+      "faq4A": "只统计模拟起点之后、模拟结束之前的伤害，不包含准备阶段。循环时间从模拟起点算到最后一次伤害，DPS 为总伤害除以这段时间；末次命中之后的空白时间不会计入。",
+      "faq6Q": "为什么结果和实战不一样？",
+      "faq6A": "先确认双方的养成配装、敌人抗性、主控干员和技能顺序一致。本工具按单个、不主动行动的敌人模拟，忽略距离并确保攻击命中；实战中的走位、漏伤和多目标都会影响结果。期望模式下的暴击伤害是平均值，也不会等于某一次实战。若仍有明显差异，可附上方案存档和对应命中的伤害详情反馈。"
     },
     "export": {
       "copyCode": "复制数据码",
@@ -3111,6 +3202,7 @@
       "sectionScenarioSettings": "方案设置",
       "sectionPrefs": "用户偏好",
       "automaticControlSwitches": "自动切换主控",
+      "comboSkillPriority": "连携技优先级设置",
       "automaticControlSwitchesHelp": "普攻、强化普攻、下落攻击或处决时，按需切换到对应干员",
       "sectionViewLayers": "显示内容",
       "sectionViewBehavior": "视图行为",
@@ -3356,6 +3448,8 @@
       "markerId": "标记 ID",
       "targetTrack": "切入干员",
       "direction": "闪避方向",
+      "forward": "向前",
+      "backward": "向后",
       "dodgeResult": "声明结果",
       "successDelayFrames": "极限闪避成功延迟（帧）",
       "simulationResult": "实际模拟结果",
@@ -3898,7 +3992,7 @@
         "currentSkillTypeIn": "当前技能类型匹配",
         "combatActive": "处于战斗中",
         "singleEnemyPresent": "存在单个敌人",
-        "casterControlled": "施法者为主控",
+        "checkMainCharacter": "指定目标为主控",
         "enemySuperArmorCompare": "敌人霸体值比较",
         "targetStaggered": "目标已失衡",
         "healthCompare": "生命值比较",
@@ -3909,18 +4003,13 @@
         "abilityEntityRemainingDurationCompare": "能力实体剩余时长比较",
         "buffStackCompare": "按标签比较 Buff 层数",
         "currentBuffStackCompare": "当前 Buff 实例增强层数比较",
-        "contextTargetObjectTypeMatch": "目标组对象类型匹配",
-        "actionInputTargetObjectTypeMatch": "事件输入目标对象类型匹配",
-        "actionInputTargetIdentityMatch": "事件输入目标身份匹配",
-        "contextTargetIdentityMatch": "目标组身份匹配",
-        "contextTargetEntityTagMatch": "目标组全体实体标签匹配",
-        "contextTargetBuffStackCompare": "目标组首目标 Buff 层数比较",
-        "eventTargetBuffCountCompare": "比较事件目标的 Buff 实例数",
+        "targetObjectTypeMatch": "目标对象类型匹配",
+        "targetsEqual": "两组目标相同",
         "entityTagMatch": "实体标签匹配",
         "buffIdStackCompare": "按身份比较 Buff 层数",
         "timedMarkerPresent": "存在定时标记",
         "globalCooldownPresent": "全局冷却尚未结束",
-        "casterComboPending": "施放者存在待释放连携候选（不检查能否释放）",
+        "comboSkillPending": "目标存在待释放连携候选（不检查能否释放）",
         "eventDamageTagsMatch": "事件伤害标签匹配",
         "eventDamageFeaturesMatch": "事件伤害特征匹配",
         "not": "条件取反",
@@ -4401,6 +4490,7 @@
         "repeatEachTick": "每 Tick 重复",
         "openComboWindow": "开启下一段连携窗口",
         "showComboRingQte": "显示精准连携窗口",
+        "physicsCast": "地面射线查询",
         "listenForCombatEvents": "监听战斗事件",
         "aura": "光环",
         "copyContextTargets": "复制目标组",
@@ -5074,6 +5164,8 @@
       "speedup": "加速",
       "barrageArray": "箭阵",
       "firefangVesperwings": "衔火血翼",
+      "artfulIntent": "笔意",
+      "immobilization": "定身",
       "sunderblades": "青霆剑",
       "electrification": "导电",
       "ultEnergyGain": "终结技充能",
@@ -5089,6 +5181,7 @@
   },
   "hitEditor": {
     "elements": {
+      "fixed": "固定",
       "physical": "物理",
       "heat": "灼热",
       "cryo": "寒冷",

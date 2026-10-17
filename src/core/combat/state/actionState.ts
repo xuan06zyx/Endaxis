@@ -194,6 +194,8 @@ export interface ActionGraphExecutionState {
   /** 静态调用位置，与逐目标等动态调用实例分开；缺省 once/父层黑板身份取此值。 */
   readonly callSite: string;
   closed: boolean;
+  /** 按消费节点和数据节点隔离的即时行为调用；只保存实际建立的调用状态。 */
+  evaluations?: Map<string, ActionGraphExecutionState>;
   readonly nodes: Map<
     string,
     {
@@ -210,6 +212,13 @@ export interface AuraInfluenceState {
   active: boolean;
   enter: ActionGraphExecutionState | null;
   exit: ActionGraphExecutionState | null;
+}
+
+/** 标签监听保存查询结果和子调用进度；订阅函数由恢复阶段重新绑定。 */
+export interface TagQueryListenerState<State> {
+  active: boolean;
+  matched: boolean;
+  body: State | null;
 }
 
 export type ActionGraphNodeData =
@@ -236,9 +245,13 @@ export type ActionGraphNodeData =
     }
   | { readonly kind: 'graphTargets'; body: ActionGraphExecutionState | null }
   | {
+      readonly kind: 'graphTagListener';
+      readonly target: RuntimeTargetRef | null;
+      readonly listener: TagQueryListenerState<ActionGraphExecutionState>;
+    }
+  | {
       readonly kind: 'graphJump';
       readonly jump: TimelineJumpState;
-      condition: ActionGraphExecutionState | null;
     }
   | GraphLeafStepData
   | { readonly kind: 'repeat'; readonly repetition: RepeatedActionState }
@@ -247,7 +260,6 @@ export type ActionGraphNodeData =
       readonly selection: BranchActionState;
       readonly branches: Map<number, ActionGraphExecutionState>;
     }
-  | { readonly kind: 'graphConditions'; readonly sequences: Map<number, ActionGraphExecutionState> }
   | { readonly kind: 'graphGuard'; body: ActionGraphExecutionState | null };
 
 /** 当前动作按顺序持有的登记；结束时逐项解除，同一动作的多项登记共享寿命。 */

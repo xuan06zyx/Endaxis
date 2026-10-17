@@ -31,6 +31,7 @@ export type CompiledOperatorActiveSkillRuntimeDefinitionSource = Readonly<
     | 'naturalDurationFrames'
     | 'cooldownFrames'
     | 'enhancementStateBuffId'
+    | 'dontInterruptCombo'
   > &
     Required<
       Pick<
@@ -45,6 +46,7 @@ export type CompiledOperatorActiveSkillRuntimeDefinitionSource = Readonly<
 > & {
   /** 原生图标身份，组装干员时转换成独立图片引用。 */
   readonly nativeIconId?: string;
+  readonly normalSkillSubType?: SkillDefinition['normalSkillSubType'];
   readonly actionGraph: ActionGraphResourceDefinition;
   /** 仅供整名技能组装配；生成最终 OperatorDefinition 前必须移除。 */
   readonly allowNextSkillTransitions: CompiledActiveSkillRuntimeProjectionSource['allowNextSkillTransitions'];
@@ -85,6 +87,9 @@ export function compileOperatorActiveSkillRuntimeDefinitionSource(input: {
   );
   const definition: CompiledOperatorActiveSkillRuntimeDefinitionSource = {
     actionGraph: runtime.actionGraph,
+    ...(runtime.normalSkillSubType === undefined
+      ? {}
+      : { normalSkillSubType: runtime.normalSkillSubType }),
     key: input.key,
     ...(input.patch?.iconId ? { nativeIconId: input.patch.iconId } : {}),
     ...(input.patch?.useSkillGroupIcon ? { useSkillGroupIcon: true } : {}),
@@ -99,6 +104,7 @@ export function compileOperatorActiveSkillRuntimeDefinitionSource(input: {
     naturalDurationFrames: Math.max(runtime.durationFrame, 1),
     exclusiveFrame: runtime.exclusiveFrame,
     offsetRecordFrame: runtime.offsetRecordFrame,
+    ...(runtime.dontInterruptCombo ? { dontInterruptCombo: true } : {}),
     allowNextSkillTransitions: runtime.allowNextSkillTransitions,
     ...(runtime.inputWindows === undefined ? {} : { inputWindows: runtime.inputWindows }),
     costFrame,

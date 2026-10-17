@@ -1,4 +1,5 @@
 import type { ActionTargetQuery } from '../../../../packages/game-data-contract/src/conditions';
+import type { EnemyPartTransferInfo } from '../state/foundationState';
 import type { CompiledAbilityEntityChildSkillProgram } from '../../compiler/combatProgram';
 import type { CompiledCondition } from '../../compiler/compiledGraphData';
 import type { CompiledStepParameters } from '../../compiler/compiledGraphData.ts';
@@ -111,11 +112,14 @@ export type RuntimeSkillInterruptReason = 'default' | 'dash' | 'castNextSkill';
 /** CastEnd 在结束时间轴动作期间暴露的唯一技能转场输入。 */
 export interface RuntimeSkillTransition {
   readonly nextSkillId: string;
+  readonly nextCastId?: string;
   readonly attachBuffToNextSkill: (buff: BuffApplicationHandle) => void;
 }
 
 /** 技能运行时把普通操作和条件判断委托给战斗装配层的端口。 */
 export interface CombatOperationContext {
+  /** 当前 Buff 环境保存的部件转交信息；事件信息在求值时优先合并。 */
+  readonly partTransferInfo?: EnemyPartTransferInfo;
   /** 执行动作的技能配置属性，不代表当前命中的属性。 */
   readonly executingSkillElement?: DamageElement;
   /** 当前执行程序/放置块；不能用继承的 originCastId 代替实际宿主。 */
@@ -186,7 +190,7 @@ export interface CombatOperationContext {
   /** 仅由 Buff 生命周期与事件响应提供；Environment 查询精确指向当前实例。 */
   readonly finishCurrentBuff?: (
     reason: BuffFinishReason,
-    sourceId: string,
+    sourceId: string | undefined,
     skillCastInfo: CombatSkillCastInfo | null,
   ) => boolean;
   /** 仅 Buff 环境提供；动作结束解除监听，不清除已记录的 affix 编号。 */
@@ -227,6 +231,12 @@ export interface CombatOperationContext {
 }
 
 export interface CombatOperationExecutor {
+  readonly ownerTagQuery?: (context: CombatOperationContext) => {
+    observe(changed: () => void): () => void;
+    matches(
+      parameters: Pick<CompiledStepParameters['listenForTagQuery'], 'tags' | 'tagQueryType'>,
+    ): boolean;
+  };
   readonly comboWindows?: ComboWindowRuntime;
   readonly queryTargets?: (
     query: ActionTargetQuery,
@@ -291,6 +301,7 @@ type SkillRuntimeDependencies = {
   readonly advancesCooldown?: boolean;
   /** 原生 CastEnd 清理完成后向所有者 AbilitySystem 同步发布 OnSkillEnd。 */
   readonly emitSkillEnd?: (payload: AbilitySkillPayload) => void;
+  readonly onSkillExclusiveTimeExecuted?: (skillId: string) => void;
   readonly emitSkillInterrupted?: (
     payload: AbilitySkillPayload & { reason: RuntimeSkillInterruptReason },
   ) => void;
@@ -563,8 +574,16 @@ export class SkillRuntime {
     return this.#program.offsetRecordFrame;
   }
 
+  get dontInterruptCombo(): boolean {
+    return this.#program.dontInterruptCombo === true;
+  }
+
   get nativeSkillType(): CompiledSkillExecutionProgram['nativeSkillType'] {
     return this.#program.nativeSkillType;
+  }
+
+  get normalSkillSubType(): CompiledSkillExecutionProgram['normalSkillSubType'] {
+    return this.#program.normalSkillSubType;
   }
 
   get timelineBlockFrames(): number | undefined {
@@ -831,8 +850,13 @@ export class SkillRuntime {
         beforeCastStart?.();
         this.#applyCost(true);
       }
+      // 施法旁路的 Buff 必须继承扣费后的施法快照；条件检查时尚未支付费用。
+      // 非施法旁路仍沿用当前技能的身份与消耗，不能换成候选技能。
+      const executionContext = route.asSkillCast
+        ? { ...routeContext, skillCastInfo: this.skillCastInfo }
+        : routeContext;
       this.#sequenceRuntime
-        .createSequence(route.sequence, routeContext)
+        .createSequence(route.sequence, executionContext)
         .executeInstant(this.#context);
       this.record('SkillSwitchedToBuff', { asSkillCast: route.asSkillCast });
       if (route.asSkillCast) this.#emitSkillEnd();
@@ -908,7 +932,18 @@ export class SkillRuntime {
 
   readonly #executionHost: SkillAdvanceHost & SkillTickHost = {
     applyCost: () => this.#applyCost(true),
-    tickTimeline: (frame, delta) => this.#timeline?.tick(frame, delta, this.#context),
+    tickTimeline: (frame, delta) => {
+      // 原生在扣费之后、时间轴之前通知一次可中断边界；与显示块尾无关。
+      if (
+        !this.#execution.executedExclusiveCallback &&
+        this.#program.exclusiveFrame !== undefined &&
+        this.canInterrupt
+      ) {
+        this.#execution.executedExclusiveCallback = true;
+        this.#dependencies.onSkillExclusiveTimeExecuted?.(this.transitionSkillId);
+      }
+      this.#timeline?.tick(frame, delta, this.#context);
+    },
     advanceCooldown: delta => this.#cooldown.advance(delta),
     cooldownReady: () => this.record('SkillCooldownReady'),
     tick: delta => this.#tick(delta),
@@ -951,7 +986,11 @@ export class SkillRuntime {
         finishAttached: () => this.#finishAttachedBuffs(attachedAtEnd),
         finishCooldown: () => this.#cooldown.finishCast(),
         cooldownRefunded: () => this.record('SkillCooldownRefunded'),
-        recordEnded: () => this.record('SkillInterrupted', { reason }),
+        recordEnded: () =>
+          this.record('SkillInterrupted', {
+            reason,
+            ...(transition?.nextCastId === undefined ? {} : { nextCastId: transition.nextCastId }),
+          }),
         emitEnded: () => {
           this.#dependencies.emitSkillInterrupted?.({ ...this.#skillEventPayload(), reason });
           this.#emitSkillEnd();

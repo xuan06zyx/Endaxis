@@ -5,22 +5,490 @@ import type { SkillDefinition } from '../../../packages/game-data-contract/src/s
 import type { SkillBuffDefinition } from '../../../packages/game-data-contract/src/buffs';
 import type { ComboSkillConditionDefinition } from '../../../packages/game-data-contract/src/operators';
 import type { OperatorDefinition } from '../../../packages/game-data-contract/src/operators';
-export const aleshChr_0024_deepfin_attack1ActionGraph = {
+export const aleshChr_0024_deepfin_combo_skillActionGraph = {
   main: {
     nodes: {
-      checkCondition_2: {
+      applyBuff_3: {
         action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_chr_0024_deepfin_combo_camera' }],
+            targets: { kind: 'owner' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+          },
         },
         next: null,
       },
+      dealDamage_4: {
+        action: {
+          kind: 'dealDamage',
+          parameters: {
+            damageType: 'physical',
+            attackScale: { kind: 'valueNode', nodeId: 'data_1' },
+            tags: ['comboSkill'],
+            features: ['canBreakWeakness'],
+            stagger: { kind: 'valueNode', nodeId: 'data_2' },
+          },
+        },
+        next: null,
+      },
+      mergeContextTargets_5: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: {
+            saveToContextKey: 'combo_tar',
+            sources: [{ kind: 'target', target: 'enemy' }],
+          },
+        },
+        next: 'dealDamage_4',
+      },
+      dealDamage_6: {
+        action: {
+          kind: 'dealDamage',
+          parameters: {
+            damageType: 'physical',
+            attackScale: { kind: 'valueNode', nodeId: 'data_3' },
+            tags: ['comboSkill'],
+            features: ['canBreakWeakness'],
+            stagger: { kind: 'valueNode', nodeId: 'data_2' },
+          },
+        },
+        next: null,
+      },
+      mergeContextTargets_7: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: {
+            saveToContextKey: 'combo_tar',
+            sources: [{ kind: 'target', target: 'enemy' }],
+          },
+        },
+        next: 'dealDamage_6',
+      },
+      changeResource_8: {
+        action: {
+          kind: 'changeResource',
+          parameters: {
+            resource: 'sp',
+            amount: { kind: 'valueNode', nodeId: 'data_4' },
+            coefficient: { kind: 'constant', value: 1 },
+            source: { kind: 'source' },
+            targets: { kind: 'source' },
+            spGainKind: 'gain',
+            spGainSource: 'default',
+          },
+        },
+        next: 'mergeContextTargets_7',
+      },
+      startTimeDilation_11: {
+        action: {
+          kind: 'startTimeDilation',
+          parameters: {
+            scope: 'entity',
+            durationSeconds: { kind: 'constant', value: 0.3 },
+            slot: 'TimeDilation/Layer/Entity/HitStop',
+            priority: 10,
+            curve: { kind: 'named', key: 'deepfin_combo2' },
+            finishByAction: false,
+            targets: ['enemy', 'caster'],
+          },
+        },
+        next: null,
+      },
+      startTimeDilation_10: {
+        action: {
+          kind: 'startTimeDilation',
+          parameters: {
+            scope: 'entity',
+            durationSeconds: { kind: 'constant', value: 0.95 },
+            slot: 'TimeDilation/Layer/Entity/HitStop',
+            priority: 10,
+            curve: { kind: 'named', key: 'deepfin_combo2' },
+            finishByAction: false,
+            targets: ['enemy', 'caster'],
+          },
+        },
+        next: null,
+      },
+      ifElse_12: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_5' },
+          whenTrue: { $sequence: 'startTimeDilation_10' },
+          whenFalse: { $sequence: 'startTimeDilation_11' },
+        },
+        next: null,
+      },
+      changeResource_13: {
+        action: {
+          kind: 'changeResource',
+          parameters: {
+            resource: 'ultimateEnergy',
+            amount: { kind: 'valueNode', nodeId: 'data_6' },
+            coefficient: { kind: 'constant', value: 1 },
+            source: { kind: 'source' },
+            targets: { kind: 'source' },
+            onlyMainOperator: true,
+          },
+        },
+        next: 'ifElse_12',
+      },
+      ifElse_14: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_7' },
+          whenTrue: { $sequence: 'changeResource_13' },
+          whenFalse: { $sequence: null },
+        },
+        next: null,
+      },
+      dealDamage_21: {
+        action: {
+          kind: 'dealDamage',
+          parameters: {
+            damageType: 'physical',
+            attackScale: { kind: 'valueNode', nodeId: 'data_8' },
+            tags: ['comboSkill'],
+          },
+        },
+        next: null,
+      },
+      mergeContextTargets_22: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: {
+            saveToContextKey: 'combo_tar_1',
+            sources: [{ kind: 'target', target: 'enemy' }],
+          },
+        },
+        next: 'dealDamage_21',
+      },
+      changeResource_23: {
+        action: {
+          kind: 'changeResource',
+          parameters: {
+            resource: 'sp',
+            amount: { kind: 'valueNode', nodeId: 'data_9' },
+            coefficient: { kind: 'constant', value: 1 },
+            source: { kind: 'source' },
+            targets: { kind: 'source' },
+            spGainKind: 'gain',
+            spGainSource: 'skill',
+          },
+        },
+        next: 'mergeContextTargets_22',
+      },
+      jumpTimeline_24: {
+        action: {
+          kind: 'jumpTimeline',
+          parameters: { destinationFrame: 120 },
+          condition: { kind: 'conditionNode', nodeId: 'data_10' },
+        },
+        next: null,
+      },
+      dealDamage_25: {
+        action: {
+          kind: 'dealDamage',
+          parameters: {
+            damageType: 'physical',
+            attackScale: { kind: 'valueNode', nodeId: 'data_11' },
+            tags: ['comboSkill'],
+          },
+        },
+        next: null,
+      },
+      mergeContextTargets_26: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: {
+            saveToContextKey: 'combo_tar_1',
+            sources: [{ kind: 'target', target: 'enemy' }],
+          },
+        },
+        next: 'dealDamage_25',
+      },
+      changeResource_27: {
+        action: {
+          kind: 'changeResource',
+          parameters: {
+            resource: 'sp',
+            amount: { kind: 'valueNode', nodeId: 'data_9' },
+            coefficient: { kind: 'constant', value: 1 },
+            source: { kind: 'source' },
+            targets: { kind: 'source' },
+            spGainKind: 'gain',
+            spGainSource: 'skill',
+          },
+        },
+        next: 'mergeContextTargets_26',
+      },
+      jumpTimeline_31: {
+        action: {
+          kind: 'jumpTimeline',
+          parameters: { destinationFrame: 65 },
+          condition: { kind: 'conditionNode', nodeId: 'data_12' },
+        },
+        next: null,
+      },
+      checkCondition_32: {
+        action: {
+          kind: 'checkCondition',
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_14' } },
+        },
+        next: 'jumpTimeline_31',
+      },
+      checkCondition_30: {
+        action: {
+          kind: 'checkCondition',
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_16' } },
+        },
+        next: 'jumpTimeline_31',
+      },
+      ifElse_33: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_19' },
+          whenTrue: { $sequence: 'checkCondition_30' },
+          whenFalse: { $sequence: 'checkCondition_32' },
+        },
+        next: null,
+      },
+      storeSourceAttributeValue_34: {
+        action: {
+          kind: 'storeSourceAttributeValue',
+          parameters: {
+            attribute: { kind: 'secondary' },
+            stage: 'finalNonConverted',
+            useFloor: false,
+            divisor: { kind: 'constant', value: 1 },
+            multiplier: { kind: 'valueNode', nodeId: 'data_20' },
+            base: { kind: 'valueNode', nodeId: 'data_15' },
+            targetKey: 'prob',
+          },
+        },
+        next: 'ifElse_33',
+      },
+      calculateActionValue_35: {
+        action: {
+          kind: 'calculateActionValue',
+          parameters: {
+            key: 'prob_add',
+            operation: 'divide',
+            left: { kind: 'valueNode', nodeId: 'data_20' },
+            right: { kind: 'valueNode', nodeId: 'data_21' },
+          },
+        },
+        next: 'storeSourceAttributeValue_34',
+      },
+      calculateActionValue_36: {
+        action: {
+          kind: 'calculateActionValue',
+          parameters: {
+            key: 'prob_max',
+            operation: 'add',
+            left: { kind: 'valueNode', nodeId: 'data_15' },
+            right: { kind: 'valueNode', nodeId: 'data_13' },
+          },
+        },
+        next: 'calculateActionValue_35',
+      },
+      applyBuff_38: {
+        action: {
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [
+              {
+                buffId: 'buff_chr_0024_deepfin_potential_3',
+                copiedBlackboardAssignments: { atk_up: 'atk_up', duration: 'Duration' },
+              },
+            ],
+            targets: { kind: 'context', key: 'team' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+          },
+        },
+        next: null,
+      },
+      findTargets_39: {
+        action: {
+          kind: 'findTargets',
+          parameters: {
+            owner: { kind: 'owner' },
+            query: { kind: 'characterTeam', excludeOwner: false, owner: { kind: 'owner' } },
+            saveToContextKey: 'team',
+          },
+        },
+        next: 'applyBuff_38',
+      },
+      ifElse_40: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_23' },
+          whenTrue: { $sequence: 'findTargets_39' },
+          whenFalse: { $sequence: null },
+        },
+        next: null,
+      },
+      checkCondition_41: {
+        action: {
+          kind: 'checkCondition',
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_24' } },
+        },
+        next: null,
+      },
+      ifElse_42: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_25' },
+          whenTrue: { $sequence: null },
+          whenFalse: { $sequence: null },
+        },
+        next: null,
+      },
+    },
+    dataNodes: {
+      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_2' } },
+      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
+      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_2ex' } },
+      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atb_sp' } },
+      data_5: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
+      data_6: { type: 'number', expression: { kind: 'blackboard', key: 'usp_normal' } },
+      data_7: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_1' } },
+      data_9: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_10: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_11: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_1ex' } },
+      data_12: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_13: { type: 'number', expression: { kind: 'blackboard', key: 'prob_max' } },
+      data_14: {
+        type: 'boolean',
+        expression: { kind: 'probability', probability: { kind: 'valueNode', nodeId: 'data_13' } },
+      },
+      data_15: { type: 'number', expression: { kind: 'blackboard', key: 'prob' } },
+      data_16: {
+        type: 'boolean',
+        expression: { kind: 'probability', probability: { kind: 'valueNode', nodeId: 'data_15' } },
+      },
+      data_17: { type: 'number', expression: { kind: 'blackboard', key: 'prob', fallback: 0 } },
+      data_18: { type: 'number', expression: { kind: 'blackboard', key: 'prob_max', fallback: 0 } },
+      data_19: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_17' },
+          operator: 'lessOrEqual',
+          right: { kind: 'valueNode', nodeId: 'data_18' },
+        },
+      },
+      data_20: { type: 'number', expression: { kind: 'blackboard', key: 'prob_add' } },
+      data_21: { type: 'number', expression: { kind: 'blackboard', key: 'rate' } },
+      data_22: {
+        type: 'number',
+        expression: { kind: 'blackboard', key: 'potential_3', fallback: 0 },
+      },
+      data_23: {
+        type: 'boolean',
+        expression: {
+          kind: 'actionValueCompare',
+          left: { kind: 'valueNode', nodeId: 'data_22' },
+          operator: 'greaterOrEqual',
+          right: { kind: 'constant', value: 1 },
+        },
+      },
+      data_24: {
+        type: 'boolean',
+        expression: { kind: 'probability', probability: { kind: 'constant', value: 0.5 } },
+      },
+      data_25: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: 'checkCondition_41' } },
+      },
+    },
+  },
+  macros: {},
+} as const satisfies ActionGraphResourceDefinition;
+
+export const aleshChr_0024_deepfin_combo_skill: SkillDefinition = {
+  key: 'chr_0024_deepfin_combo_skill',
+  element: 'physical',
+  blackboard: {
+    atb: [10, 10, 10, 10, 10, 12, 12, 12, 12, 13, 13, 15],
+    atb_sp: 10,
+    atk_scale_1: [0.33, 0.37, 0.4, 0.43, 0.47, 0.5, 0.53, 0.57, 0.6, 0.64, 0.69, 0.75],
+    atk_scale_1ex: [0.53, 0.59, 0.64, 0.69, 0.75, 0.8, 0.85, 0.91, 0.96, 1.03, 1.11, 1.2],
+    atk_scale_2: [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.93, 2.08, 2.25],
+    atk_scale_2ex: [1.6, 1.76, 1.92, 2.08, 2.24, 2.4, 2.56, 2.72, 2.88, 3.08, 3.32, 3.6],
+    atk_up: 0.15,
+    Duration: 10,
+    poise: 10,
+    potential_3: 0,
+    prob: 0.1,
+    prob_add: 0,
+    prob_max: 0,
+    rate: 10,
+    usp_normal: 10,
+  },
+  timelineBlockFrames: 131,
+  naturalDurationFrames: 213,
+  exclusiveFrame: 130,
+  offsetRecordFrame: 0,
+  dontInterruptCombo: true,
+  inputWindows: {
+    allowedNextSkills: [
+      { startFrame: 39, endFrame: 65, skillIds: ['chr_0024_deepfin_normal_skill'] },
+      { startFrame: 94, endFrame: 120, skillIds: ['chr_0024_deepfin_normal_skill'] },
+      { startFrame: 120, endFrame: 130, skillIds: ['chr_0024_deepfin_normal_skill'] },
+    ],
+  },
+  costFrame: 0,
+  scheduledSequences: [
+    { startFrame: 0, endFrame: 23, sequence: { $sequence: 'applyBuff_3' } },
+    { startFrame: 38, endFrame: 41, sequence: { $sequence: 'mergeContextTargets_5' } },
+    { startFrame: 93, endFrame: 96, sequence: { $sequence: 'changeResource_8' } },
+    { startFrame: 38, endFrame: 43, sequence: { $sequence: 'ifElse_14' } },
+    { startFrame: 93, endFrame: 98, sequence: { $sequence: 'ifElse_14' } },
+    { startFrame: 22, endFrame: 24, sequence: { $sequence: 'changeResource_23' } },
+    { startFrame: 64, endFrame: 66, sequence: { $sequence: 'jumpTimeline_24' } },
+    { startFrame: 77, endFrame: 79, sequence: { $sequence: 'changeResource_27' } },
+    { startFrame: 10, endFrame: 11, sequence: { $sequence: 'calculateActionValue_36' } },
+    { startFrame: 93, endFrame: 96, sequence: { $sequence: 'ifElse_40' } },
+    { startFrame: 34, endFrame: 75, sequence: { $sequence: 'ifElse_42' } },
+  ],
+  smartTarget: 'trigger',
+  cooldownFrames: [270, 270, 270, 270, 270, 270, 270, 270, 270, 270, 270, 240],
+  skillType: 'comboSkill',
+  levelSource: 'comboSkill',
+  nativeSkillType: 'comboSkill',
+  actionGraph: aleshChr_0024_deepfin_combo_skillActionGraph,
+};
+
+export const aleshChr_0024_deepfin_attack1ActionGraph = {
+  main: {
+    nodes: {
       changeResource_3: {
         action: {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_2' },
+            amount: { kind: 'valueNode', nodeId: 'data_1' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -49,7 +517,7 @@ export const aleshChr_0024_deepfin_attack1ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_2' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'startTimeDilation_4' },
           whenFalse: { $sequence: null },
         },
@@ -75,8 +543,11 @@ export const aleshChr_0024_deepfin_attack1ActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
     },
   },
@@ -121,19 +592,12 @@ export const aleshChr_0024_deepfin_attack1: SkillDefinition = {
 export const aleshChr_0024_deepfin_attack2ActionGraph = {
   main: {
     nodes: {
-      checkCondition_2: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       changeResource_3: {
         action: {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_2' },
+            amount: { kind: 'valueNode', nodeId: 'data_1' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -162,7 +626,7 @@ export const aleshChr_0024_deepfin_attack2ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_2' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'startTimeDilation_4' },
           whenFalse: { $sequence: null },
         },
@@ -210,8 +674,11 @@ export const aleshChr_0024_deepfin_attack2ActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
       data_4: {
         type: 'boolean',
@@ -290,19 +757,12 @@ export const aleshChr_0024_deepfin_attack3ActionGraph = {
         },
         next: 'startTimeDilation_2',
       },
-      checkCondition_4: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       changeResource_5: {
         action: {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_3' },
+            amount: { kind: 'valueNode', nodeId: 'data_2' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -316,7 +776,7 @@ export const aleshChr_0024_deepfin_attack3ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_4' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'changeResource_5' },
           whenFalse: { $sequence: null },
         },
@@ -353,8 +813,11 @@ export const aleshChr_0024_deepfin_attack3ActionGraph = {
           value: 1,
         },
       },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_3: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
     },
   },
@@ -430,18 +893,11 @@ export const aleshChr_0024_deepfin_attack4ActionGraph = {
         },
         next: 'changeResource_2',
       },
-      checkCondition_4: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_5: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'startTimeDilation_3' },
           whenFalse: { $sequence: null },
         },
@@ -451,7 +907,7 @@ export const aleshChr_0024_deepfin_attack4ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_4' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'ifElse_5' },
           whenFalse: { $sequence: null },
         },
@@ -462,7 +918,7 @@ export const aleshChr_0024_deepfin_attack4ActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_3' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_4' },
             tags: ['normalAttack'],
           },
         },
@@ -478,8 +934,15 @@ export const aleshChr_0024_deepfin_attack4ActionGraph = {
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_3: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
+      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
     },
   },
   macros: {},
@@ -542,16 +1005,9 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'startTimeDilation_2' },
           whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
-      checkCondition_3: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
         },
         next: null,
       },
@@ -559,7 +1015,7 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'ifElse_4' },
           whenFalse: { $sequence: null },
         },
@@ -570,9 +1026,9 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_2' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_3' },
             tags: ['normalAttack', 'normalAttackLastCombo'],
-            stagger: { kind: 'valueNode', nodeId: 'data_3' },
+            stagger: { kind: 'valueNode', nodeId: 'data_4' },
             staggerOnlyWhenCasterControlled: true,
           },
         },
@@ -583,7 +1039,7 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_4' },
+            amount: { kind: 'valueNode', nodeId: 'data_5' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -612,7 +1068,7 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_6' },
           whenTrue: { $sequence: 'startTimeDilation_9' },
           whenFalse: { $sequence: null },
         },
@@ -622,7 +1078,7 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_7' },
           whenTrue: { $sequence: 'ifElse_11' },
           whenFalse: { $sequence: null },
         },
@@ -633,7 +1089,7 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_2' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_3' },
             tags: ['normalAttack'],
             stagger: { kind: 'constant', value: 0 },
             staggerOnlyWhenCasterControlled: true,
@@ -650,10 +1106,25 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
-      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
-      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
+      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
+      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
+      data_5: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_6: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_7: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
     },
   },
   macros: {},
@@ -729,18 +1200,11 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
         },
         next: 'changeResource_2',
       },
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       ifElse_4: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'startTimeDilation_3' },
           whenFalse: { $sequence: null },
         },
@@ -778,18 +1242,11 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
         },
         next: null,
       },
-      checkCondition_8: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
       ifElse_10: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_8' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'startTimeDilation_9' },
           whenFalse: { $sequence: null },
         },
@@ -799,7 +1256,7 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: 'gainFinisherSp_7' },
           whenFalse: { $sequence: null },
         },
@@ -810,7 +1267,7 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
           kind: 'dealDamage',
           parameters: {
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_4' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_5' },
             calculation: 'breakingAttack',
             calculationMultiplier: 1,
             tags: ['normalAttack', 'powerAttack'],
@@ -836,14 +1293,14 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
       checkCondition_14: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
         },
         next: 'startTimeDilation_13',
       },
       checkCondition_15: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_7' } },
         },
         next: 'checkCondition_14',
       },
@@ -875,7 +1332,10 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_1: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale1' } },
       data_3: {
         type: 'boolean',
@@ -888,8 +1348,12 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
           value: 1,
         },
       },
-      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale2' } },
-      data_5: {
+      data_4: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
+      data_5: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale2' } },
+      data_6: {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
@@ -900,7 +1364,10 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
           value: 1,
         },
       },
-      data_6: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_7: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
     },
   },
   macros: {},
@@ -917,6 +1384,7 @@ export const aleshChr_0024_deepfin_power_attack: SkillDefinition = {
   naturalDurationFrames: 113,
   exclusiveFrame: 75,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   inputWindows: {
     allowedNextSkills: [
       {
@@ -944,19 +1412,12 @@ export const aleshChr_0024_deepfin_power_attack: SkillDefinition = {
 export const aleshChr_0024_deepfin_plunging_attack_endActionGraph = {
   main: {
     nodes: {
-      checkCondition_2: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       changeResource_3: {
         action: {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_2' },
+            amount: { kind: 'valueNode', nodeId: 'data_1' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -970,7 +1431,7 @@ export const aleshChr_0024_deepfin_plunging_attack_endActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_2' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'changeResource_3' },
           whenFalse: { $sequence: null },
         },
@@ -989,8 +1450,11 @@ export const aleshChr_0024_deepfin_plunging_attack_endActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
       data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
     },
   },
@@ -1031,18 +1495,11 @@ export const aleshChr_0024_deepfin_normal_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_7: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
-        },
-        next: null,
-      },
       ifElse_9: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_7' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: 'modifyActionValue_8' },
           whenFalse: { $sequence: null },
         },
@@ -1201,18 +1658,11 @@ export const aleshChr_0024_deepfin_normal_skillActionGraph = {
         },
         next: 'calculateActionValue_24',
       },
-      checkCondition_20: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_12' } },
-        },
-        next: null,
-      },
       ifElse_27: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_20' },
+          condition: { kind: 'conditionNode', nodeId: 'data_12' },
           whenTrue: { $sequence: 'calculateActionValue_25' },
           whenFalse: { $sequence: 'switch_26' },
         },
@@ -1233,18 +1683,11 @@ export const aleshChr_0024_deepfin_normal_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_28: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_13' } },
-        },
-        next: null,
-      },
       ifElse_30: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_28' },
+          condition: { kind: 'conditionNode', nodeId: 'data_13' },
           whenTrue: { $sequence: 'startTimeDilation_29' },
           whenFalse: { $sequence: null },
         },
@@ -1296,7 +1739,7 @@ export const aleshChr_0024_deepfin_normal_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_16' },
           whenTrue: { $sequence: 'applyBuff_33' },
           whenFalse: { $sequence: null },
         },
@@ -1309,8 +1752,8 @@ export const aleshChr_0024_deepfin_normal_skillActionGraph = {
             target: 'enemy',
             element: 'cryo',
             consumedElement: 'cryo',
-            consumedLayers: { kind: 'valueNode', nodeId: 'data_16' },
-            count: { kind: 'valueNode', nodeId: 'data_16' },
+            consumedLayers: { kind: 'valueNode', nodeId: 'data_17' },
+            count: { kind: 'valueNode', nodeId: 'data_17' },
             isExtra: false,
           },
         },
@@ -1331,18 +1774,11 @@ export const aleshChr_0024_deepfin_normal_skillActionGraph = {
         },
         next: 'forceSpellStatus_36',
       },
-      checkCondition_35: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_17' } },
-        },
-        next: null,
-      },
       ifElse_38: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_35' },
+          condition: { kind: 'conditionNode', nodeId: 'data_18' },
           whenTrue: { $sequence: 'readBuffStackCount_37' },
           whenFalse: { $sequence: null },
         },
@@ -1411,16 +1847,21 @@ export const aleshChr_0024_deepfin_normal_skillActionGraph = {
       },
       data_14: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
       data_15: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
-      data_16: { type: 'number', expression: { kind: 'blackboard', key: 'count' } },
-      data_17: {
+      data_16: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_17: { type: 'number', expression: { kind: 'blackboard', key: 'count' } },
+      data_18: {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: 'enemy',
-          tagQueryType: 'hasAny',
-          buffTags: ['Skill/Character/Common/SpellInflict/CrystInflict'],
+          target: { kind: 'fixed', target: 'enemy' },
+          compareZeroWhenTargetMissing: false,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          tagQueryType: 'hasAny',
+          buffTags: ['Skill/Character/Common/SpellInflict/CrystInflict'],
         },
       },
     },
@@ -1448,6 +1889,7 @@ export const aleshChr_0024_deepfin_normal_skill: SkillDefinition = {
   naturalDurationFrames: 126,
   exclusiveFrame: 50,
   offsetRecordFrame: 0,
+  dontInterruptCombo: true,
   costFrame: 0,
   scheduledSequences: [
     { startFrame: 27, endFrame: 28, sequence: { $sequence: 'repeatEachTick_11' } },
@@ -1464,482 +1906,6 @@ export const aleshChr_0024_deepfin_normal_skill: SkillDefinition = {
   actionGraph: aleshChr_0024_deepfin_normal_skillActionGraph,
 };
 
-export const aleshChr_0024_deepfin_combo_skillActionGraph = {
-  main: {
-    nodes: {
-      applyBuff_3: {
-        action: {
-          kind: 'applyBuff',
-          parameters: {
-            buffs: [{ buffId: 'buff_chr_0024_deepfin_combo_camera' }],
-            targets: { kind: 'owner' },
-            source: { kind: 'source' },
-            inheritSourceSkillCastInfo: true,
-          },
-        },
-        next: null,
-      },
-      dealDamage_4: {
-        action: {
-          kind: 'dealDamage',
-          parameters: {
-            damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-            tags: ['comboSkill'],
-            features: ['canBreakWeakness'],
-            stagger: { kind: 'valueNode', nodeId: 'data_2' },
-          },
-        },
-        next: null,
-      },
-      mergeContextTargets_5: {
-        action: {
-          kind: 'mergeContextTargets',
-          parameters: {
-            saveToContextKey: 'combo_tar',
-            sources: [{ kind: 'target', target: 'enemy' }],
-          },
-        },
-        next: 'dealDamage_4',
-      },
-      dealDamage_6: {
-        action: {
-          kind: 'dealDamage',
-          parameters: {
-            damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_3' },
-            tags: ['comboSkill'],
-            features: ['canBreakWeakness'],
-            stagger: { kind: 'valueNode', nodeId: 'data_2' },
-          },
-        },
-        next: null,
-      },
-      mergeContextTargets_7: {
-        action: {
-          kind: 'mergeContextTargets',
-          parameters: {
-            saveToContextKey: 'combo_tar',
-            sources: [{ kind: 'target', target: 'enemy' }],
-          },
-        },
-        next: 'dealDamage_6',
-      },
-      changeResource_8: {
-        action: {
-          kind: 'changeResource',
-          parameters: {
-            resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_4' },
-            coefficient: { kind: 'constant', value: 1 },
-            source: { kind: 'source' },
-            targets: { kind: 'source' },
-            spGainKind: 'gain',
-            spGainSource: 'default',
-          },
-        },
-        next: 'mergeContextTargets_7',
-      },
-      startTimeDilation_11: {
-        action: {
-          kind: 'startTimeDilation',
-          parameters: {
-            scope: 'entity',
-            durationSeconds: { kind: 'constant', value: 0.3 },
-            slot: 'TimeDilation/Layer/Entity/HitStop',
-            priority: 10,
-            curve: { kind: 'named', key: 'deepfin_combo2' },
-            finishByAction: false,
-            targets: ['enemy', 'caster'],
-          },
-        },
-        next: null,
-      },
-      startTimeDilation_10: {
-        action: {
-          kind: 'startTimeDilation',
-          parameters: {
-            scope: 'entity',
-            durationSeconds: { kind: 'constant', value: 0.95 },
-            slot: 'TimeDilation/Layer/Entity/HitStop',
-            priority: 10,
-            curve: { kind: 'named', key: 'deepfin_combo2' },
-            finishByAction: false,
-            targets: ['enemy', 'caster'],
-          },
-        },
-        next: null,
-      },
-      checkCondition_9: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
-        },
-        next: null,
-      },
-      ifElse_12: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_9' },
-          whenTrue: { $sequence: 'startTimeDilation_10' },
-          whenFalse: { $sequence: 'startTimeDilation_11' },
-        },
-        next: null,
-      },
-      changeResource_13: {
-        action: {
-          kind: 'changeResource',
-          parameters: {
-            resource: 'ultimateEnergy',
-            amount: { kind: 'valueNode', nodeId: 'data_6' },
-            coefficient: { kind: 'constant', value: 1 },
-            source: { kind: 'source' },
-            targets: { kind: 'source' },
-            onlyMainOperator: true,
-          },
-        },
-        next: 'ifElse_12',
-      },
-      ifElse_14: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: null },
-          whenTrue: { $sequence: 'changeResource_13' },
-          whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
-      dealDamage_21: {
-        action: {
-          kind: 'dealDamage',
-          parameters: {
-            damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_7' },
-            tags: ['comboSkill'],
-          },
-        },
-        next: null,
-      },
-      mergeContextTargets_22: {
-        action: {
-          kind: 'mergeContextTargets',
-          parameters: {
-            saveToContextKey: 'combo_tar_1',
-            sources: [{ kind: 'target', target: 'enemy' }],
-          },
-        },
-        next: 'dealDamage_21',
-      },
-      changeResource_23: {
-        action: {
-          kind: 'changeResource',
-          parameters: {
-            resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_8' },
-            coefficient: { kind: 'constant', value: 1 },
-            source: { kind: 'source' },
-            targets: { kind: 'source' },
-            spGainKind: 'gain',
-            spGainSource: 'skill',
-          },
-        },
-        next: 'mergeContextTargets_22',
-      },
-      jumpTimeline_24: {
-        action: {
-          kind: 'jumpTimeline',
-          parameters: { destinationFrame: 120 },
-          condition: { $sequence: null },
-        },
-        next: null,
-      },
-      dealDamage_25: {
-        action: {
-          kind: 'dealDamage',
-          parameters: {
-            damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_9' },
-            tags: ['comboSkill'],
-          },
-        },
-        next: null,
-      },
-      mergeContextTargets_26: {
-        action: {
-          kind: 'mergeContextTargets',
-          parameters: {
-            saveToContextKey: 'combo_tar_1',
-            sources: [{ kind: 'target', target: 'enemy' }],
-          },
-        },
-        next: 'dealDamage_25',
-      },
-      changeResource_27: {
-        action: {
-          kind: 'changeResource',
-          parameters: {
-            resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_8' },
-            coefficient: { kind: 'constant', value: 1 },
-            source: { kind: 'source' },
-            targets: { kind: 'source' },
-            spGainKind: 'gain',
-            spGainSource: 'skill',
-          },
-        },
-        next: 'mergeContextTargets_26',
-      },
-      jumpTimeline_31: {
-        action: {
-          kind: 'jumpTimeline',
-          parameters: { destinationFrame: 65 },
-          condition: { $sequence: null },
-        },
-        next: null,
-      },
-      checkCondition_32: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_11' } },
-        },
-        next: 'jumpTimeline_31',
-      },
-      checkCondition_30: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_13' } },
-        },
-        next: 'jumpTimeline_31',
-      },
-      checkCondition_28: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_16' } },
-        },
-        next: null,
-      },
-      ifElse_33: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_28' },
-          whenTrue: { $sequence: 'checkCondition_30' },
-          whenFalse: { $sequence: 'checkCondition_32' },
-        },
-        next: null,
-      },
-      storeSourceAttributeValue_34: {
-        action: {
-          kind: 'storeSourceAttributeValue',
-          parameters: {
-            attribute: { kind: 'secondary' },
-            stage: 'finalNonConverted',
-            useFloor: false,
-            divisor: { kind: 'constant', value: 1 },
-            multiplier: { kind: 'valueNode', nodeId: 'data_17' },
-            base: { kind: 'valueNode', nodeId: 'data_12' },
-            targetKey: 'prob',
-          },
-        },
-        next: 'ifElse_33',
-      },
-      calculateActionValue_35: {
-        action: {
-          kind: 'calculateActionValue',
-          parameters: {
-            key: 'prob_add',
-            operation: 'divide',
-            left: { kind: 'valueNode', nodeId: 'data_17' },
-            right: { kind: 'valueNode', nodeId: 'data_18' },
-          },
-        },
-        next: 'storeSourceAttributeValue_34',
-      },
-      calculateActionValue_36: {
-        action: {
-          kind: 'calculateActionValue',
-          parameters: {
-            key: 'prob_max',
-            operation: 'add',
-            left: { kind: 'valueNode', nodeId: 'data_12' },
-            right: { kind: 'valueNode', nodeId: 'data_10' },
-          },
-        },
-        next: 'calculateActionValue_35',
-      },
-      applyBuff_38: {
-        action: {
-          kind: 'applyBuff',
-          parameters: {
-            buffs: [
-              {
-                buffId: 'buff_chr_0024_deepfin_potential_3',
-                copiedBlackboardAssignments: { atk_up: 'atk_up', duration: 'Duration' },
-              },
-            ],
-            targets: { kind: 'context', key: 'team' },
-            source: { kind: 'source' },
-            inheritSourceSkillCastInfo: true,
-          },
-        },
-        next: null,
-      },
-      findTargets_39: {
-        action: {
-          kind: 'findTargets',
-          parameters: {
-            owner: { kind: 'owner' },
-            query: { kind: 'characterTeam', excludeOwner: false, owner: { kind: 'owner' } },
-            saveToContextKey: 'team',
-          },
-        },
-        next: 'applyBuff_38',
-      },
-      checkCondition_37: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_20' } },
-        },
-        next: null,
-      },
-      ifElse_40: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_37' },
-          whenTrue: { $sequence: 'findTargets_39' },
-          whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
-      checkCondition_41: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_21' } },
-        },
-        next: null,
-      },
-      ifElse_42: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_41' },
-          whenTrue: { $sequence: null },
-          whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
-    },
-    dataNodes: {
-      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_2' } },
-      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'poise' } },
-      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_2ex' } },
-      data_4: { type: 'number', expression: { kind: 'blackboard', key: 'atb_sp' } },
-      data_5: { type: 'boolean', expression: { kind: 'casterControlled' } },
-      data_6: { type: 'number', expression: { kind: 'blackboard', key: 'usp_normal' } },
-      data_7: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_1' } },
-      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
-      data_9: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale_1ex' } },
-      data_10: { type: 'number', expression: { kind: 'blackboard', key: 'prob_max' } },
-      data_11: {
-        type: 'boolean',
-        expression: { kind: 'probability', probability: { kind: 'valueNode', nodeId: 'data_10' } },
-      },
-      data_12: { type: 'number', expression: { kind: 'blackboard', key: 'prob' } },
-      data_13: {
-        type: 'boolean',
-        expression: { kind: 'probability', probability: { kind: 'valueNode', nodeId: 'data_12' } },
-      },
-      data_14: { type: 'number', expression: { kind: 'blackboard', key: 'prob', fallback: 0 } },
-      data_15: { type: 'number', expression: { kind: 'blackboard', key: 'prob_max', fallback: 0 } },
-      data_16: {
-        type: 'boolean',
-        expression: {
-          kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_14' },
-          operator: 'lessOrEqual',
-          right: { kind: 'valueNode', nodeId: 'data_15' },
-        },
-      },
-      data_17: { type: 'number', expression: { kind: 'blackboard', key: 'prob_add' } },
-      data_18: { type: 'number', expression: { kind: 'blackboard', key: 'rate' } },
-      data_19: {
-        type: 'number',
-        expression: { kind: 'blackboard', key: 'potential_3', fallback: 0 },
-      },
-      data_20: {
-        type: 'boolean',
-        expression: {
-          kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_19' },
-          operator: 'greaterOrEqual',
-          right: { kind: 'constant', value: 1 },
-        },
-      },
-      data_21: {
-        type: 'boolean',
-        expression: { kind: 'probability', probability: { kind: 'constant', value: 0.5 } },
-      },
-    },
-  },
-  macros: {},
-} as const satisfies ActionGraphResourceDefinition;
-
-export const aleshChr_0024_deepfin_combo_skill: SkillDefinition = {
-  key: 'chr_0024_deepfin_combo_skill',
-  element: 'physical',
-  blackboard: {
-    atb: [10, 10, 10, 10, 10, 12, 12, 12, 12, 13, 13, 15],
-    atb_sp: 10,
-    atk_scale_1: [0.33, 0.37, 0.4, 0.43, 0.47, 0.5, 0.53, 0.57, 0.6, 0.64, 0.69, 0.75],
-    atk_scale_1ex: [0.53, 0.59, 0.64, 0.69, 0.75, 0.8, 0.85, 0.91, 0.96, 1.03, 1.11, 1.2],
-    atk_scale_2: [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.93, 2.08, 2.25],
-    atk_scale_2ex: [1.6, 1.76, 1.92, 2.08, 2.24, 2.4, 2.56, 2.72, 2.88, 3.08, 3.32, 3.6],
-    atk_up: 0.15,
-    Duration: 10,
-    poise: 10,
-    potential_3: 0,
-    prob: 0.1,
-    prob_add: 0,
-    prob_max: 0,
-    rate: 10,
-    usp_normal: 10,
-  },
-  timelineBlockFrames: 131,
-  naturalDurationFrames: 213,
-  exclusiveFrame: 130,
-  offsetRecordFrame: 0,
-  inputWindows: {
-    allowedNextSkills: [
-      { startFrame: 39, endFrame: 65, skillIds: ['chr_0024_deepfin_normal_skill'] },
-      { startFrame: 94, endFrame: 120, skillIds: ['chr_0024_deepfin_normal_skill'] },
-      { startFrame: 120, endFrame: 130, skillIds: ['chr_0024_deepfin_normal_skill'] },
-    ],
-  },
-  costFrame: 0,
-  scheduledSequences: [
-    { startFrame: 0, endFrame: 23, sequence: { $sequence: 'applyBuff_3' } },
-    { startFrame: 38, endFrame: 41, sequence: { $sequence: 'mergeContextTargets_5' } },
-    { startFrame: 93, endFrame: 96, sequence: { $sequence: 'changeResource_8' } },
-    { startFrame: 38, endFrame: 43, sequence: { $sequence: 'ifElse_14' } },
-    { startFrame: 93, endFrame: 98, sequence: { $sequence: 'ifElse_14' } },
-    { startFrame: 22, endFrame: 24, sequence: { $sequence: 'changeResource_23' } },
-    { startFrame: 64, endFrame: 66, sequence: { $sequence: 'jumpTimeline_24' } },
-    { startFrame: 77, endFrame: 79, sequence: { $sequence: 'changeResource_27' } },
-    { startFrame: 10, endFrame: 11, sequence: { $sequence: 'calculateActionValue_36' } },
-    { startFrame: 93, endFrame: 96, sequence: { $sequence: 'ifElse_40' } },
-    { startFrame: 34, endFrame: 75, sequence: { $sequence: 'ifElse_42' } },
-  ],
-  smartTarget: 'trigger',
-  cooldownFrames: [270, 270, 270, 270, 270, 270, 270, 270, 270, 270, 270, 240],
-  skillType: 'comboSkill',
-  levelSource: 'comboSkill',
-  nativeSkillType: 'comboSkill',
-  actionGraph: aleshChr_0024_deepfin_combo_skillActionGraph,
-};
-
 export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
   main: {
     nodes: {
@@ -1953,7 +1919,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
             priority: 10,
             curve: { kind: 'named', key: 'RESETto1' },
             finishByAction: false,
-            targets: ['caster'],
+            targets: [{ kind: 'owner' }],
           },
         },
         next: null,
@@ -2001,7 +1967,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_5' },
+          condition: { kind: 'conditionNode', nodeId: 'data_8' },
           whenTrue: { $sequence: 'calculateActionValue_8' },
           whenFalse: { $sequence: 'dealDamage_10' },
         },
@@ -2035,7 +2001,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_9' },
           whenTrue: { $sequence: 'applyElementalInfliction_13' },
           whenFalse: { $sequence: null },
         },
@@ -2046,7 +2012,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_8' },
+            amount: { kind: 'valueNode', nodeId: 'data_10' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -2061,7 +2027,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
           kind: 'changeResource',
           parameters: {
             resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_9' },
+            amount: { kind: 'valueNode', nodeId: 'data_11' },
             coefficient: { kind: 'constant', value: 1 },
             source: { kind: 'source' },
             targets: { kind: 'source' },
@@ -2071,18 +2037,11 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_15: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_11' } },
-        },
-        next: null,
-      },
       ifElse_18: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_15' },
+          condition: { kind: 'conditionNode', nodeId: 'data_13' },
           whenTrue: { $sequence: 'changeResource_16' },
           whenFalse: { $sequence: 'changeResource_17' },
         },
@@ -2094,7 +2053,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
           parameters: {
             key: 'atb_up',
             operation: 'add',
-            value: { kind: 'valueNode', nodeId: 'data_12' },
+            value: { kind: 'valueNode', nodeId: 'data_14' },
           },
         },
         next: 'ifElse_18',
@@ -2105,7 +2064,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
           parameters: {
             key: 'atb_up',
             operation: 'multiply',
-            value: { kind: 'valueNode', nodeId: 'data_13' },
+            value: { kind: 'valueNode', nodeId: 'data_15' },
           },
         },
         next: 'modifyActionValue_19',
@@ -2114,7 +2073,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_16' },
           whenTrue: { $sequence: 'modifyActionValue_20' },
           whenFalse: { $sequence: null },
         },
@@ -2139,7 +2098,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_17' },
           whenTrue: { $sequence: 'startTimeDilation_22' },
           whenFalse: { $sequence: null },
         },
@@ -2148,7 +2107,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
       checkCondition_24: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_14' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_18' } },
         },
         next: 'ifElse_23',
       },
@@ -2187,7 +2146,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'healthCompare',
-          target: 'enemy',
+          target: { kind: 'fixed', target: 'enemy' },
           valueType: 'ratio',
           operator: 'lessOrEqual',
           value: { kind: 'valueNode', nodeId: 'data_4' },
@@ -2206,21 +2165,40 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
           right: { kind: 'constant', value: 1 },
         },
       },
-      data_8: { type: 'number', expression: { kind: 'blackboard', key: 'atb_max' } },
-      data_9: { type: 'number', expression: { kind: 'blackboard', key: 'atb_up' } },
-      data_10: { type: 'number', expression: { kind: 'blackboard', key: 'atb_up', fallback: 0 } },
-      data_11: {
+      data_8: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: 'checkCondition_5' } },
+      },
+      data_9: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_10: { type: 'number', expression: { kind: 'blackboard', key: 'atb_max' } },
+      data_11: { type: 'number', expression: { kind: 'blackboard', key: 'atb_up' } },
+      data_12: { type: 'number', expression: { kind: 'blackboard', key: 'atb_up', fallback: 0 } },
+      data_13: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_10' },
+          left: { kind: 'valueNode', nodeId: 'data_12' },
           operator: 'lessOrEqual',
           right: { kind: 'constant', value: 100 },
         },
       },
-      data_12: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
-      data_13: { type: 'number', expression: { kind: 'blackboard', key: 'kill_num' } },
-      data_14: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_14: { type: 'number', expression: { kind: 'blackboard', key: 'atb' } },
+      data_15: { type: 'number', expression: { kind: 'blackboard', key: 'kill_num' } },
+      data_16: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_17: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: null } },
+      },
+      data_18: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'source' } },
+      },
     },
   },
   macros: {},
@@ -2304,6 +2282,28 @@ export const aleshCommon_character_perfect_dodge: SkillDefinition = {
   nativeSkillType: 'dodge',
 };
 
+export const aleshChr_0024_deepfin_plunging_attack_startActionGraph = {
+  main: { nodes: {} },
+  macros: {},
+} as const satisfies ActionGraphResourceDefinition;
+
+export const aleshChr_0024_deepfin_plunging_attack_start: SkillDefinition = {
+  actionGraph: aleshChr_0024_deepfin_plunging_attack_startActionGraph,
+  key: 'chr_0024_deepfin_plunging_attack_start',
+  element: 'physical',
+  blackboard: {},
+  timelineBlockFrames: 1501,
+  naturalDurationFrames: 1513,
+  exclusiveFrame: 1500,
+  offsetRecordFrame: 0,
+  costFrame: 0,
+  scheduledSequences: [],
+  defaultTarget: 'enemy',
+  skillType: 'plungingAttack',
+  nativeSkillType: 'attack',
+  levelSource: 'basicAttack',
+};
+
 const aleshComboCondition1ActionGraph = {
   main: {
     nodes: {
@@ -2333,7 +2333,11 @@ const aleshComboCondition1ActionGraph = {
       },
       data_2: {
         type: 'boolean',
-        expression: { kind: 'actionInputTargetObjectTypeMatch', objectTypes: ['enemy'] },
+        expression: {
+          kind: 'targetObjectTypeMatch',
+          target: { kind: 'inputTarget' },
+          objectTypes: ['enemy'],
+        },
       },
     },
   },
@@ -2375,7 +2379,11 @@ const aleshComboCondition2ActionGraph = {
       },
       data_2: {
         type: 'boolean',
-        expression: { kind: 'actionInputTargetObjectTypeMatch', objectTypes: ['enemy'] },
+        expression: {
+          kind: 'targetObjectTypeMatch',
+          target: { kind: 'inputTarget' },
+          objectTypes: ['enemy'],
+        },
       },
     },
   },
@@ -2526,8 +2534,8 @@ const aleshBuff3ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'timedMarkerPresent',
+          target: { kind: 'source' },
           returnTrueIfNotExists: true,
-          target: 'caster',
           markerId: 'talent',
         },
       },
@@ -2543,8 +2551,8 @@ const aleshBuff3ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'timedMarkerPresent',
+          target: { kind: 'source' },
           returnTrueIfNotExists: true,
-          target: 'caster',
           markerId: 'talent',
         },
       },
@@ -2664,8 +2672,8 @@ const aleshBuff4ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'timedMarkerPresent',
+          target: { kind: 'source' },
           returnTrueIfNotExists: true,
-          target: 'caster',
           markerId: 'talent',
         },
       },
@@ -2707,33 +2715,53 @@ export const alesh: OperatorDefinition = {
     baseAttack: [30, 90, 152, 215, 277, 309],
     baseHealth: [500, 1566, 2689, 3811, 4934, 5495],
   },
+  skills: [
+    aleshChr_0024_deepfin_combo_skill,
+    aleshChr_0024_deepfin_attack1,
+    aleshChr_0024_deepfin_attack2,
+    aleshChr_0024_deepfin_attack3,
+    aleshChr_0024_deepfin_attack4,
+    aleshChr_0024_deepfin_attack5,
+    aleshChr_0024_deepfin_power_attack,
+    aleshChr_0024_deepfin_plunging_attack_end,
+    aleshChr_0024_deepfin_normal_skill,
+    aleshChr_0024_deepfin_ultimate_skill,
+    aleshCommon_character_perfect_dodge,
+    aleshChr_0024_deepfin_plunging_attack_start,
+  ],
   skillGroups: [
     {
       key: 'basicAttack',
       operationType: 'basicAttack',
-      skills: [
-        aleshChr_0024_deepfin_attack1,
-        aleshChr_0024_deepfin_attack2,
-        aleshChr_0024_deepfin_attack3,
-        aleshChr_0024_deepfin_attack4,
-        aleshChr_0024_deepfin_attack5,
+      skillIds: [
+        'chr_0024_deepfin_attack1',
+        'chr_0024_deepfin_attack2',
+        'chr_0024_deepfin_attack3',
+        'chr_0024_deepfin_attack4',
+        'chr_0024_deepfin_attack5',
       ],
     },
-    { key: 'finisher', operationType: 'finisher', skills: aleshChr_0024_deepfin_power_attack },
+    { key: 'finisher', operationType: 'finisher', skillIds: ['chr_0024_deepfin_power_attack'] },
     {
       key: 'plungingAttack',
       operationType: 'plungingAttack',
-      skills: aleshChr_0024_deepfin_plunging_attack_end,
+      skillIds: ['chr_0024_deepfin_plunging_attack_end'],
     },
     {
       key: 'battleSkill',
       operationType: 'battleSkill',
-      skills: aleshChr_0024_deepfin_normal_skill,
+      skillIds: ['chr_0024_deepfin_normal_skill'],
     },
-    { key: 'comboSkill', operationType: 'comboSkill', skills: aleshChr_0024_deepfin_combo_skill },
-    { key: 'ultimate', operationType: 'ultimate', skills: aleshChr_0024_deepfin_ultimate_skill },
+    { key: 'comboSkill', operationType: 'comboSkill', skillIds: ['chr_0024_deepfin_combo_skill'] },
+    { key: 'ultimate', operationType: 'ultimate', skillIds: ['chr_0024_deepfin_ultimate_skill'] },
   ],
-  dodgeSkill: aleshCommon_character_perfect_dodge,
+  dodgeSkillId: 'common_character_perfect_dodge',
+  plungingAttack: {
+    startSkillId: 'chr_0024_deepfin_plunging_attack_start',
+    endSkillId: 'chr_0024_deepfin_plunging_attack_end',
+    startDurationSeconds: 0.633,
+    endDurationSeconds: 2,
+  },
   dashBuffs: [
     { buffId: 'buff_common_dash', blackboard: { dodgeSkillId: 'common_character_perfect_dodge' } },
   ],

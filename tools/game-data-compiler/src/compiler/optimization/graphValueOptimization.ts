@@ -143,12 +143,17 @@ function pruneUnobservedConditionComputations<Value>(
   const outsideConditions = scope.conditions;
   for (const [id, node] of Object.entries(graph.nodes)) {
     const action = node.action;
-    if (action.kind !== 'ifElse' || action.key !== undefined || !action.parameters.alwaysNext)
+    if (
+      action.kind !== 'ifElse' ||
+      action.condition.kind !== 'checkActionResult' ||
+      action.key !== undefined ||
+      !action.parameters.alwaysNext
+    )
       continue;
     const pruneBranches = action.whenTrue.$sequence !== action.whenFalse.$sequence;
     const region = pruneBranches
-      ? [action.condition, action.whenTrue, action.whenFalse]
-      : [action.condition];
+      ? [action.condition.action, action.whenTrue, action.whenFalse]
+      : [action.condition.action];
     const writes = new Set<string>();
     let safe = true;
     const regionWrites: { path: string; key: string }[] = [];
@@ -157,14 +162,14 @@ function pruneUnobservedConditionComputations<Value>(
         safe = false;
         return;
       }
-      if (step.kind === 'ifElse') return;
-      if (step.kind === 'checkCondition') {
-        const condition = step.parameters.condition;
+      if (step.kind === 'ifElse' && step.condition.kind === 'checkActionResult') return;
+      if (step.kind === 'checkCondition' || step.kind === 'ifElse') {
+        const condition = step.kind === 'ifElse' ? step.condition : step.parameters.condition;
         if (
           ![
             'constant',
             'actionValueCompare',
-            'casterControlled',
+            'checkMainCharacter',
             'comboCameraAlphaSetting',
             'entityCountCompare',
             'targetDistance',
@@ -223,7 +228,7 @@ function pruneUnobservedConditionComputations<Value>(
           ...node,
           action: {
             ...action,
-            condition: { $sequence: null },
+            condition: { kind: 'checkActionResult' as const, action: { $sequence: null } },
             ...(pruneBranches
               ? { whenTrue: { $sequence: null }, whenFalse: { $sequence: null } }
               : {}),
@@ -234,7 +239,7 @@ function pruneUnobservedConditionComputations<Value>(
     // 从全部真实入口分析。共享调用、事件和继承接收方仍会看到这些写入，不能一起剪掉。
     const outside = mergeDefinitionValueUsage([
       ...entries.map(entry => analyzeGraphSequenceUsage(candidate, entry, context)),
-      ...outsideConditions.map(analyzeConditionUsage),
+      ...outsideConditions.map(condition => analyzeConditionUsage(condition)),
     ]);
     if (
       outside.unknownAccess ||
@@ -363,14 +368,29 @@ export function pruneGraphValues<Value>(
       }
       case 'anyCondition':
         action.conditions.forEach((condition, index) =>
-          collectReference(condition, `${path}.conditions[${index}]`),
+          observe(
+            analyzeConditionUsage(condition, reference => {
+              collectReference(reference, `${path}.conditions[${index}].action`);
+              return EMPTY_USAGE;
+            }),
+          ),
         );
         return;
       case 'jumpTimeline':
-        collectReference(action.condition, `${path}.condition`);
+        observe(
+          analyzeConditionUsage(action.condition, reference => {
+            collectReference(reference, `${path}.condition.action`);
+            return EMPTY_USAGE;
+          }),
+        );
         return;
       case 'ifElse':
-        collectReference(action.condition, `${path}.condition`);
+        observe(
+          analyzeConditionUsage(action.condition, reference => {
+            collectReference(reference, `${path}.condition.action`);
+            return EMPTY_USAGE;
+          }),
+        );
         collectReference(
           action.whenTrue,
           `${path}.whenTrue`,
@@ -430,6 +450,9 @@ export function pruneGraphValues<Value>(
       case 'repeatEachTick':
       case 'forEachContextTarget':
         collectReference(action.body, `${path}.body`);
+        return;
+      case 'listenForTagQuery':
+        collectReference(action.parameters.sequence, `${path}.parameters.sequence`, false);
         return;
       case 'listenForCombatEvents':
         action.parameters.responses.forEach((response, responseIndex) => {
@@ -557,12 +580,17 @@ export function pruneGraphValues<Value>(
             connect(branch, after);
           }
           if (action.kind === 'ifElse') {
-            if (action.condition.$sequence !== null) edges.add(action.condition.$sequence);
-            connect(action.condition, [
-              ...after,
-              ...branches.flatMap(branch => (branch.$sequence === null ? [] : [branch.$sequence])),
-            ]);
-            reads.set(id, new Set());
+            const usage = analyzeConditionUsage(action.condition, reference => {
+              if (reference.$sequence !== null) edges.add(reference.$sequence);
+              connect(reference, [
+                ...after,
+                ...branches.flatMap(branch =>
+                  branch.$sequence === null ? [] : [branch.$sequence],
+                ),
+              ]);
+              return EMPTY_USAGE;
+            });
+            reads.set(id, new Set([...usage.reads, ...usage.writes]));
           } else {
             const usage = analyzeConditionUsage(action.parameters.condition);
             reads.set(id, new Set([...usage.reads, ...usage.writes]));
@@ -580,17 +608,27 @@ export function pruneGraphValues<Value>(
             ]).reads,
           );
         } else if (action.kind === 'anyCondition') {
-          action.conditions.forEach((condition, index) => {
-            if (condition.$sequence !== null) edges.add(condition.$sequence);
-            // 条件成功直接返回，失败才继续后续条件；两种去向都必须保留。
-            connect(condition, [
-              ...after,
-              ...action.conditions
-                .slice(index + 1)
-                .flatMap(next => (next.$sequence === null ? [] : [next.$sequence])),
-            ]);
+          const references = action.conditions.map(condition => {
+            const calls: ActionGraphReference[] = [];
+            visitActionGraphReferences(condition, reference => calls.push(reference));
+            return calls;
           });
-          reads.set(id, new Set());
+          const usages = action.conditions.map((condition, index) =>
+            analyzeConditionUsage(condition, reference => {
+              if (reference.$sequence !== null) edges.add(reference.$sequence);
+              // 成功直接返回，失败继续后续输入；保守保留两种去向。
+              connect(reference, [
+                ...after,
+                ...references
+                  .slice(index)
+                  .flat()
+                  .flatMap(next => (next.$sequence === null ? [] : [next.$sequence])),
+              ]);
+              return EMPTY_USAGE;
+            }),
+          );
+          const usage = mergeDefinitionValueUsage(usages);
+          reads.set(id, new Set([...usage.reads, ...usage.writes]));
         } else if (action.kind === 'once' || action.kind === 'forEachContextTarget') {
           if (action.body.$sequence !== null) edges.add(action.body.$sequence);
           const repeats =
@@ -947,9 +985,8 @@ export interface GraphSequenceSource {
 
 /** 跨资源用途保留对象查询，不能把同名的 Buff 键与实体后备板键混为同一变量。 */
 export interface GraphSharedEntityValueUsage {
-  /** Buff 执行可能访问宿主后备板，读写均保守保留。 */
-  readonly fallbackKeys: ReadonlySet<string>;
   readonly externalReads: readonly DefinitionExternalValueRead[];
+  /** 收集阶段的诊断摘要；不表示所有资源都可能访问当前黑板，不能用作全局裁剪门禁。 */
   readonly unknownAccess: boolean;
   readonly commonAbilityEntityDefinitions: OperatorAbilityEntityDefinitions;
 }
@@ -1009,7 +1046,6 @@ export function collectGraphSharedEntityValueUsage(
 export function createGraphSharedEntityValueUsageCollector(
   commonAbilityEntityDefinitions: OperatorAbilityEntityDefinitions,
 ): GraphSharedEntityValueUsageCollector {
-  const fallbackKeys = new Set<string>();
   const externalReads = new Map<string, DefinitionExternalValueRead>();
   const observeExternal = (read: DefinitionExternalValueRead) => {
     externalReads.set(JSON.stringify(read), read);
@@ -1022,19 +1058,7 @@ export function createGraphSharedEntityValueUsageCollector(
   const observedSequences = new WeakMap<ActionGraphDefinition, WeakSet<ActionGraphReference>>();
   const observedBuffs = new WeakSet<object>();
   const observedEntities = new WeakSet<object>();
-  const observe = (
-    usage: DefinitionValueUsage,
-    directValues?: Readonly<Record<string, unknown>>,
-  ) => {
-    if (directValues !== undefined) {
-      // Buff 自有初值遮蔽实体后备板；EntityBB_ 写入仍显式路由到实体板。
-      usage.reads.forEach(key => {
-        if (!Object.hasOwn(directValues, key)) fallbackKeys.add(key);
-      });
-      usage.writes.forEach(key => {
-        if (key.startsWith('EntityBB_') || !Object.hasOwn(directValues, key)) fallbackKeys.add(key);
-      });
-    }
+  const observe = (usage: DefinitionValueUsage) => {
     usage.externalReads.forEach(observeExternal);
     unknownAccess ||= usage.unknownAccess;
   };
@@ -1070,7 +1094,7 @@ export function createGraphSharedEntityValueUsageCollector(
   const buff = (value: OperatorBuffDefinitions[string]) => {
     if (observedBuffs.has(value)) return;
     observedBuffs.add(value);
-    observe(analyzeGraphBuffDefinitionUsage(value, fallbackContext), value.blackboard ?? {});
+    observe(analyzeGraphBuffDefinitionUsage(value, fallbackContext));
     const { graph, entries } = graphBuffPrograms(value);
     entries.forEach(entry => program(graph, entry));
   };
@@ -1108,10 +1132,6 @@ export function createGraphSharedEntityValueUsageCollector(
       handler.scheduledSequences.forEach(item => sequence({ graph, entry: item.sequence }));
     });
   };
-  const skills = (values: SkillDefinition | readonly SkillDefinition[]) => {
-    if ('key' in values) skill(values);
-    else values.forEach(skill);
-  };
   const upgrade = (value: OperatorUpgradeDefinition) => {
     const graph = value.actionGraph?.main;
     program(graph, value.initializationSequence);
@@ -1128,12 +1148,7 @@ export function createGraphSharedEntityValueUsageCollector(
     });
   };
   const operator = (value: OperatorDefinition) => {
-    value.skillGroups.forEach(group => {
-      skills(group.skills);
-      group.variants?.forEach(variant => skills(variant.skills));
-      group.replacementSkills?.forEach(skill);
-      group.routedReplacementSkills?.forEach(route => skill(route.skill));
-    });
+    value.skills.forEach(skill);
     value.talents.forEach(upgrade);
     value.potentials.forEach(upgrade);
     value.passiveSkills?.forEach(item => passive(item));
@@ -1179,13 +1194,11 @@ export function createGraphSharedEntityValueUsageCollector(
       requireOpen();
       if (usage.commonAbilityEntityDefinitions !== commonAbilityEntityDefinitions)
         throw new Error('entity value usage summaries must share the same common entity catalog');
-      usage.fallbackKeys.forEach(key => fallbackKeys.add(key));
       usage.externalReads.forEach(observeExternal);
       unknownAccess ||= usage.unknownAccess;
     },
     finish() {
       result ??= {
-        fallbackKeys,
         externalReads: [...externalReads]
           .sort(([left], [right]) => left.localeCompare(right))
           .map(([, read]) => read),
@@ -1204,16 +1217,11 @@ export function createGraphSharedEntityValueUsageCollector(
 export function createGraphEntityUsageContext(
   definitions: OperatorAbilityEntityDefinitions | undefined,
   shared: GraphSharedEntityValueUsage | undefined,
+  buffDefinitions: OperatorBuffDefinitions = {},
 ): DefinitionUsageContext | undefined {
   if (shared === undefined) return undefined;
   const cache = new WeakMap<AbilityEntityDefinition, DefinitionValueUsage>();
   const visiting = new WeakSet<AbilityEntityDefinition>();
-  const sharedUsage: DefinitionValueUsage = {
-    ...empty(),
-    // 实体传值仍保守保护全部对象读取；Buff 的精确用途不能反过来使用这个合并集合。
-    reads: new Set([...shared.fallbackKeys, ...shared.externalReads.map(read => read.key)]),
-    unknownAccess: shared.unknownAccess,
-  };
   const unresolved = (): DefinitionValueUsage => ({ ...empty(), unknownAccess: true });
   const context: DefinitionUsageContext = {
     inheritedAbilityEntityUsage(step) {
@@ -1225,7 +1233,14 @@ export function createGraphEntityUsageContext(
       if (previous !== undefined) return previous;
       visiting.add(definition);
       try {
-        const usages = [sharedUsage];
+        const usages: DefinitionValueUsage[] = [];
+        // 只保护明确指向这个能力实体的读取；Buff 自有键不能仅因同名保护实体键。
+        for (const read of shared.externalReads) {
+          if (read.kind !== 'abilityEntity') continue;
+          if (read.abilityEntityIds === undefined) return unresolved();
+          if (read.abilityEntityIds.includes(id))
+            usages.push({ ...empty(), reads: new Set([read.key]) });
+        }
         const number = (value: AbilityEntityDefinition['maxStackingCount']) => {
           if (typeof value === 'object')
             usages.push(
@@ -1238,10 +1253,65 @@ export function createGraphEntityUsageContext(
         };
         if (definition.lifetime.kind === 'limited') number(definition.lifetime.durationSeconds);
         number(definition.maxStackingCount);
+        const visitedBuffs = new Set<string>();
         const program = (
           graph: ActionGraphDefinition,
           reference: ActionGraphReference,
-        ): DefinitionValueUsage => analyzeGraphSequenceUsage(graph, reference, context);
+          stringBindings: Readonly<Record<string, unknown>> = {},
+        ): DefinitionValueUsage => {
+          const usage = analyzeGraphSequenceUsage(graph, reference, context);
+          const dependencies: DefinitionValueUsage[] = [usage];
+          walkGraphActions(graph, reference, action => {
+            if (action.kind === 'createGlobalBuff') dependencies.push(unresolved());
+            if (action.kind !== 'applyBuff' && action.kind !== 'aura') return;
+            for (const entry of action.parameters.buffs) {
+              const buffId =
+                typeof entry.buffId === 'string'
+                  ? entry.buffId
+                  : 'blackboardKey' in entry.buffId
+                    ? stringBindings[entry.buffId.blackboardKey]
+                    : undefined;
+              if (typeof buffId !== 'string') {
+                dependencies.push(unresolved());
+                continue;
+              }
+              const bindingKey = JSON.stringify([
+                buffId,
+                entry.stringBlackboardAssignments,
+                Object.keys(entry.blackboardAssignments ?? {}).sort(),
+                Object.keys(entry.copiedBlackboardAssignments ?? {}).sort(),
+              ]);
+              if (visitedBuffs.has(bindingKey)) continue;
+              visitedBuffs.add(bindingKey);
+              const buff = buffDefinitions[buffId];
+              if (buff === undefined) {
+                dependencies.push(unresolved());
+                continue;
+              }
+              // 仅沿实际施加的 Buff 闭包保护后备读取；保守保留其自有键，
+              // 但不让无关 Buff 或其他干员的同名键阻止当前实体裁剪。
+              const buffUsage = analyzeGraphBuffDefinitionUsage(buff, context);
+              dependencies.push(buffUsage);
+              // 只解析定义初值及本次显式字符串赋值。被动作写入或被其他赋值覆盖的键
+              // 不作为固定 ID 证明；不能把默认值当作所有运行实例的值。
+              const bindings: Record<string, unknown> = {
+                ...buff.blackboard,
+                ...entry.stringBlackboardAssignments,
+              };
+              for (const key of [
+                ...buffUsage.writes,
+                ...Object.keys(entry.blackboardAssignments ?? {}),
+                ...Object.keys(entry.copiedBlackboardAssignments ?? {}),
+              ])
+                delete bindings[key];
+              const body = graphBuffPrograms(buff);
+              if (body.graph !== undefined)
+                for (const entry of body.entries)
+                  dependencies.push(program(body.graph, entry, bindings));
+            }
+          });
+          return mergeDefinitionValueUsage(dependencies);
+        };
         definition.childSkill?.scheduledSequences.forEach(item =>
           usages.push(program(definition.childSkill!.actionGraph.main, item.sequence)),
         );

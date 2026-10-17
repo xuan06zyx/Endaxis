@@ -100,6 +100,9 @@ export function compileSkillProgram(
     ...(input.skill.nativeSkillType === undefined
       ? {}
       : { nativeSkillType: input.skill.nativeSkillType }),
+    ...(input.skill.normalSkillSubType === undefined
+      ? {}
+      : { normalSkillSubType: input.skill.normalSkillSubType }),
     skillLevel: input.skillLevel,
     ...(input.skill.skillType === 'dodge' ? {} : { element: input.skill.element ?? 'physical' }),
     initialBlackboard,
@@ -124,6 +127,7 @@ export function compileSkillProgram(
       ? {}
       : { offsetRecordFrame: input.skill.offsetRecordFrame }),
     ...(input.skill.inputWindows === undefined ? {} : { inputWindows: input.skill.inputWindows }),
+    ...(input.skill.dontInterruptCombo ? { dontInterruptCombo: true } : {}),
     ...(cooldownFrames === undefined ? {} : { cooldownFrames }),
     ...(input.skill.costFrame === undefined ? {} : { costFrame: input.skill.costFrame }),
     costs,

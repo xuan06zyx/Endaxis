@@ -523,7 +523,10 @@
       "talents": "Talents",
       "potentials": "Potentials",
       "passiveSkills": "Passive skills",
-      "dodgeSkill": "Dodge skill",
+      "dodgeSkillId": "Dodge skill",
+      "startSkillId": "Starting skill",
+      "endSkillId": "Landing skill",
+      "skillIds": "Skill segments",
       "blackboard": "Initial variables",
       "entityBlackboard": "Initial entity variables",
       "traits": "Traits",
@@ -572,6 +575,7 @@
       "naturalDurationFrames": "Natural skill duration (frames)",
       "exclusiveFrame": "Uninterruptible frames",
       "offsetRecordFrame": "Combo record frame",
+      "dontInterruptCombo": "Preserve basic attack chain",
       "inputWindows": "Input windows",
       "commandMappings": "Basic attack input mapping",
       "input": "Input command",
@@ -610,7 +614,7 @@
       "igniteEventResponses": "Ignite responses",
       "placementSequenceSkillKeys": "Sequential skills",
       "replacementSkills": "Replacement skills",
-      "routedReplacementSkills": "Cross-group routed skills",
+      "routedReplacementSkills": "Skill execution routes",
       "presentationVariants": "Presentation forms"
     },
     "focusSubtree": "Focus this subtree",
@@ -640,6 +644,20 @@
     "noMatchingNodes": "No matching nodes",
     "addNode": "Add Node…",
     "options": {
+      "fixed": "Fixed damage",
+      "definite": "Definite",
+      "none": "None",
+      "final": "Final",
+      "real": "Actual",
+      "overflow": "Overflow",
+      "specificTime": "Specified time",
+      "lifetime": "Lifetime ended",
+      "stackEvicted": "Stack eviction",
+      "sourceDied": "Source died",
+      "targetDied": "Target died",
+      "soulMainBodyDied": "Soul main body died",
+      "normal": "Normal",
+      "additionalNormalSkill": "Additional battle skill",
       "first": "First target",
       "all": "All targets",
       "allOperators": "All operators",
@@ -843,6 +861,49 @@
     "scopeUnknown": "Not connected; scope unknown",
     "searchNodes": "Search nodes",
     "fields": {
+      "replacePartsWithMainBodies": {
+        "name": "Replace parts with main bodies"
+      },
+      "excludeTargets": {
+        "name": "Excluded targets"
+      },
+      "caster": {
+        "name": "Caster"
+      },
+      "calculationValue": {
+        "name": "Calculation value"
+      },
+      "calculationValueScale": {
+        "name": "Calculation value multiplier"
+      },
+      "slotIndex": {
+        "name": "Squad slot"
+      },
+      "defaultValue": {
+        "name": "Default value"
+      },
+      "minimum": {
+        "name": "Minimum (inclusive)"
+      },
+      "maximum": {
+        "name": "Maximum (exclusive)"
+      },
+      "emitters": {
+        "name": "Emitters"
+      },
+      "executeOnMatch": {
+        "name": "Execute on match"
+      },
+      "sequence": {
+        "name": "Action sequence"
+      },
+      "normalSkillSubType": {
+        "name": "Battle skill subtype"
+      },
+      "action": {
+        "name": "Execute Actions",
+        "help": "The behavior entry called during evaluation. Connect it using the behavior pin on the canvas."
+      },
       "variableKey": {
         "name": "Variable name",
         "help": "Choose a variable available in the current scope. Local variables can only be read and written within their own scope."
@@ -896,6 +957,22 @@
       "callbacks": {
         "name": "Projectile callbacks",
         "help": "Complete callback skills started when the projectile hits, is blocked, reaches, or finishes."
+      },
+      "startHeightOffset": {
+        "name": "Start Height Offset",
+        "help": "Upward offset from the queried object's position."
+      },
+      "maxDistance": {
+        "name": "Maximum Distance",
+        "help": "Maximum distance to cast downwards for the ground."
+      },
+      "whenHit": {
+        "name": "On Ground Hit",
+        "help": "Actions to execute when the cast hits the ground."
+      },
+      "whenMiss": {
+        "name": "On Ground Miss",
+        "help": "Actions to execute when the cast misses the ground."
       },
       "saveToContextKey": {
         "name": "Save to Target Group",
@@ -1639,6 +1716,14 @@
         "name": "Parent Targets",
         "help": "Look for the child targets in this group."
       },
+      "first": {
+        "name": "First Targets",
+        "help": "First query result used in the equality comparison."
+      },
+      "second": {
+        "name": "Second Targets",
+        "help": "Second query result used in the equality comparison."
+      },
       "child": {
         "name": "Object to Find",
         "help": "Object to find in the group."
@@ -1778,6 +1863,38 @@
       "number": "Value"
     },
     "nodes": {
+      "saveTransferredSource": {
+        "name": "Save transferred source",
+        "help": "Save the transferred part of the first source target to a target group. Keep the original target when no transfer is recorded."
+      },
+      "findCharacterBySquadSlot": {
+        "name": "Find squad slot character",
+        "help": "Save the character in the specified squad slot to a target group."
+      },
+      "storeCharacterTypeBySquadSlot": {
+        "name": "Read squad slot element",
+        "help": "Write the element of the character in the specified squad slot to the blackboard."
+      },
+      "storeEventDamageValue": {
+        "name": "Read event damage",
+        "help": "Write the selected damage event value to the blackboard, or zero without context."
+      },
+      "storeRandomInteger": {
+        "name": "Store random integer",
+        "help": "Sample an integer from inclusive lower and exclusive upper bounds and write it to the blackboard."
+      },
+      "listenForTagQuery": {
+        "name": "Listen for tag matches",
+        "help": "Observe tag query changes and run callbacks for the matching state."
+      },
+      "eventAbilityEntityFinishReasonIn": {
+        "name": "Check ability entity finish reason",
+        "help": "Check whether the current ability entity finish reason matches."
+      },
+      "eventBuffEnhanceLayerCompare": {
+        "name": "Compare Buff enhancement layers",
+        "help": "Compare the layer count in the current Buff enhancement change event."
+      },
       "triggerSpellBurst": {
         "name": "Trigger Arts Burst",
         "help": "Trigger an Arts Burst of the selected element."
@@ -2042,13 +2159,21 @@
         "name": "Check Condition",
         "help": "Continue this sequence only when the check succeeds."
       },
+      "physicsCast": {
+        "name": "Ground Raycast",
+        "help": "Cast downwards from above each queried object, store the ground hit in the target context, and run the hit or miss branch."
+      },
+      "checkActionResult": {
+        "name": "Check Action Result",
+        "help": "Execute the connected action sequence when this input is read and return whether it allows continuation. Never evaluate early or cache the result."
+      },
       "ifElse": {
         "name": "If Else",
-        "help": "Execute the condition sequence, then the true or false branch. Condition actions may read and write variables."
+        "help": "Read the boolean condition, then execute the true or false branch. Connect Check Action Result to run actions when evaluating the condition."
       },
       "anyCondition": {
         "name": "Any Condition",
-        "help": "Execute each condition sequence in order until one succeeds. Fail if none succeeds."
+        "help": "Read boolean conditions in order until one is true. Fail if none is true. Connect Check Action Result to run actions when evaluating a condition."
       },
       "invertNextResult": {
         "name": "Invert Next Result",
@@ -2154,9 +2279,9 @@
         "name": "Single Enemy?",
         "help": "Check whether a single enemy is present."
       },
-      "casterControlled": {
-        "name": "Caster Controlled?",
-        "help": "Check whether the caster is the controlled operator."
+      "checkMainCharacter": {
+        "name": "Check Main Character",
+        "help": "Check whether the specified target is the currently controlled operator."
       },
       "characterTypeIn": {
         "name": "Element Type Matches?",
@@ -2214,33 +2339,13 @@
         "name": "Check Entity Count",
         "help": "Count entities selected by the query. Optionally exclude dead entities and store the count when the comparison succeeds."
       },
-      "contextTargetObjectTypeMatch": {
-        "name": "Target Group Type Matches?",
-        "help": "Pass if any object in the group has a listed type."
+      "targetObjectTypeMatch": {
+        "name": "Target Object Type Matches?",
+        "help": "Pass when any queried target matches the specified object type."
       },
-      "actionInputTargetObjectTypeMatch": {
-        "name": "Input Target Type Matches?",
-        "help": "Check the type of the target received by this action."
-      },
-      "actionInputTargetIdentityMatch": {
-        "name": "Input Target Matches?",
-        "help": "Compare the input target’s identity with the selected object."
-      },
-      "contextTargetIdentityMatch": {
-        "name": "Target Group Matches?",
-        "help": "Compare the first target or all targets. A missing first target does not match; all-target comparison requires both groups to contain each other."
-      },
-      "contextTargetEntityTagMatch": {
-        "name": "All Target Tags Match?",
-        "help": "Check tags on every entity in the group. A group without valid entities fails."
-      },
-      "contextTargetBuffStackCompare": {
-        "name": "Compare First Target Buff Stacks",
-        "help": "Count tagged Buff stacks on the first target. An empty group fails."
-      },
-      "contextTargetBuffIdStackCompare": {
-        "name": "Compare First Target Named Buff",
-        "help": "Count selected Buff stacks on the first target. An empty group fails."
+      "targetsEqual": {
+        "name": "Target Sets Match?",
+        "help": "Check that both target sets contain each other, ignoring order and duplicates. Two empty sets match."
       },
       "abilityEntityRemainingDurationCompare": {
         "name": "Compare Entity Time Remaining",
@@ -2270,17 +2375,13 @@
         "name": "Global Cooldown Active?",
         "help": "Check whether the named global cooldown is still active."
       },
-      "casterComboPending": {
+      "comboSkillPending": {
         "name": "Combo Pending?",
         "help": "Check for a pending combo. Other cast requirements may still fail."
       },
       "timedMarkerPresent": {
         "name": "Timed Marker Present?",
         "help": "Check for an active named marker on the target."
-      },
-      "abilityEntityTimedMarkerPresent": {
-        "name": "Entity Marker Present?",
-        "help": "Check the current entity or selected entity group for an active marker."
       },
       "eventDamageTagsMatch": {
         "name": "Event Damage Categories Match?",
@@ -2289,6 +2390,10 @@
       "eventDamageGameplayTagsMatch": {
         "name": "Event Damage Tags Match?",
         "help": "Check effect tags carried by the event damage."
+      },
+      "eventTransferredPartTagsMatch": {
+        "name": "Transferred Part Tags Match?",
+        "help": "Check the part mapped to the current main body in the event. Save the part target only on success; otherwise preserve the existing target group."
       },
       "eventDamageFeaturesMatch": {
         "name": "Event Damage Features Match?",
@@ -2350,10 +2455,6 @@
         "name": "Event Buff Tags Match?",
         "help": "Check tags on the newly applied event Buff."
       },
-      "eventTargetBuffCountCompare": {
-        "name": "Compare Event Target Buff Count",
-        "help": "Count matching Buff instances on the event target, not stacks."
-      },
       "eventHealTagsMatch": {
         "name": "Event Healing Tags Match?",
         "help": "Check tags carried by the healing event."
@@ -2369,18 +2470,6 @@
       "eventOverheal": {
         "name": "Overhealing?",
         "help": "Check whether healing exceeds missing health. Optionally store requested, actual and excess healing."
-      },
-      "eventSourceMatchesBuffSource": {
-        "name": "Event Source Matches Buff Source?",
-        "help": "Compare the event source with the current Buff’s source."
-      },
-      "eventSourceMatchesBuffSourceEntitySource": {
-        "name": "Event Source Is Summoner?",
-        "help": "If the Buff came from an entity, compare the event source with that entity’s source."
-      },
-      "buffSourceMatchesOwner": {
-        "name": "Buff Source Is Owner?",
-        "help": "Check whether this Buff’s source and owner are the same object."
       },
       "ownerSpawnedAbilityEntityPresent": {
         "name": "Spawned Entity Present?",
@@ -2928,6 +3017,13 @@
     "zhCNShort": "中"
   },
   "timeline": {
+    "legacyConversion": {
+      "title": "Convert legacy save",
+      "question": "A legacy save was detected. Convert it?",
+      "notice": "Conversion will not modify the JSON file on your drive, but will overwrite the data cached in your browser. Some skill durations and the timing of hits, elemental inflictions, and Buffs may change, so adjustments may be needed after conversion.",
+      "download": "Download legacy JSON",
+      "confirm": "Confirm conversion"
+    },
     "random": {
       "mode": "Random calculation",
       "expected": "Expected",
@@ -3020,7 +3116,6 @@
       "totalDamage": "Total Damage",
       "expectedTotalDamage": "Expected-basis Total Damage",
       "sampledTotalDamage": "This Run's Total Damage",
-      "expectedModeDescription": "Expected mode: each hit uses its mathematical expectation; discrete Buff, resource, and trigger events follow a fixed frequency sequence.",
       "sampledModeDescription": "Random mode: this run uses global seed {seed}; skill blocks with an independent seed use their own seed.",
       "rotationTime": "Rotation Time",
       "dps": "DPS",
@@ -3035,14 +3130,16 @@
       "warning": "Damage analysis is for team optimization only. Please do not use it to attack others.",
       "unattributedDamage": "Unattributed damage {value}: the receipt has no skill-block or track source.",
       "faqTitle": "FAQ",
-      "faq1Q": "Why is the damage different from the game?",
-      "faq1A": "The analysis uses current game data and compiled combat rules. Missing mechanics, spatial simplifications, version differences, and UI rounding can all cause differences. Check native evidence and simulation diagnostics for the rule involved.",
-      "faq2Q": "What are the limitations of the damage calculation?",
-      "faq2A": "The analysis only counts damage receipts produced by the formal simulation. It does not invent uncompiled behavior or missing conditions such as distance and target count. Reported simulation diagnostics can prevent some skills from executing.",
-      "faq3Q": "How is contribution calculated?",
-      "faq3A": "Undecomposed damage is counted as the attacker's own damage. External bonus attribution is not connected yet, so the contribution chart currently shows own damage; this does not mean teammate buffs have no effect.",
+      "faq1Q": "How do damage and contribution by operator differ?",
+      "faq1A": "Damage shows who dealt each hit. Contribution assigns the portion gained from a teammate's buffs to that teammate. The inner ring shows each operator's total contribution; the outer ring separates their own damage from bonuses provided to teammates. Hover over a slice to see its value and share.",
+      "faq2Q": "Are overlapping buffs counted more than once?",
+      "faq2A": "No. Each hit's damage is allocated once, then added to each operator's total. When several buffs apply together, their providers share the damage gain rather than each receiving the entire gain.",
+      "faq3Q": "Why is a support operator's contribution lower than I expected?",
+      "faq3A": "The chart mainly measures effects that directly increase damage when a hit lands. Providing energy, enabling combo skills, or applying infliction in advance may not receive credit. Status gains are not currently redistributed by infliction stacks. Damage that cannot be allocated stays with the attacker, so this chart alone cannot measure an operator's value.",
       "faq4Q": "How is the analysis range chosen?",
-      "faq4A": "Counting starts at the scenario's simulation start and ignores earlier preparation damage. Rotation time ends at the last valid damage event. DPS is zero when there is no valid damage."
+      "faq4A": "Only damage within the simulation range is counted; preparation damage is excluded. Rotation time runs from the simulation start to the last hit, and DPS is total damage divided by that duration. Empty time after the last hit is excluded.",
+      "faq6Q": "Why does the result differ from actual combat?",
+      "faq6A": "First check that builds, enemy resistances, the controlled operator, and skill order match. The simulation uses one enemy with no active behavior, ignores distance, and assumes attacks hit. Movement, missed hits, and multiple targets can change real combat results. Expected mode averages critical damage, so it will not match a single actual run. If a large discrepancy remains, include the scenario file and the relevant hit details when reporting it."
     },
     "export": {
       "copyCode": "Copy Data Code",
@@ -3094,6 +3191,7 @@
       "sectionScenarioSettings": "Scenario settings",
       "sectionPrefs": "User preferences",
       "automaticControlSwitches": "Automatic control switching",
+      "comboSkillPriority": "Combo skill priority",
       "automaticControlSwitchesHelp": "Switch control to the acting operator when a basic attack, enhanced basic attack, plunging attack, or finisher needs it.",
       "sectionViewLayers": "Layers",
       "sectionViewBehavior": "View behavior",
@@ -3339,6 +3437,8 @@
       "markerId": "Marker ID",
       "targetTrack": "Operator to switch to",
       "direction": "Dodge direction",
+      "forward": "Forward",
+      "backward": "Backward",
       "dodgeResult": "Declared result",
       "successDelayFrames": "Perfect-dodge success delay (frames)",
       "simulationResult": "Actual simulation result",
@@ -3881,7 +3981,7 @@
         "currentSkillTypeIn": "Current skill type matches",
         "combatActive": "Combat active",
         "singleEnemyPresent": "Single enemy present",
-        "casterControlled": "Caster controlled",
+        "checkMainCharacter": "Target is the controlled operator",
         "enemySuperArmorCompare": "Enemy super armor comparison",
         "targetStaggered": "Target staggered",
         "healthCompare": "Health comparison",
@@ -3892,18 +3992,13 @@
         "abilityEntityRemainingDurationCompare": "Ability entity remaining duration",
         "buffStackCompare": "Buff tag stack comparison",
         "currentBuffStackCompare": "Current Buff enhancement count comparison",
-        "contextTargetObjectTypeMatch": "Context target object type match",
-        "actionInputTargetObjectTypeMatch": "Action input target object type match",
-        "actionInputTargetIdentityMatch": "Action input target identity match",
-        "contextTargetIdentityMatch": "Context target identity match",
-        "contextTargetEntityTagMatch": "Context target entity-tag match",
-        "contextTargetBuffStackCompare": "First context target Buff stack comparison",
-        "eventTargetBuffCountCompare": "Event target Buff instance count",
+        "targetObjectTypeMatch": "Target object type match",
+        "targetsEqual": "Target sets match",
         "entityTagMatch": "Entity tag match",
         "buffIdStackCompare": "Buff identity stack comparison",
         "timedMarkerPresent": "Timed marker present",
         "globalCooldownPresent": "Global cooldown active",
-        "casterComboPending": "Caster has a pending combo candidate (not a castability check)",
+        "comboSkillPending": "Target has a pending combo candidate (not a castability check)",
         "eventDamageTagsMatch": "Event damage tags match",
         "eventDamageFeaturesMatch": "Event damage features match",
         "not": "Not",
@@ -4384,6 +4479,7 @@
         "repeatEachTick": "Repeat each tick",
         "openComboWindow": "Open next combo window",
         "showComboRingQte": "Show precise-link window",
+        "physicsCast": "Ground raycast",
         "listenForCombatEvents": "Listen for combat events",
         "aura": "Aura",
         "copyContextTargets": "Copy target group",
@@ -5057,6 +5153,8 @@
       "speedup": "Haste",
       "barrageArray": "Barrage Array",
       "firefangVesperwings": "Firefang Vesperwings",
+      "artfulIntent": "Artful Intent",
+      "immobilization": "Immobilization",
       "sunderblades": "Sunderblades",
       "electrification": "Electrification",
       "ultEnergyGain": "Ultimate Energy Gain",
@@ -5072,6 +5170,7 @@
   },
   "hitEditor": {
     "elements": {
+      "fixed": "Fixed",
       "physical": "Physical",
       "heat": "Heat",
       "cryo": "Cryo",

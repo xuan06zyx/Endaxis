@@ -150,18 +150,11 @@ const definition = {
               },
               next: 'applyBuff_2',
             },
-            checkCondition_1: {
-              action: {
-                kind: 'checkCondition',
-                parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-              },
-              next: null,
-            },
             ifElse_6: {
               action: {
                 kind: 'ifElse',
                 parameters: { alwaysNext: true },
-                condition: { $sequence: 'checkCondition_1' },
+                condition: { kind: 'conditionNode', nodeId: 'data_1' },
                 whenTrue: { $sequence: 'finishBuffsById_3' },
                 whenFalse: { $sequence: 'finishBuffsById_5' },
               },
@@ -197,6 +190,7 @@ const definition = {
               type: 'boolean',
               expression: {
                 kind: 'deckAttributeCompare',
+                target: { kind: 'owner' },
                 left: 'intellect',
                 operator: 'greaterOrEqual',
                 right: 'will',
@@ -267,12 +261,40 @@ const definition = {
       actionGraph: {
         main: {
           nodes: {
-            checkCondition_1: {
+            applyBuff_4: {
               action: {
-                kind: 'checkCondition',
-                parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
+                kind: 'applyBuff',
+                parameters: {
+                  buffs: [
+                    {
+                      buffId: 'buff_wpn_funnel_0016_will',
+                      copiedBlackboardAssignments: {
+                        spell_dmg_taken_up: 'spell_dmg_taken_up',
+                        duration3: 'duration3',
+                        spell_dmg_taken_up2: 'spell_dmg_taken_up2',
+                        duration4: 'duration4',
+                      },
+                    },
+                  ],
+                  targets: { kind: 'owner' },
+                  source: { kind: 'source' },
+                  inheritSourceSkillCastInfo: true,
+                  asChildBuff: true,
+                },
               },
               next: null,
+            },
+            finishBuffsById_5: {
+              action: {
+                kind: 'finishBuffsById',
+                parameters: {
+                  targets: { kind: 'owner' },
+                  finishSource: { kind: 'source' },
+                  buffIds: ['buff_wpn_funnel_0016_wisd'],
+                  reason: 'other',
+                },
+              },
+              next: 'applyBuff_4',
             },
             applyBuff_2: {
               action: {
@@ -309,46 +331,11 @@ const definition = {
               },
               next: 'applyBuff_2',
             },
-            applyBuff_4: {
-              action: {
-                kind: 'applyBuff',
-                parameters: {
-                  buffs: [
-                    {
-                      buffId: 'buff_wpn_funnel_0016_will',
-                      copiedBlackboardAssignments: {
-                        spell_dmg_taken_up: 'spell_dmg_taken_up',
-                        duration3: 'duration3',
-                        spell_dmg_taken_up2: 'spell_dmg_taken_up2',
-                        duration4: 'duration4',
-                      },
-                    },
-                  ],
-                  targets: { kind: 'owner' },
-                  source: { kind: 'source' },
-                  inheritSourceSkillCastInfo: true,
-                  asChildBuff: true,
-                },
-              },
-              next: null,
-            },
-            finishBuffsById_5: {
-              action: {
-                kind: 'finishBuffsById',
-                parameters: {
-                  targets: { kind: 'owner' },
-                  finishSource: { kind: 'source' },
-                  buffIds: ['buff_wpn_funnel_0016_wisd'],
-                  reason: 'other',
-                },
-              },
-              next: 'applyBuff_4',
-            },
             ifElse_6: {
               action: {
                 kind: 'ifElse',
                 parameters: { alwaysNext: true },
-                condition: { $sequence: 'checkCondition_1' },
+                condition: { kind: 'conditionNode', nodeId: 'data_1' },
                 whenTrue: { $sequence: 'finishBuffsById_3' },
                 whenFalse: { $sequence: 'finishBuffsById_5' },
               },
@@ -360,6 +347,7 @@ const definition = {
               type: 'boolean',
               expression: {
                 kind: 'deckAttributeCompare',
+                target: { kind: 'owner' },
                 left: 'intellect',
                 operator: 'greaterOrEqual',
                 right: 'will',

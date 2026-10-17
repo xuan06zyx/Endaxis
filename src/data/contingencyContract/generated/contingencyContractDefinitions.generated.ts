@@ -32,10 +32,15 @@ const commonBuff1: SkillBuffDefinition = {
 const commonBuff2ActionGraph = {
   main: {
     nodes: {
-      checkCondition_1: {
+      applyBuff_5: {
         action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_cc_chr_combo_skill_cryst_inflict_stack' }],
+            targets: { kind: 'mainCharacter' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+          },
         },
         next: null,
       },
@@ -72,30 +77,18 @@ const commonBuff2ActionGraph = {
           parameters: {
             targets: { kind: 'owner' },
             markerId: 'buff_cc_chr_combo_skill_cryst_inflict',
-            durationSeconds: { kind: 'valueNode', nodeId: 'data_3' },
+            durationSeconds: { kind: 'valueNode', nodeId: 'data_1' },
             autoFinishByAction: false,
             timeDomain: 'globalScaled',
           },
         },
         next: 'applyCharacterInfliction_3',
       },
-      applyBuff_5: {
-        action: {
-          kind: 'applyBuff',
-          parameters: {
-            buffs: [{ buffId: 'buff_cc_chr_combo_skill_cryst_inflict_stack' }],
-            targets: { kind: 'mainCharacter' },
-            source: { kind: 'source' },
-            inheritSourceSkillCastInfo: true,
-          },
-        },
-        next: null,
-      },
       ifElse_6: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'createTimedMarker_4' },
           whenFalse: { $sequence: 'applyBuff_5' },
         },
@@ -129,25 +122,26 @@ const commonBuff2ActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'd_times' } },
-      data_2: {
+      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'cd' } },
+      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'd_times' } },
+      data_3: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'controlledOperator',
-          buffIds: ['buff_cc_chr_combo_skill_cryst_inflict_stack'],
+          target: { kind: 'mainCharacter' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
-          value: { kind: 'valueNode', nodeId: 'data_1' },
+          value: { kind: 'valueNode', nodeId: 'data_2' },
+          buffIds: ['buff_cc_chr_combo_skill_cryst_inflict_stack'],
         },
       },
-      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'cd' } },
       data_4: { type: 'number', expression: { kind: 'blackboard', key: 'times' } },
       data_5: {
         type: 'boolean',
         expression: {
           kind: 'timedMarkerPresent',
+          target: { kind: 'owner' },
           returnTrueIfNotExists: true,
-          target: 'buffOwner',
           markerId: 'buff_cc_chr_combo_skill_cryst_inflict',
         },
       },
@@ -625,7 +619,10 @@ const commonBuff9ActionGraph = {
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'duration' } },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_3: {
         type: 'boolean',
         expression: {
@@ -907,7 +904,10 @@ const commonBuff11ActionGraph = {
           right: { kind: 'constant', value: 0 },
         },
       },
-      data_6: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_6: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_7: {
         type: 'number',
         expression: { kind: 'blackboard', key: 'heal_times', fallback: 0 },
@@ -923,7 +923,10 @@ const commonBuff11ActionGraph = {
       },
       data_9: { type: 'number', expression: { kind: 'blackboard', key: 'heal_ratio_total' } },
       data_10: { type: 'number', expression: { kind: 'blackboard', key: 'max_hp' } },
-      data_11: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_11: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
     },
   },
   macros: {},
@@ -1161,7 +1164,10 @@ const commonBuff12ActionGraph = {
           right: { kind: 'constant', value: 0 },
         },
       },
-      data_6: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_6: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
       data_7: {
         type: 'number',
         expression: { kind: 'blackboard', key: 'heal_times', fallback: 0 },
@@ -1177,7 +1183,10 @@ const commonBuff12ActionGraph = {
       },
       data_9: { type: 'number', expression: { kind: 'blackboard', key: 'heal_ratio_total' } },
       data_10: { type: 'number', expression: { kind: 'blackboard', key: 'max_hp' } },
-      data_11: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_11: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
     },
   },
   macros: {},
@@ -1554,7 +1563,14 @@ const commonBuff19ActionGraph = {
           tags: ['powerAttack', 'normalAttackLastCombo'],
         },
       },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_2: {
+        type: 'boolean',
+        expression: {
+          kind: 'targetsEqual',
+          first: { kind: 'owner' },
+          second: { kind: 'mainCharacter' },
+        },
+      },
     },
   },
   macros: {},
@@ -1614,7 +1630,10 @@ const commonBuff20ActionGraph = {
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'ratio' } },
-      data_2: { type: 'boolean', expression: { kind: 'casterControlled' } },
+      data_2: {
+        type: 'boolean',
+        expression: { kind: 'checkMainCharacter', target: { kind: 'owner' } },
+      },
     },
   },
   macros: {},
@@ -1727,10 +1746,15 @@ const commonBuff22: SkillBuffDefinition = {
 const commonBuff23ActionGraph = {
   main: {
     nodes: {
-      checkCondition_1: {
+      applyBuff_5: {
         action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
+          kind: 'applyBuff',
+          parameters: {
+            buffs: [{ buffId: 'buff_cc_chr_normal_skill_cryst_inflict_stack' }],
+            targets: { kind: 'mainCharacter' },
+            source: { kind: 'source' },
+            inheritSourceSkillCastInfo: true,
+          },
         },
         next: null,
       },
@@ -1752,7 +1776,7 @@ const commonBuff23ActionGraph = {
           parameters: {
             targets: { kind: 'owner' },
             markerId: 'buff_cc_chr_normal_skill_cryst_inflict',
-            durationSeconds: { kind: 'valueNode', nodeId: 'data_3' },
+            durationSeconds: { kind: 'valueNode', nodeId: 'data_1' },
             autoFinishByAction: false,
             timeDomain: 'globalScaled',
           },
@@ -1774,23 +1798,11 @@ const commonBuff23ActionGraph = {
         },
         next: 'createTimedMarker_3',
       },
-      applyBuff_5: {
-        action: {
-          kind: 'applyBuff',
-          parameters: {
-            buffs: [{ buffId: 'buff_cc_chr_normal_skill_cryst_inflict_stack' }],
-            targets: { kind: 'mainCharacter' },
-            source: { kind: 'source' },
-            inheritSourceSkillCastInfo: true,
-          },
-        },
-        next: null,
-      },
       ifElse_6: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'applyCharacterInfliction_4' },
           whenFalse: { $sequence: 'applyBuff_5' },
         },
@@ -1824,25 +1836,26 @@ const commonBuff23ActionGraph = {
       },
     },
     dataNodes: {
-      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'd_times' } },
-      data_2: {
+      data_1: { type: 'number', expression: { kind: 'blackboard', key: 'cd' } },
+      data_2: { type: 'number', expression: { kind: 'blackboard', key: 'd_times' } },
+      data_3: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'controlledOperator',
-          buffIds: ['buff_cc_chr_normal_skill_cryst_inflict_stack'],
+          target: { kind: 'mainCharacter' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
-          value: { kind: 'valueNode', nodeId: 'data_1' },
+          value: { kind: 'valueNode', nodeId: 'data_2' },
+          buffIds: ['buff_cc_chr_normal_skill_cryst_inflict_stack'],
         },
       },
-      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'cd' } },
       data_4: { type: 'number', expression: { kind: 'blackboard', key: 'times' } },
       data_5: {
         type: 'boolean',
         expression: {
           kind: 'timedMarkerPresent',
+          target: { kind: 'owner' },
           returnTrueIfNotExists: true,
-          target: 'buffOwner',
           markerId: 'buff_cc_chr_normal_skill_cryst_inflict',
         },
       },
@@ -2215,7 +2228,11 @@ const commonBuff30ActionGraph = {
     dataNodes: {
       data_1: {
         type: 'boolean',
-        expression: { kind: 'currentSkillTypeIn', target: 'buffOwner', skillTypes: ['ultimate'] },
+        expression: {
+          kind: 'currentSkillTypeIn',
+          target: { kind: 'owner' },
+          skillTypes: ['ultimate'],
+        },
       },
     },
   },
@@ -2361,7 +2378,7 @@ const commonBuff33: SkillBuffDefinition = {
   maxStackCount: 1,
   applyTags: [],
   extendTags: [],
-  blackboard: { dmg_scale: 0.25 },
+  blackboard: { dmg_scale: 0.25, speedup_scale: 2 },
   attributeModifiers: [],
   lifecycleSequences: { enable: [{ $sequence: 'applyBuff_1' }] },
   actionGraph: commonBuff33ActionGraph,
@@ -2821,6 +2838,7 @@ const commonBuff36ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'enemySuperArmorCompare',
+          target: { kind: 'owner' },
           operator: 'lessOrEqual',
           value: { kind: 'constant', value: 20 },
         },
@@ -2837,6 +2855,7 @@ const commonBuff36ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'enemySuperArmorCompare',
+          target: { kind: 'owner' },
           operator: 'less',
           value: { kind: 'constant', value: 30 },
         },
@@ -2867,6 +2886,7 @@ const commonBuff36ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'enemySuperArmorCompare',
+          target: { kind: 'owner' },
           operator: 'lessOrEqual',
           value: { kind: 'constant', value: 20 },
         },
@@ -2883,6 +2903,7 @@ const commonBuff36ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'enemySuperArmorCompare',
+          target: { kind: 'owner' },
           operator: 'less',
           value: { kind: 'constant', value: 30 },
         },
@@ -2913,10 +2934,11 @@ const commonBuff36ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffOwner',
-          buffIds: ['buff_cc_enemy_heal_under_control_stack'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'equal',
           value: { kind: 'constant', value: 0 },
+          buffIds: ['buff_cc_enemy_heal_under_control_stack'],
         },
       },
       data_14: {
@@ -2930,10 +2952,11 @@ const commonBuff36ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffOwner',
-          buffIds: ['buff_cc_enemy_heal_under_control_stack'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'equal',
           value: { kind: 'constant', value: 0 },
+          buffIds: ['buff_cc_enemy_heal_under_control_stack'],
         },
       },
       data_16: {
@@ -2954,7 +2977,7 @@ const commonBuff36: SkillBuffDefinition = {
   maxStackCount: 1,
   applyTags: [],
   extendTags: [],
-  blackboard: { hp_ratio: 0.05 },
+  blackboard: { hp_ratio: 0.05, stack: 0 },
   attributeModifiers: [],
   abilityEventResponses: [
     { event: 'addedBuff', priority: 0, sequence: { $sequence: 'checkCondition_3' } },
@@ -3004,10 +3027,11 @@ const commonBuff37ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffOwner',
-          buffIds: ['buff_cc_enemy_heal_under_control_timer'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'equal',
           value: { kind: 'constant', value: 0 },
+          buffIds: ['buff_cc_enemy_heal_under_control_timer'],
         },
       },
     },
@@ -3072,18 +3096,11 @@ const commonBuff39ActionGraph = {
         },
         next: null,
       },
-      checkCondition_2: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
-        },
-        next: null,
-      },
       ifElse_5: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_2' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'heal_1' },
           whenFalse: { $sequence: 'finishBuffsById_4' },
         },
@@ -3096,10 +3113,11 @@ const commonBuff39ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffOwner',
-          buffIds: ['buff_cc_enemy_heal_under_control_instance'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: true,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
+          buffIds: ['buff_cc_enemy_heal_under_control_instance'],
         },
       },
     },
@@ -4116,13 +4134,6 @@ const commonBuff48: SkillBuffDefinition = {
 const commonBuff49ActionGraph = {
   main: {
     nodes: {
-      checkCondition_1: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
-        },
-        next: null,
-      },
       applyBuff_2: {
         action: {
           kind: 'applyBuff',
@@ -4137,13 +4148,6 @@ const commonBuff49ActionGraph = {
             source: { kind: 'owner' },
             inheritSourceSkillCastInfo: true,
           },
-        },
-        next: null,
-      },
-      checkCondition_3: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_2' } },
         },
         next: null,
       },
@@ -4164,13 +4168,6 @@ const commonBuff49ActionGraph = {
         },
         next: null,
       },
-      checkCondition_5: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-        },
-        next: null,
-      },
       applyBuff_6: {
         action: {
           kind: 'applyBuff',
@@ -4185,13 +4182,6 @@ const commonBuff49ActionGraph = {
             source: { kind: 'owner' },
             inheritSourceSkillCastInfo: true,
           },
-        },
-        next: null,
-      },
-      checkCondition_7: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_4' } },
         },
         next: null,
       },
@@ -4216,7 +4206,7 @@ const commonBuff49ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_7' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'applyBuff_8' },
           whenFalse: { $sequence: null },
         },
@@ -4226,7 +4216,7 @@ const commonBuff49ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_5' },
+          condition: { kind: 'conditionNode', nodeId: 'data_2' },
           whenTrue: { $sequence: 'applyBuff_6' },
           whenFalse: { $sequence: null },
         },
@@ -4236,7 +4226,7 @@ const commonBuff49ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_3' },
+          condition: { kind: 'conditionNode', nodeId: 'data_3' },
           whenTrue: { $sequence: 'applyBuff_4' },
           whenFalse: { $sequence: null },
         },
@@ -4246,7 +4236,7 @@ const commonBuff49ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
           whenTrue: { $sequence: 'applyBuff_2' },
           whenFalse: { $sequence: null },
         },
@@ -4280,19 +4270,19 @@ const commonBuff49ActionGraph = {
     dataNodes: {
       data_1: {
         type: 'boolean',
-        expression: { kind: 'eventInflictionElementIn', elements: ['heat'] },
+        expression: { kind: 'eventInflictionElementIn', elements: ['nature'] },
       },
       data_2: {
         type: 'boolean',
-        expression: { kind: 'eventInflictionElementIn', elements: ['electric'] },
+        expression: { kind: 'eventInflictionElementIn', elements: ['cryo'] },
       },
       data_3: {
         type: 'boolean',
-        expression: { kind: 'eventInflictionElementIn', elements: ['cryo'] },
+        expression: { kind: 'eventInflictionElementIn', elements: ['electric'] },
       },
       data_4: {
         type: 'boolean',
-        expression: { kind: 'eventInflictionElementIn', elements: ['nature'] },
+        expression: { kind: 'eventInflictionElementIn', elements: ['heat'] },
       },
       data_5: {
         type: 'boolean',
@@ -4430,10 +4420,10 @@ const commonBuff54: SkillBuffDefinition = {
 const commonBuff55ActionGraph = {
   main: {
     nodes: {
-      checkCondition_1: {
+      triggerCharacterInflictionEvent_6: {
         action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
+          kind: 'triggerCharacterInflictionEvent',
+          parameters: { event: 'afterTakeSpellInfliction', element: 'cryo', eventSource: 'caster' },
         },
         next: null,
       },
@@ -4472,16 +4462,9 @@ const commonBuff55ActionGraph = {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { $sequence: 'checkCondition_1' },
+          condition: { kind: 'conditionNode', nodeId: 'data_1' },
           whenTrue: { $sequence: 'triggerCharacterInflictionEvent_4' },
           whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
-      triggerCharacterInflictionEvent_6: {
-        action: {
-          kind: 'triggerCharacterInflictionEvent',
-          parameters: { event: 'afterTakeSpellInfliction', element: 'cryo', eventSource: 'caster' },
         },
         next: null,
       },
@@ -4491,10 +4474,11 @@ const commonBuff55ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
-          target: 'buffOwner',
-          buffIds: ['buff_common_enemy_spell_cryst_attached'],
+          target: { kind: 'owner' },
+          compareZeroWhenTargetMissing: false,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 3 },
+          buffIds: ['buff_common_enemy_spell_cryst_attached'],
         },
       },
     },
@@ -4518,7 +4502,7 @@ const commonBuff55: SkillBuffDefinition = {
   },
   applyTags: ['Skill/Enemy/Common/SpellInflictOnChar/CrystInflictOnChar'],
   extendTags: [],
-  blackboard: { cd: 1, count: 0, duration: 10 },
+  blackboard: { atk_scale: 0, cd: 1, count: 0, duration: 10 },
   attributeModifiers: [],
   lifecycleSequences: {
     enable: [{ $sequence: 'triggerCharacterInflictionEvent_6' }],
@@ -5924,7 +5908,10 @@ export const contingencyContractInitializationPlans = Object.freeze<
                 buffs: [
                   {
                     buffId: 'buff_cc_enemy_common_movespeedup',
-                    blackboardAssignments: { dmg_scale: { kind: 'constant', value: 0.25 } },
+                    blackboardAssignments: {
+                      speedup_scale: { kind: 'constant', value: 2 },
+                      dmg_scale: { kind: 'constant', value: 0.25 },
+                    },
                   },
                 ],
                 targets: { kind: 'fixed', target: 'enemy' },

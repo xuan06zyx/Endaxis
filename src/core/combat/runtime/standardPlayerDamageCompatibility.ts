@@ -1,4 +1,5 @@
 import type { CompiledCondition } from '../../compiler/compiledGraphData.ts';
+import type { ActionGraphReference } from '../../../../packages/game-data-contract/src/actionGraph';
 import { rootActionSteps } from '../../compiler/actionProgramInspection';
 /**
  * 在启动模拟前检查编译产物是否完全落在标准玩家生命伤害环境的能力边界内。
@@ -79,10 +80,21 @@ function inspectCondition(
   path: string,
   collect: IssueCollector,
   flags: CompatibilityFlags,
+  inspectAction?: (entry: ActionGraphReference, path: string) => void,
 ): void {
   switch (condition.kind) {
     case 'conditionNode':
-      inspectCondition(condition.node.expression, path, collect, flags);
+      inspectCondition(condition.node.expression, path, collect, flags, inspectAction);
+      return;
+    case 'checkActionResult':
+      if (inspectAction) inspectAction(condition.action, `${path}.action`);
+      else
+        report(
+          collect,
+          'unsupported-condition',
+          path,
+          'checkActionResult requires an action graph invocation',
+        );
       return;
     case 'constant':
     case 'skillHasHit':
@@ -93,20 +105,13 @@ function inspectCondition(
     case 'deckAttributeCompare':
     case 'probability':
     case 'entityCountCompare':
-    case 'contextTargetObjectTypeMatch':
-    case 'actionInputTargetObjectTypeMatch':
-    case 'actionInputTargetIdentityMatch':
-    case 'contextTargetIdentityMatch':
-    case 'contextTargetEntityTagMatch':
-    case 'contextTargetBuffStackCompare':
-    case 'contextTargetBuffIdStackCompare':
+    case 'targetObjectTypeMatch':
     case 'abilityEntityRemainingDurationCompare':
     case 'ownerSpawnedAbilityEntityPresent':
     case 'timedMarkerPresent':
     case 'globalCooldownPresent':
-    case 'casterComboPending':
-    case 'abilityEntityTimedMarkerPresent':
-    case 'casterControlled':
+    case 'comboSkillPending':
+    case 'checkMainCharacter':
     case 'characterTypeIn':
     case 'operatorRoleIn':
     case 'enemyRankIn':
@@ -114,10 +119,8 @@ function inspectCondition(
     case 'targetDistance':
     case 'poiseCompare':
     case 'targetStaggered':
-    case 'eventSourceMatchesBuffSource':
-    case 'eventSourceMatchesBuffSourceEntitySource':
-    case 'buffSourceMatchesOwner':
     case 'eventDamageTagsMatch':
+    case 'eventTransferredPartTagsMatch':
     case 'eventDamageGameplayTagsMatch':
     case 'eventDamageFeaturesMatch':
     case 'eventDamageTypeIn':
@@ -130,13 +133,14 @@ function inspectCondition(
     case 'originSkillTypeIn':
     case 'skillInterruptReasonIn':
     case 'targetContains':
+    case 'targetsEqual':
     case 'eventSkillIdIn':
     case 'eventSkillCastMatchesBuffSource':
     case 'eventBuffIdMatch':
     case 'eventBuffTagsMatch':
-    case 'eventTargetBuffCountCompare':
     case 'eventSpGainMatch':
     case 'eventConsumedBuffLayerCompare':
+    case 'eventBuffEnhanceLayerCompare':
     case 'eventOverheal':
     case 'eventBuffEndedEarly':
     case 'buffStackCompare':
@@ -147,22 +151,25 @@ function inspectCondition(
     case 'entityTagMatch':
       return;
     case 'healthCompare':
-      if (condition.target !== 'enemy' && !flags.operatorVitals) {
+      if (
+        !(condition.target.kind === 'fixed' && condition.target.target === 'enemy') &&
+        !flags.operatorVitals
+      ) {
         report(
           collect,
           'unsupported-condition',
           path,
-          `healthCompare for '${condition.target}' requires operator vitals`,
+          `healthCompare for '${condition.target.kind}' requires operator vitals`,
         );
       }
       return;
     case 'not':
-      inspectCondition(condition.condition, `${path}.condition`, collect, flags);
+      inspectCondition(condition.condition, `${path}.condition`, collect, flags, inspectAction);
       return;
     case 'all':
     case 'any':
       condition.conditions.forEach((child, index) =>
-        inspectCondition(child, `${path}.conditions[${index}]`, collect, flags),
+        inspectCondition(child, `${path}.conditions[${index}]`, collect, flags, inspectAction),
       );
       return;
     default:
@@ -177,9 +184,15 @@ function inspectSequence(
   flags: CompatibilityFlags,
   source: 'skill' | 'equipment' = 'skill',
 ): void {
+  const inspectAction = (entry: ActionGraphReference, inputPath: string) =>
+    inspectSequence({ ...sequence, entry: entry.$sequence }, inputPath, collect, flags, source);
   rootActionSteps(sequence).forEach((step, index) => {
     const stepPath = `${path}.steps[${index}]`;
     switch (step.kind) {
+      case 'physicsCast':
+        inspectSequence(step.whenHit, `${stepPath}.whenHit`, collect, flags, source);
+        inspectSequence(step.whenMiss, `${stepPath}.whenMiss`, collect, flags, source);
+        return;
       case 'copyContextTargets':
       case 'mergeContextTargets':
       case 'findCharacterTeamTargets':
@@ -332,6 +345,7 @@ function inspectSequence(
       case 'storeCurrentTimelineFrame':
       case 'storeEventSpGainAmount':
       case 'modifyActionValue':
+      case 'storeRandomInteger':
       case 'calculateActionValue':
       case 'createTimedMarker':
       case 'setGlobalCooldown':
@@ -402,7 +416,7 @@ function inspectSequence(
         }
         return;
       case 'jumpTimeline':
-        inspectSequence(step.condition, `${stepPath}.condition`, collect, flags);
+        inspectCondition(step.condition, `${stepPath}.condition`, collect, flags, inspectAction);
         return;
       case 'reachSkillOperableBoundary':
       case 'markCurrentSkillCanDash':
@@ -456,11 +470,17 @@ function inspectSequence(
         return;
       case 'anyCondition':
         step.conditions.forEach((condition, index) =>
-          inspectSequence(condition, `${stepPath}.conditions[${index}]`, collect, flags, source),
+          inspectCondition(
+            condition,
+            `${stepPath}.conditions[${index}]`,
+            collect,
+            flags,
+            inspectAction,
+          ),
         );
         return;
       case 'ifElse':
-        inspectSequence(step.condition, `${stepPath}.condition`, collect, flags, source);
+        inspectCondition(step.condition, `${stepPath}.condition`, collect, flags, inspectAction);
         inspectSequence(step.whenTrue, `${stepPath}.whenTrue`, collect, flags, source);
         inspectSequence(step.whenFalse, `${stepPath}.whenFalse`, collect, flags, source);
         return;
@@ -470,6 +490,7 @@ function inspectSequence(
           `${stepPath}.parameters.condition`,
           collect,
           flags,
+          inspectAction,
         );
         return;
       case 'conditional':
@@ -478,6 +499,7 @@ function inspectSequence(
           `${stepPath}.parameters.condition`,
           collect,
           flags,
+          inspectAction,
         );
         inspectSequence(step.whenTrue, `${stepPath}.whenTrue`, collect, flags, source);
         if (step.whenFalse !== undefined) {

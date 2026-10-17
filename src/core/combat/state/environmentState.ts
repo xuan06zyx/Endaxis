@@ -5,11 +5,16 @@
  * 它不负责校验初始配置，也不执行资源、生命或时间推进；这些操作留在 runtime 目录。
  */
 import type { GameplayTag } from '../../../../packages/game-data-contract/src/gameplayTags';
-import type { ActionBlackboardValue } from '../../../../packages/game-data-contract/src/primitives';
+import type {
+  ActionBlackboardValue,
+  OperationType,
+} from '../../../../packages/game-data-contract/src/primitives';
 import type { RuntimeTargetRef } from '../../game-data/logicalAbilityEntity';
 import type { PlayerSkillInput } from '../../game-data/operatorDefinition';
+import type { BuffInstanceState } from './instanceState';
 import type {
   CombatObjectRef,
+  AbilityOriginPayload,
   CombatSkillCastInfo,
   SharedSpGainModifierState,
   SharedSpRecoveryModifierState,
@@ -207,7 +212,7 @@ export interface CombatVitalsState {
   poiseImmune: boolean;
   stopPoiseRecovery: boolean;
   hasPoiseBrokenTag: boolean;
-  readonly maxHealth: number;
+  maxHealth: number;
   readonly maxPoise: number;
   readonly poiseKnotThresholds: readonly number[];
   readonly poiseRecoveryTime: number;
@@ -310,8 +315,30 @@ export function createPostSkillRequestListenerState(): PostSkillRequestListenerS
   return { nextRegistrationId: 0, registrationsByOwner: new Map() };
 }
 
+/** 帧末 Buff 事件的可保存载荷；实际实例由切面中的 Buff 状态引用单独保存。 */
+export interface BuffFrameEndPayloadState extends AbilityOriginPayload {
+  readonly buffId: string;
+  readonly buffTags: readonly GameplayTag[];
+  readonly blackboardValues?: Readonly<Record<string, string | number | null>>;
+  readonly layerCount: number;
+}
+
 /** 标准敌我战斗环境使用的可变数据。 */
 export interface StandardCombatEnvironmentState {
+  /** 每个发布宿主的帧末聚合；保留实际 Buff 引用，由整场切面复制维护别名。 */
+  readonly buffFrameEndEvents: Map<
+    string,
+    {
+      pending: Map<
+        string,
+        {
+          readonly event: 'buffAbsorbedFrameEnd' | 'buffConsumedFrameEnd';
+          readonly payload: BuffFrameEndPayloadState;
+          readonly buff: BuffInstanceState<string>;
+        }
+      >;
+    }
+  >;
   /** 反应伤害的来源内序号；随切面恢复，不能从新回执的局部序号重建。 */
   readonly reactionDamageCounts: Map<string, number>;
   readonly random: SimulationRandomState | null;
@@ -417,6 +444,8 @@ export interface NormalSkillUltimateEnergySettings {
 
 /** 一次技能输入。固定输入已确定实际帧；组后段在运行时到达边界后才确定实际帧。 */
 export interface CombatSkillInput {
+  /** 编译后的玩家操作，不携带技能组；下落攻击据此进入运动过程，而非比较目标技能 ID。 */
+  readonly operationType?: OperationType;
   readonly simulationInputs?: SkillSimulationInputs;
   readonly operatorId: string;
   readonly skillId: string;

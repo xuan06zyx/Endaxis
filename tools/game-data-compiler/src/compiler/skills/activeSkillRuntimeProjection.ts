@@ -7,6 +7,7 @@ import { parseKnownSkillActionGraphSource } from '../../source/skillActionGraph.
 import type { SkillPatchSource } from '../../source/skillPatch.ts';
 import { parseSkillTargetSelectionHeaderSource } from '../../source/skillTargetSelection.ts';
 import type { TargetReferenceSource } from '../../source/target.ts';
+import { requireBoolean } from '../../source/primitives.ts';
 import type { TargetGroupActionSource } from '../../source/targetGroup.ts';
 import { createActionGraphBuilder } from '../actions/actionGraphBuilder.ts';
 import type {
@@ -72,12 +73,14 @@ export type CompiledActiveSkillTimelineSequenceSource = Readonly<
  * 原生时长与技能块宽度仍分别保留；技能等级的具体取值由最终消费者选择。
  */
 export interface CompiledActiveSkillRuntimeProjectionSource {
+  readonly normalSkillSubType?: SkillDefinition['normalSkillSubType'];
   readonly actionGraph: ActionGraphResourceDefinition;
   readonly skillId: string;
   readonly durationFrame: number;
   readonly timelineBlockFrames: number;
   readonly exclusiveFrame: number;
   readonly offsetRecordFrame: number;
+  readonly dontInterruptCombo?: boolean;
   /**
    * 原生输入窗口的编译期证据。它只供最终技能组装配选择“下一段”窗口，
    * 不属于 Endaxis 运行时技能契约，也不能直接按最早帧压成技能块宽度。
@@ -1353,6 +1356,9 @@ export function compileActiveSkillRuntimeProjectionSource(input: {
   );
   return {
     skillId: graph.skillId,
+    ...(graph.normalSkillSubType === 'AdditionalNormalSkill'
+      ? { normalSkillSubType: 'additionalNormalSkill' as const }
+      : {}),
     actionGraph: { main: program.finish(), macros: {} },
     durationFrame: graph.durationFrame,
     // 未模拟时只用当前技能自身的普通可中断边界作为保守预览。AllowNextSkillAction
@@ -1361,6 +1367,9 @@ export function compileActiveSkillRuntimeProjectionSource(input: {
     timelineBlockFrames: exclusiveFrame + 1,
     exclusiveFrame,
     offsetRecordFrame,
+    ...(requireBoolean(prepared.root.dontInterruptCombo, `${input.sourcePath}.dontInterruptCombo`)
+      ? { dontInterruptCombo: true }
+      : {}),
     allowNextSkillTransitions,
     ...(inputWindows === undefined ? {} : { inputWindows }),
     // 动态声明也进入技能实例初值；补丁同名键后覆盖。

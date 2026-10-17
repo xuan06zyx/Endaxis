@@ -58,7 +58,11 @@ describe('AbilitySystemRuntime', () => {
       skills: [],
       skillDefinitions: [
         { skillId: 'base', nativeSkillType: 'comboSkill' as const },
-        { skillId: 'variant', nativeSkillType: 'normalSkill' as const },
+        {
+          skillId: 'variant',
+          nativeSkillType: 'normalSkill' as const,
+          normalSkillSubType: 'additionalNormalSkill' as const,
+        },
       ],
       skillSlotGroups: [
         {
@@ -71,10 +75,14 @@ describe('AbilitySystemRuntime', () => {
     };
     const ability = new AbilitySystemRuntime(options);
     expect(ability.nativeSkillTypeForSkill('variant')).toBe('normalSkill');
+    expect(ability.normalSkillSubTypeForSkill('variant')).toBe('additionalNormalSkill');
     ability.changeSkillSlot('combo', 'variant');
     const restored = new AbilitySystemRuntime(options, structuredClone(ability.runtimeState));
     expect(restored.currentSkillKeyForSlot('combo')).toBe('variant');
     expect(restored.nativeSkillTypeForSkill('variant')).toBe('comboSkill');
+    expect(restored.normalSkillSubTypeForSkill('variant')).toBeUndefined();
+    restored.changeNativeSkillType('variant', 'normalSkill');
+    expect(restored.normalSkillSubTypeForSkill('variant')).toBe('additionalNormalSkill');
     expect(() => restored.tryStartSkill('variant')).toThrow("unknown ability skill 'variant'");
     expect(
       () => new AbilitySystemRuntime({ skills: [], skillDefinitions: [{ skillId: 'unknown' }] }),
@@ -1392,12 +1400,12 @@ describe('AbilitySystemRuntime', () => {
       actualSkillKey: 'attack2',
     });
     expect(ability.tryStartSkill('battle')).toBe(true);
-    expect(ability.runtimeState.comboOffsetTargetSkillKey).toBe('attack2');
-    expect(ability.runtimeState.comboOffsetModifier?.skillCasted).toBe(false);
-
-    for (let frame = 0; frame < 30; frame += 1) ability.advanceFrame();
+    expect(ability.runtimeState.comboOffsetTargetSkillKey).toBeNull();
     expect(ability.runtimeState.comboOffsetModifier).toBeNull();
-    expect(ability.runtimeState.comboOffsetTargetSkillKey).toBe('attack2');
+
+    for (let frame = 0; frame < 30; frame += 1) restored.advanceFrame();
+    expect(restored.runtimeState.comboOffsetModifier).toBeNull();
+    expect(restored.runtimeState.comboOffsetTargetSkillKey).toBe('attack2');
     expect(ability.resolvePlayerInputSkill('modeAttack', 'basicAttack')).toEqual({
       status: 'matched',
       actualSkillKey: 'modeAttack',

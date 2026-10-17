@@ -6,6 +6,7 @@ import { EventContextConditionExecutor } from './eventContextConditionExecutor';
 import { GameplayTagRegistry } from '../tags/gameplayTags';
 import type { CombatOperationExecutor } from '../skills/skillRuntime';
 import type { RuntimeTargetRef } from '../../game-data/logicalAbilityEntity';
+import { RuntimeTargetContext } from '../abilities/runtimeTargetContext';
 
 const terminal = {
   execute: () => true,
@@ -13,6 +14,145 @@ const terminal = {
 };
 
 describe('EventContextConditionExecutor', () => {
+  it('checks the event transferred part and writes its target only after a match', () => {
+    let matches = true;
+    const inspected: RuntimeTargetRef[] = [];
+    const executor = new EventContextConditionExecutor({
+      execute: () => true,
+      evaluate: (condition, context) => {
+        expect(condition).toEqual({
+          kind: 'entityTagMatch',
+          target: { kind: 'inputTarget' },
+          tagQueryType: 'hasAny',
+          tags: ['Soul'],
+        });
+        inspected.push(context!.actionInputTarget!);
+        return matches;
+      },
+    });
+    const condition = {
+      kind: 'eventTransferredPartTagsMatch',
+      tagQueryType: 'hasAny',
+      tags: ['Soul'],
+      saveToContextKey: 'part',
+    } as const;
+    const targetContext = new RuntimeTargetContext();
+    const event = createKillEvent();
+    const context = {
+      blackboard: new ActionBlackboard(),
+      targetContext,
+      partTransferInfo: {
+        currentMainBodyId: 'enemy',
+        mainBodyToPart: new Map([['enemy', 'ability-entity:99']]),
+      },
+      event: {
+        ...event,
+        payload: {
+          ...event.payload,
+          partTransferInfo: {
+            currentMainBodyId: 'enemy',
+            mainBodyToPart: new Map([['enemy', 'ability-entity:2']]),
+          },
+        },
+      },
+    };
+    expect(executor.evaluate(condition, context)).toBe(true);
+    expect(inspected).toEqual([{ kind: 'abilityEntity', instanceId: 2 }]);
+    expect(targetContext.get('part')).toEqual(inspected);
+    matches = false;
+    targetContext.set('part', [{ kind: 'enemy' }]);
+    expect(executor.evaluate(condition, context)).toBe(false);
+    expect(targetContext.get('part')).toEqual([{ kind: 'enemy' }]);
+    expect(executor.evaluate(condition, { ...context, event })).toBe(false);
+    expect(executor.evaluate(condition, { ...context, event: undefined })).toBe(false);
+    expect(inspected).toHaveLength(2);
+  });
+  it('结束原因只读取当前能力实体事件，不把其他事件当成普通结束', () => {
+    const executor = new EventContextConditionExecutor(terminal);
+    const condition = {
+      kind: 'eventAbilityEntityFinishReasonIn',
+      reasons: ['soulMainBodyDied'],
+    } as const;
+    for (const event of ['abilityEntityFinished', 'abilityEntitySelfFinished'] as const) {
+      const context = {
+        blackboard: new ActionBlackboard(),
+        event: {
+          event,
+          payload: {
+            sourceId: 'entity',
+            targetId: 'entity',
+            finishReason: 'soulMainBodyDied' as const,
+          },
+        },
+      };
+      expect(executor.evaluate(condition, context)).toBe(true);
+      expect(executor.evaluate({ ...condition, reasons: ['lifetime'] }, context)).toBe(false);
+    }
+    expect(
+      executor.evaluate(
+        { ...condition, reasons: ['other'] },
+        { blackboard: new ActionBlackboard() },
+      ),
+    ).toBe(false);
+  });
+  it('战技子类型按被检查的技能查询，非战技跳过子类型筛选', () => {
+    let subtype: 'normal' | 'additionalNormalSkill' | undefined = 'additionalNormalSkill';
+    const reads: string[] = [];
+    const executor = new EventContextConditionExecutor(
+      terminal,
+      undefined,
+      () => 'battleSkill',
+      target => {
+        reads.push(target);
+        return subtype;
+      },
+      query => [{ kind: 'operator', operatorId: query.kind === 'owner' ? 'owner' : 'controlled' }],
+    );
+    const context = {
+      blackboard: new ActionBlackboard(),
+      event: {
+        event: 'skillEnd' as const,
+        payload: {
+          sourceId: 'owner',
+          targetId: 'enemy',
+          skillId: 'additional',
+          skillCastId: 1,
+          skillType: 'battleSkill' as const,
+        },
+      },
+    };
+    for (const condition of [
+      { kind: 'eventSkillTypeIn' as const, skillTypes: ['battleSkill' as const] },
+      {
+        kind: 'currentSkillTypeIn' as const,
+        target: { kind: 'owner' as const },
+        skillTypes: ['battleSkill' as const],
+      },
+      {
+        kind: 'currentSkillTypeIn' as const,
+        target: { kind: 'mainCharacter' as const },
+        skillTypes: ['battleSkill' as const],
+      },
+    ]) {
+      subtype = 'additionalNormalSkill';
+      expect(
+        executor.evaluate({ ...condition, normalSkillSubType: 'additionalNormalSkill' }, context),
+      ).toBe(true);
+      expect(executor.evaluate({ ...condition, normalSkillSubType: 'normal' }, context)).toBe(
+        false,
+      );
+      subtype = 'normal';
+      expect(
+        executor.evaluate({ ...condition, normalSkillSubType: 'additionalNormalSkill' }, context),
+      ).toBe(false);
+      // 原生运行类型改为其他类型时，定义上的 AdditionalNormalSkill 不再参与筛选。
+      subtype = undefined;
+      expect(
+        executor.evaluate({ ...condition, normalSkillSubType: 'additionalNormalSkill' }, context),
+      ).toBe(true);
+    }
+    expect(new Set(reads)).toEqual(new Set(['event', 'owner', 'controlled']));
+  });
   it('中断原因只读取当前事件载荷，切换技能与闪避分别判断', () => {
     const executor = new EventContextConditionExecutor(terminal);
     const condition = {
@@ -101,33 +241,6 @@ describe('EventContextConditionExecutor', () => {
     expect(executor.evaluate(check, context)).toBe(false);
     input.gameplayTags = ['Damage/Other'];
     expect(executor.evaluate(check, context)).toBe(true);
-  });
-
-  it('输入目标检查不要求事件回调，修正条件按当前输入目标判断', () => {
-    const executor = new EventContextConditionExecutor(terminal, id => id === 'controlled');
-    const context = {
-      blackboard: new ActionBlackboard(),
-      actionInputTarget: { kind: 'operator' as const, operatorId: 'controlled' },
-      actionSourceId: 'caster',
-    };
-    expect(
-      executor.evaluate(
-        { kind: 'actionInputTargetIdentityMatch', other: 'controlledOperator', operator: 'equal' },
-        context,
-      ),
-    ).toBe(true);
-    expect(
-      executor.evaluate(
-        { kind: 'actionInputTargetIdentityMatch', other: 'actionSource', operator: 'equal' },
-        context,
-      ),
-    ).toBe(false);
-    expect(
-      executor.evaluate(
-        { kind: 'actionInputTargetObjectTypeMatch', objectTypes: ['character'] },
-        context,
-      ),
-    ).toBe(true);
   });
 
   it('伤害检查不能读取治疗修正上下文，也不能导致模拟失败', () => {
@@ -235,6 +348,7 @@ describe('EventContextConditionExecutor', () => {
       const condition = { kind: 'originSkillTypeIn' as const, skillTypes: ['comboSkill' as const] };
       for (const origin of [skillCastInfo, null, undefined]) {
         const payload = {
+          finishReason: 'other' as const,
           sourceId: 'owner',
           targetId: 'entity',
           skillCastInfo: origin,
@@ -327,90 +441,6 @@ describe('EventContextConditionExecutor', () => {
     ).toBe(true);
   });
 
-  it('按公共 Action Context 查询 InputTarget 的对象类型与主控身份', () => {
-    const executor = new EventContextConditionExecutor(
-      terminal,
-      operatorId => operatorId === 'controlled',
-    );
-    const context = {
-      blackboard: new ActionBlackboard(),
-      actionInputTarget: { kind: 'operator' as const, operatorId: 'controlled' },
-      actionSourceId: 'listener',
-      actionOwnerId: 'listener',
-      event: {
-        event: 'takeDamage' as const,
-        payload: {
-          ...createKillEvent().payload,
-          sourceId: 'controlled',
-          targetId: 'listener',
-          tags: [] as const,
-          features: [] as const,
-        },
-      },
-    };
-    expect(
-      executor.evaluate(
-        { kind: 'actionInputTargetObjectTypeMatch', objectTypes: ['character'] },
-        context,
-      ),
-    ).toBe(true);
-    expect(
-      executor.evaluate(
-        {
-          kind: 'actionInputTargetIdentityMatch',
-          other: 'controlledOperator',
-          operator: 'equal',
-        },
-        context,
-      ),
-    ).toBe(true);
-    expect(
-      executor.evaluate(
-        {
-          kind: 'actionInputTargetIdentityMatch',
-          other: 'actionSource',
-          operator: 'equal',
-        },
-        context,
-      ),
-    ).toBe(false);
-  });
-
-  it('输入目标与来源、宿主比较保留实体身份，位置不等于敌人', () => {
-    const executor = new EventContextConditionExecutor(terminal);
-    const targets: readonly [RuntimeTargetRef, string | undefined][] = [
-      [{ kind: 'operator', operatorId: 'caster' }, 'caster'],
-      [{ kind: 'enemy' }, 'enemy'],
-      [{ kind: 'godEntity' }, 'god-entity'],
-      [{ kind: 'abilityEntity', instanceId: 7 }, 'ability-entity:7'],
-      [{ kind: 'spatialPoint', pointId: 1 }, undefined],
-    ];
-    for (const [actionInputTarget, identity] of targets) {
-      for (const other of ['actionSource', 'actionOwner'] as const) {
-        for (const entityId of ['caster', 'enemy', 'god-entity', 'ability-entity:7']) {
-          const context = {
-            blackboard: new ActionBlackboard(),
-            actionInputTarget,
-            actionSourceId: entityId,
-            actionOwnerId: entityId,
-          };
-          expect(
-            executor.evaluate(
-              { kind: 'actionInputTargetIdentityMatch', other, operator: 'equal' },
-              context,
-            ),
-          ).toBe(identity === entityId);
-          expect(
-            executor.evaluate(
-              { kind: 'actionInputTargetIdentityMatch', other, operator: 'notEqual' },
-              context,
-            ),
-          ).toBe(identity !== entityId);
-        }
-      }
-    }
-  });
-
   it('matches a custom ability event name exactly', () => {
     const executor = new EventContextConditionExecutor(terminal);
     const context = {
@@ -477,57 +507,26 @@ describe('EventContextConditionExecutor', () => {
     const executor = new EventContextConditionExecutor(
       terminal,
       undefined,
+      target => (target === 'liino' ? 'battleSkill' : undefined),
       undefined,
-      undefined,
-      (target, context) =>
-        target === 'buffOwner' && context?.buffOwnerId === 'liino' ? 'battleSkill' : undefined,
+      (_query, context) =>
+        context.actionOwnerId === undefined
+          ? []
+          : [{ kind: 'operator', operatorId: context.actionOwnerId }],
     );
 
     expect(
       executor.evaluate(
         {
           kind: 'currentSkillTypeIn',
-          target: 'buffOwner',
+          target: { kind: 'owner' },
           skillTypes: ['battleSkill'],
         },
-        { blackboard: new ActionBlackboard(), buffOwnerId: 'liino' },
+        { blackboard: new ActionBlackboard(), actionOwnerId: 'liino' },
       ),
     ).toBe(true);
   });
 
-  it('比较新 Buff 施加者与监听 Buff 来源，不比较接收敌人与施加者', () => {
-    const executor = new EventContextConditionExecutor(terminal);
-    const context = {
-      blackboard: new ActionBlackboard(),
-      buffSourceId: 'holder',
-      buffOwnerId: 'enemy',
-      event: {
-        event: 'addedBuff' as const,
-        payload: {
-          sourceId: 'holder',
-          targetId: 'enemy',
-          buffId: 'freeze',
-          buffTags: [],
-        },
-      },
-    };
-    expect(executor.evaluate({ kind: 'eventSourceMatchesBuffSource' }, context)).toBe(true);
-    expect(
-      executor.evaluate(
-        { kind: 'eventSourceMatchesBuffSource' },
-        {
-          ...context,
-          event: { ...context.event, payload: { ...context.event.payload, sourceId: 'teammate' } },
-        },
-      ),
-    ).toBe(false);
-    expect(() =>
-      executor.evaluate(
-        { kind: 'eventSourceMatchesBuffSource' },
-        { ...context, buffSourceId: undefined },
-      ),
-    ).toThrow('Buff source');
-  });
   it('matches the event origin, never the listening Buff origin or damage tags', () => {
     const executor = new EventContextConditionExecutor(terminal);
     const context = {
@@ -791,34 +790,6 @@ describe('EventContextConditionExecutor', () => {
       }),
     ).toBe(false);
   });
-  it('resolves SourceFinder through the Buff-source AbilityEntity provenance', () => {
-    const executor = new EventContextConditionExecutor(terminal, undefined, entityId =>
-      entityId === 'ability-entity:7' ? 'ability-entity:8' : 'pogranichnik',
-    );
-    const condition = { kind: 'eventSourceMatchesBuffSourceEntitySource' } as const;
-    const context = {
-      blackboard: new ActionBlackboard(),
-      buffSourceId: 'ability-entity:7',
-      event: {
-        event: 'beforeTakePhysicalInfliction' as const,
-        payload: {
-          sourceId: 'ability-entity:8',
-          targetId: 'ability-entity:7',
-        },
-      },
-    };
-
-    expect(executor.evaluate(condition, context)).toBe(true);
-    expect(
-      executor.evaluate(condition, {
-        ...context,
-        event: {
-          ...context.event,
-          payload: { ...context.event.payload, sourceId: 'pogranichnik' },
-        },
-      }),
-    ).toBe(false);
-  });
 
   it('matches the Buff identity carried by an application event', () => {
     const executor = new EventContextConditionExecutor(terminal);
@@ -855,8 +826,6 @@ describe('EventContextConditionExecutor', () => {
     const registry = new GameplayTagRegistry([parentPath, childPath]);
     const executor = new EventContextConditionExecutor(
       terminal,
-      undefined,
-      undefined,
       (_targetId, ownedTags, requiredTags, match) => registry.query(ownedTags, requiredTags, match),
     );
 
@@ -1206,5 +1175,40 @@ describe('EventContextConditionExecutor', () => {
       ),
     ).toBe(false);
   });
+
+  it.each(['buffEnhanceChanged', 'buffAbsorbedFrameEnd', 'buffConsumedFrameEnd'] as const)(
+    '%s compares signed layer changes and only writes after a match',
+    eventName => {
+      const executor = new EventContextConditionExecutor(terminal);
+      const blackboard = new ActionBlackboard({ count: 7 });
+      const context = {
+        blackboard,
+        event: {
+          event: eventName,
+          payload: {
+            buff: createEventBuff(),
+            buffTags: [],
+            sourceId: 'operator',
+            targetId: 'enemy',
+            buffId: 'buff:test',
+            layerCount: -2,
+          },
+        },
+      };
+      const condition = {
+        kind: 'eventBuffEnhanceLayerCompare' as const,
+        operator: 'greaterOrEqual' as const,
+        value: { kind: 'constant' as const, value: 1 },
+        outputKey: 'count',
+      };
+      expect(executor.evaluate(condition, context)).toBe(false);
+      expect(blackboard.getNumber('count')).toBe(7);
+      expect(executor.evaluate({ ...condition, operator: 'less' }, context)).toBe(true);
+      expect(blackboard.getNumber('count')).toBe(-2);
+      expect(
+        executor.evaluate({ ...condition, kind: 'eventConsumedBuffLayerCompare' }, context),
+      ).toBe(false);
+    },
+  );
 });
 import { createEventBuff } from './buffEventTestFixture';

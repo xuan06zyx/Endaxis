@@ -7,6 +7,8 @@ import { executeHealthDamage } from './healthDamage';
 import type { DamageTag } from '../../game-data/operatorDefinition';
 import { CombatReceiptCollector } from '../receipt/combatReceipt';
 import { groupEnemyBurstDamageHits } from '../../../ui/timeline/results/enemyBurstDamageGroups';
+import { ActionBlackboard } from '../actions/actionBlackboard';
+import { ActionBlackboardOperationExecutor } from '../actions/actionBlackboardOperationExecutor';
 
 function createDamageResult(value: number): PlayerActiveDamageResult {
   return {
@@ -23,6 +25,52 @@ function createDamageResult(value: number): PlayerActiveDamageResult {
 }
 
 describe('executeHealthDamage', () => {
+  it('存储伤害不受木桩剩余生命限制、损失为零，事件实际扣血仍保持原值', () => {
+    const blackboard = new ActionBlackboard();
+    const executor = new ActionBlackboardOperationExecutor({
+      execute: () => false,
+      evaluate: () => false,
+    });
+    const target = new CombatVitals({
+      health: 100,
+      maxHealth: 100,
+      maxPoise: 0,
+      poise: 0,
+      poiseRecoveryTime: 0,
+      poiseRecoveryTimeMultiplier: 1,
+      poiseBrokenEndTime: 0,
+      poiseImmune: false,
+    });
+    executeHealthDamage({
+      sourceId: 'operator',
+      targetId: 'enemy',
+      damageType: 'nature',
+      tags: [],
+      result: createDamageResult(150),
+      target,
+      clock: new CombatClock(),
+      receipt: { record: () => undefined },
+      emitSourceEvent: (event, payload) => {
+        if (event !== 'outputDamage') return;
+        for (const value of ['final', 'real', 'overflow'] as const)
+          executor.execute(
+            { kind: 'storeEventDamageValue', parameters: { value, outputKey: value } },
+            { blackboard, event: { event, payload } },
+          );
+      },
+      emitTargetEvent: (event, payload) => {
+        if (event === 'takeDamage') expect(payload.actualDamage).toBe(100);
+      },
+    });
+    expect(['final', 'real', 'overflow'].map(key => blackboard.getNumber(key))).toEqual([
+      150, 150, 0,
+    ]);
+    executor.execute(
+      { kind: 'storeEventDamageValue', parameters: { value: 'real', outputKey: 'real' } },
+      { blackboard },
+    );
+    expect(blackboard.getNumber('real')).toBe(0);
+  });
   it.each([
     [['fireBurst'], 'Fire'],
     [['electricBurst'], 'Pulse'],

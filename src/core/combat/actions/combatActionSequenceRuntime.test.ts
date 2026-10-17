@@ -99,20 +99,38 @@ it('OR 条件组按序即时执行并短路；恢复后保留独立子序列状�
     },
     context,
   );
-  const program = compileGraphEntry('native-or', 'or', {
-    or: {
-      action: {
-        kind: 'anyCondition',
-        parameters: {},
-        conditions: [{ $sequence: 'fail' }, { $sequence: 'pass' }, { $sequence: 'unused' }],
+  const program = compileGraphEntry(
+    'native-or',
+    'or',
+    {
+      or: {
+        action: {
+          kind: 'anyCondition',
+          parameters: {},
+          conditions: ['fail', 'pass', 'unused'].map(nodeId => ({ kind: 'conditionNode', nodeId })),
+        },
+        next: null,
       },
-      next: null,
+      fail: { action: operation('fail'), next: 'unreachable' },
+      unreachable: { action: operation('unreachable'), next: null },
+      pass: { action: operation('pass'), next: null },
+      unused: { action: operation('unused'), next: null },
     },
-    fail: { action: operation('fail'), next: 'unreachable' },
-    unreachable: { action: operation('unreachable'), next: null },
-    pass: { action: operation('pass'), next: null },
-    unused: { action: operation('unused'), next: null },
-  });
+    {
+      fail: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: 'fail' } },
+      },
+      pass: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: 'pass' } },
+      },
+      unused: {
+        type: 'boolean',
+        expression: { kind: 'checkActionResult', action: { $sequence: 'unused' } },
+      },
+    },
+  );
   const original = runtime.createSequence(program);
   expect(original.executeInstant({})).toBe(true);
   expect(seen).toEqual(['execute:fail', 'end:fail', 'execute:pass', 'end:pass']);
@@ -153,29 +171,39 @@ it.each([false, true])(
       },
       context,
     );
-    const program = compileGraphEntry('native-if-else', 'branch', {
-      branch: {
-        action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext },
-          condition: { $sequence: 'write' },
-          whenTrue: { $sequence: 'true' },
-          whenFalse: { $sequence: 'false' },
+    const program = compileGraphEntry(
+      'native-if-else',
+      'branch',
+      {
+        branch: {
+          action: {
+            kind: 'ifElse',
+            parameters: { alwaysNext },
+            condition: { kind: 'conditionNode', nodeId: 'result' },
+            whenTrue: { $sequence: 'true' },
+            whenFalse: { $sequence: 'false' },
+          },
+          next: 'after',
         },
-        next: 'after',
-      },
-      write: { action: operation('condition'), next: 'check' },
-      check: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'constant', value: true } },
+        write: { action: operation('condition'), next: 'check' },
+        check: {
+          action: {
+            kind: 'checkCondition',
+            parameters: { condition: { kind: 'constant', value: true } },
+          },
+          next: null,
         },
-        next: null,
+        true: { action: operation('true'), next: null },
+        false: { action: operation('false'), next: null },
+        after: { action: operation('after'), next: null },
       },
-      true: { action: operation('true'), next: null },
-      false: { action: operation('false'), next: null },
-      after: { action: operation('after'), next: null },
-    });
+      {
+        result: {
+          type: 'boolean',
+          expression: { kind: 'checkActionResult', action: { $sequence: 'write' } },
+        },
+      },
+    );
     const action = runtime.createSequence(program);
     expect(action.tryExecute({})).toBe(alwaysNext);
     expect(seen).toEqual([
@@ -191,6 +219,63 @@ it.each([false, true])(
     expect(seen).toEqual(['end:true', ...(alwaysNext ? ['end:after'] : [])]);
   },
 );
+
+it.each([true, false])('纯条件移除行为包装后仍在原位置消费 NotNext，条件值=%s', value => {
+  const run = (adapter: boolean) => {
+    const seen: string[] = [];
+    const runtime = new CombatActionSequenceRuntime(
+      {
+        execute: step => {
+          if (step.kind !== 'triggerCustomAbilityEvent') throw new Error('unexpected operation');
+          seen.push(step.parameters.eventName);
+          return true;
+        },
+        evaluate: () => value,
+      },
+      { blackboard: new ActionBlackboard() },
+    );
+    const program = compileGraphEntry(
+      'pure-condition-result',
+      'invert',
+      {
+        invert: { action: { kind: 'invertNextResult', parameters: {} }, next: 'branch' },
+        branch: {
+          action: {
+            kind: 'ifElse',
+            parameters: { alwaysNext: true },
+            condition: adapter
+              ? { kind: 'conditionNode', nodeId: 'result' }
+              : { kind: 'constant', value },
+            whenTrue: { $sequence: 'yes' },
+            whenFalse: { $sequence: 'no' },
+          },
+          next: 'after',
+        },
+        check: {
+          action: {
+            kind: 'checkCondition',
+            parameters: { condition: { kind: 'constant', value } },
+          },
+          next: null,
+        },
+        yes: { action: operation('yes'), next: null },
+        no: { action: operation('no'), next: null },
+        after: { action: operation('after'), next: null },
+      },
+      {
+        result: {
+          type: 'boolean',
+          expression: { kind: 'checkActionResult', action: { $sequence: 'check' } },
+        },
+      },
+    );
+    const sequence = runtime.createSequence(program);
+    const result = sequence.executeInstant({});
+    return { result, seen };
+  };
+  expect(run(false)).toEqual(run(true));
+  expect(run(false).seen).toEqual([value ? 'no' : 'yes']);
+});
 
 it.each([true, false])('NotNext 反转普通动作返回值 %s，且下次执行不残留反转状态', result => {
   const seen: string[] = [];
@@ -1355,7 +1440,8 @@ describe('CombatActionSequenceRuntime', () => {
             type: 'boolean',
             expression: {
               kind: 'buffIdStackCompare',
-              target: 'caster',
+              target: { kind: 'fixed', target: 'caster' },
+              compareZeroWhenTargetMissing: false,
               buffIds: ['signal'],
               operator: 'greaterOrEqual',
               value: { kind: 'constant', value: 1 },
@@ -1451,14 +1537,17 @@ describe('CombatActionSequenceRuntime', () => {
       );
   });
 
-  it('投射物白名单在发射时读取一次，并保留空间点身份而不当成敌人', () => {
+  it('投射物固定发射点与目标集合后逐对发射，白名单保留空间点身份', () => {
     const selected = [{ kind: 'spatialPoint' as const, pointId: 7 }];
     const queryTargets = vi.fn(() => selected);
-    const launchProjectile = vi.fn(() => ({
-      target: { kind: 'abilityEntity' as const, instanceId: 1 },
-      instanceId: 1,
-      onReset: () => ({ registrationId: 0, dispose: () => {} }),
-    }));
+    const launchProjectile = vi.fn(() => {
+      targetContext.set('points', []);
+      return {
+        target: { kind: 'abilityEntity' as const, instanceId: 1 },
+        instanceId: 1,
+        onReset: () => ({ registrationId: 0, dispose: () => {} }),
+      };
+    });
     const targetContext = new RuntimeTargetContext();
     targetContext.set('points', [
       { kind: 'spatialPoint', pointId: 8 },
@@ -1478,6 +1567,7 @@ describe('CombatActionSequenceRuntime', () => {
                 inheritActionBlackboard: false,
                 finish: 1,
                 targets: { kind: 'context', contextKey: 'points' },
+                emitters: { kind: 'context', contextKey: 'points' },
                 onlyHitTargets: { kind: 'inputTarget' },
               },
               callbacks: [],
@@ -1489,7 +1579,7 @@ describe('CombatActionSequenceRuntime', () => {
       .executeInstant({});
     selected.length = 0;
     expect(queryTargets).toHaveBeenCalledOnce();
-    expect(launchProjectile).toHaveBeenCalledTimes(2);
+    expect(launchProjectile).toHaveBeenCalledTimes(4);
     expect(launchProjectile).toHaveBeenLastCalledWith(
       expect.objectContaining({
         onlyHitTargets: [{ kind: 'spatialPoint', pointId: 7 }],
@@ -2153,7 +2243,7 @@ describe('CombatActionSequenceRuntime', () => {
         {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 150 },
-          condition: { $sequence: null },
+          condition: { kind: 'constant', value: true },
         },
       ]),
     );
@@ -2208,14 +2298,20 @@ describe('CombatActionSequenceRuntime', () => {
           action: {
             kind: 'jumpTimeline',
             parameters: { destinationFrame: 89 },
-            condition: { $sequence: 'write' },
+            condition: { kind: 'conditionNode', nodeId: 'result' },
           },
           next: null,
         },
         write: { action: operation('condition-write'), next: 'check' },
         check: { action: { kind: 'checkCondition', parameters: { condition } }, next: null },
       },
-      { active: { type: 'boolean', expression: { kind: 'combatActive' } } },
+      {
+        active: { type: 'boolean', expression: { kind: 'combatActive' } },
+        result: {
+          type: 'boolean',
+          expression: { kind: 'checkActionResult', action: { $sequence: 'write' } },
+        },
+      },
     );
     const action = runtime.createSequence(program);
 

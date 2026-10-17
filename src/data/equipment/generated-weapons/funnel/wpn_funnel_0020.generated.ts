@@ -135,13 +135,6 @@ const definition = {
               },
               next: 'applyBuff_4',
             },
-            checkCondition_6: {
-              action: {
-                kind: 'checkCondition',
-                parameters: { condition: { kind: 'conditionNode', nodeId: 'data_3' } },
-              },
-              next: null,
-            },
             finishBuffsById_7: {
               action: {
                 kind: 'finishBuffsById',
@@ -158,7 +151,7 @@ const definition = {
               action: {
                 kind: 'ifElse',
                 parameters: { alwaysNext: true },
-                condition: { $sequence: 'checkCondition_6' },
+                condition: { kind: 'conditionNode', nodeId: 'data_3' },
                 whenTrue: { $sequence: null },
                 whenFalse: { $sequence: 'finishBuffsById_7' },
               },
@@ -170,18 +163,19 @@ const definition = {
               type: 'boolean',
               expression: {
                 kind: 'buffIdStackCompare',
-                target: 'caster',
-                buffIds: ['buff_wpn_funnel_0020_intensityup'],
+                target: { kind: 'owner' },
+                compareZeroWhenTargetMissing: true,
                 operator: 'greaterOrEqual',
                 value: { kind: 'constant', value: 4 },
+                buffIds: ['buff_wpn_funnel_0020_intensityup'],
               },
             },
             data_2: {
               type: 'boolean',
               expression: {
                 kind: 'timedMarkerPresent',
+                target: { kind: 'owner' },
                 returnTrueIfNotExists: true,
-                target: 'caster',
                 markerId: 'sk_wpn_funnel_0020',
               },
             },
@@ -189,10 +183,11 @@ const definition = {
               type: 'boolean',
               expression: {
                 kind: 'buffIdStackCompare',
-                target: 'caster',
-                buffIds: ['buff_wpn_funnel_0020_intensityup'],
+                target: { kind: 'owner' },
+                compareZeroWhenTargetMissing: true,
                 operator: 'greaterOrEqual',
                 value: { kind: 'constant', value: 4 },
+                buffIds: ['buff_wpn_funnel_0020_intensityup'],
               },
             },
           },
