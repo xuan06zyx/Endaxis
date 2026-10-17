@@ -18,7 +18,10 @@ param(
   [switch]$Apply,
   [ValidateSet('patch', 'minor', 'major')][string]$Bump = 'patch',
   [string]$UpstreamUrl = 'https://github.com/Lieyuan621/Endaxis.git',
-  [string]$UpstreamBranch = 'refactor/v3'
+  # 上游在 2026-10-13 之后把活跃分支从 refactor/v3 换到了 main。
+  # 跟踪错分支的后果是"看起来一切正常，但永远同步不到新代码"，而且不会报错。
+  # 改这个值前先确认上游实际在哪条分支上提交（git ls-remote --heads <上游>）。
+  [string]$UpstreamBranch = 'main'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -39,20 +42,46 @@ function Fail {
 Write-Host '=== 1. 抓取上游 ==='
 git remote remove upstream 2>$null | Out-Null
 git remote add upstream $UpstreamUrl
-git fetch --quiet upstream $UpstreamBranch
-$upstreamRef = 'FETCH_HEAD'
-$upstreamHead = (git rev-parse $upstreamRef).Trim()
+# 一次性抓全部分支到 remote-tracking refs。不要依赖 FETCH_HEAD：
+# 它会被后续任何一次 fetch 覆盖，用它做比较会得到前后不一致的结果（踩过）。
+git fetch --quiet upstream '+refs/heads/*:refs/remotes/upstream/*'
+$trackedRef = "upstream/$UpstreamBranch"
+$upstreamHead = (git rev-parse $trackedRef).Trim()
 Write-Host "  上游 $UpstreamBranch = $($upstreamHead.Substring(0,8))"
 
+Write-Host '=== 1b. 检查上游是不是换了活跃分支 ==='
+# 跟踪的分支若已停更、而上游另一条分支还在前进，这里必须报警。
+# 上一次就是这么漏掉的：refactor/v3 停在 10-13，之后所有提交都在 main 上，
+# 而脚本一直报"已是最新" —— 它没说错，只是盯错了分支。
+$newerBranches = @()
+foreach ($ref in @(git for-each-ref --format='%(refname:short)' 'refs/remotes/upstream/')) {
+  if ($ref -eq $trackedRef -or $ref -eq 'upstream/HEAD') { continue }
+  git merge-base --is-ancestor $trackedRef $ref 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    $ahead = (git rev-list --count "$trackedRef..$ref" 2>$null)
+    if ([int]$ahead -gt 0) { $newerBranches += "$($ref -replace '^upstream/','')（领先 $ahead 个提交）" }
+  }
+}
+if ($newerBranches.Count -gt 0) {
+  Write-Host "  ⚠ 上游 $UpstreamBranch 之外还有更靠前的分支："
+  $newerBranches | ForEach-Object { Write-Host "      $_" }
+  Write-Host "    → 上游可能已切换活跃分支。若如此，请把 -UpstreamBranch 改成新分支，"
+  Write-Host "      否则本脚本会一直报'已是最新'却在同步一个停更的分支。"
+  if ($env:GITHUB_OUTPUT) { Add-Content -Path $env:GITHUB_OUTPUT -Value 'stale_tracker=true' }
+} else {
+  Write-Host '  跟踪分支是上游最靠前的（无误）'
+  if ($env:GITHUB_OUTPUT) { Add-Content -Path $env:GITHUB_OUTPUT -Value 'stale_tracker=false' }
+}
+
 Write-Host '=== 2. 判断是否有新提交 ==='
-git merge-base --is-ancestor $upstreamRef HEAD
+git merge-base --is-ancestor $trackedRef HEAD
 $alreadyMerged = $LASTEXITCODE -eq 0
 if ($alreadyMerged) {
   Write-Host '  已是最新，无需同步'
   Write-OutputPair 'synced' 'false'
   exit 0
 }
-$incoming = @(git log --oneline "HEAD..$upstreamRef")
+$incoming = @(git log --oneline "HEAD..$trackedRef")
 Write-Host "  发现 $($incoming.Count) 个新提交："
 $incoming | Select-Object -First 15 | ForEach-Object { Write-Host "    $_" }
 if ($incoming.Count -gt 15) { Write-Host "    …（共 $($incoming.Count) 个）" }
@@ -67,7 +96,7 @@ if (-not $Apply) {
 Write-Host '=== 3. 合并上游 ==='
 # --no-edit 用默认合并信息；--no-ff 保证留下合并提交，便于日后回溯同步点。
 git -c user.name='endaxis-sync' -c user.email='endaxis-sync@users.noreply.github.com' `
-  merge --no-ff --no-edit $upstreamRef 2>&1 | ForEach-Object { "  $_" }
+  merge --no-ff --no-edit $trackedRef 2>&1 | ForEach-Object { "  $_" }
 if ($LASTEXITCODE -ne 0) {
   $conflicts = @(git diff --name-only --diff-filter=U)
   Write-Host ''

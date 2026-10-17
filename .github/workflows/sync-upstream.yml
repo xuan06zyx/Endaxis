@@ -86,7 +86,13 @@ jobs:
 
       - name: Push merged branch
         if: steps.sync.outputs.synced == 'true'
-        run: git push origin HEAD:refactor/v3
+        run: |
+          git push origin HEAD:refactor/v3
+          # 同时把默认分支 main 快进到同一提交。
+          # 原因：GitHub 的定时任务**只从默认分支加载工作流**，而本仓库默认分支是
+          # main。工作流只存在于 refactor/v3 时，它不会被调度——这正是第一次上线后
+          # "从来没跑过"的根本原因（tag 触发的发布不受影响，所以那个一直正常）。
+          git push origin HEAD:main
 
       - name: Publish release for the synced version
         if: steps.sync.outputs.synced == 'true'
