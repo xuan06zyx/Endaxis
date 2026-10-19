@@ -43,8 +43,13 @@ import { projectEnemyEffectViz } from '../../core/projection/enemyEffectViz';
 import { elementalAttachments } from '../../data/buffs/elementalAttachments';
 import { CONTINGENCY_CONTRACT_MECHANIC_PREFIX } from '../../data/contingencyContract/contingencyContractAdapter';
 import {
+  contractInitialVariables,
+  resolveContractInitialVariables,
+} from '../../data/contingencyContract/definitions';
+import {
   contingencyContractMechanicId,
   contingencyContractTags,
+  contingencyContractSeasons,
 } from '../../data/contingencyContract/contingencyContractCatalog';
 import { ALL_GAME_TEXT_FAMILIES, setLocale } from '../../i18n';
 import { useAppearance } from '../appearance/useAppearance';
@@ -311,6 +316,7 @@ import {
   selectedTimelineSkills,
   selectTimelineActionsIdentity,
   selectTimelineItem,
+  selectTimelineItemRange,
   selectTimelineMarkerIdentity,
   selectTimelineTrackIdentity,
   type TimelineMarkerKind,
@@ -455,6 +461,14 @@ function defineLazyDialog<T extends Component>(load: () => Promise<{ default: T 
   });
 }
 
+const contractSeason = ref(1);
+const contractSeasonOptions = computed(() =>
+  contingencyContractSeasons.map(season => ({ value: season.id, label: t(season.nameKey) })),
+);
+function selectContractSeason(value: EaSelectValue | EaSelectValue[]): void {
+  if (typeof value === 'number' && contingencyContractSeasons.some(season => season.id === value))
+    contractSeason.value = value;
+}
 const GearSelectionDialog = defineLazyDialog(() => import('./library/GearSelectionDialog.vue'));
 const SkillGraphEditorDialog = defineLazyDialog(
   () => import('../action-graph/SkillGraphEditorDialog.vue'),
@@ -2602,6 +2616,7 @@ const {
   simulate: ensureCurrentSimulation,
   blocked: () => ElMessage.warning(t('timelineGrid.action.locked')),
   dropped: (event, items) => {
+    itemClickSequence = null;
     if (items.length === 1 && items[0]!.ref.kind === 'skill')
       offerJoinContinuousGroup(event, items[0]!.trackIndex!, [items[0]!.ref.id]);
   },
@@ -4048,9 +4063,16 @@ function buffSourceName(segment: BuffPresentationSource): string | undefined {
   }
   const contractTagName = contingencyContractBuffName(segment);
   if (contractTagName !== undefined) {
+    const contract = resolveContingencyContractBuffPresentation(
+      segment.sourceActionId,
+      publishedSimulation.value?.scenario.mechanics.selections ?? [],
+    );
+    const season = contingencyContractSeasons.find(
+      candidate => candidate.id === contract?.tag.season,
+    );
     return formatContingencyContractBuffSourceName(
       t('contingencyContract.title'),
-      t('contingencyContract.operationName'),
+      t(season?.nameKey ?? 'contingencyContract.operationName'),
       contractTagName,
     );
   }
@@ -4603,9 +4625,44 @@ function itemDragging(kind: TimelineItemKind, id: string): boolean {
     gesture.plan.items.some(item => item.key === timelineItemKey({ kind, id }))
   );
 }
+let itemClickSequence: { key: string; count: number; scenarioId: string } | null = null;
+function selectItemRange(
+  scope: 'group' | 'track' | 'all',
+  anchor = primaryItem.value ?? undefined,
+): boolean {
+  applyItemSelection(
+    selectTimelineItemRange(
+      timelineItems.value,
+      scope,
+      anchor,
+      anchor?.trackIndex ?? selectedTrack.value,
+    ),
+  );
+  return true;
+}
 function handleItemSelection(event: MouseEvent, kind: TimelineItemKind, id: string): void {
-  if (consumeItemClick(timelineItemKey({ kind, id }))) return;
-  selectItem(kind, id, event.ctrlKey || event.metaKey);
+  const key = timelineItemKey({ kind, id });
+  if (consumeItemClick(key)) {
+    itemClickSequence = null;
+    return;
+  }
+  if (event.ctrlKey || event.metaKey) {
+    itemClickSequence = null;
+    selectItem(kind, id, true);
+    return;
+  }
+  const count =
+    event.detail > 1 &&
+    itemClickSequence?.key === key &&
+    itemClickSequence.scenarioId === scenario.value.id
+      ? itemClickSequence.count + 1
+      : 1;
+  itemClickSequence = { key, count, scenarioId: scenario.value.id };
+  const item = timelineItems.value.get(key);
+  if (item?.trackIndex !== undefined && count >= 4) selectItemRange('all', item);
+  else if (item?.trackIndex !== undefined && count === 3) selectItemRange('track', item);
+  else if (item && kind === 'skill' && count === 2) selectItemRange('group', item);
+  else selectItem(kind, id);
 }
 function handleActionSelection(event: MouseEvent, id: string): void {
   handleItemSelection(event, 'skill', id);
@@ -5850,9 +5907,9 @@ async function compactSelectedSkills(): Promise<void> {
   commitScenario('compactSelectedSkills', () => compacted);
 }
 
-function pasteClipboardAtTimelinePosition(): void {
+function pasteClipboardAtTimelinePosition(frame?: number): boolean {
   const clipboard = timelineClipboard.value;
-  if (clipboard === null) return;
+  if (clipboard === null) return false;
   const minimumFrame = minimumEditableInputFrame.value;
   const pasteFrame =
     timelinePointerClientX.value === null
@@ -5863,11 +5920,41 @@ function pasteClipboardAtTimelinePosition(): void {
           minimumFrame,
         )
       : pointerMarkerFrame(timelinePointerClientX.value, 0, minimumFrame);
-  const result = pasteTimelineActions(scenario.value, clipboard, pasteFrame, ids);
-  if (!result.itemRefs.length) return;
-  if (!commitScenario('pasteTimelineItems', () => result.scenario)) return;
+  const result = pasteTimelineActions(scenario.value, clipboard, frame ?? pasteFrame, ids);
+  if (!result.itemRefs.length) return false;
+  if (!commitScenario('pasteTimelineItems', () => result.scenario)) return false;
   const keys = result.itemRefs.map(timelineItemKey);
   applyItemSelection({ selectedIds: new Set(keys), primaryId: keys.at(-1) ?? null });
+  return true;
+}
+
+function cutSelectedActions(): boolean {
+  const items = selectedItems.value;
+  if (!items.length) return false;
+  if (items.some(item => item.blocked)) {
+    ElMessage.warning(t('timelineGrid.action.locked'));
+    return true;
+  }
+  const clipboard = copyTimelineItems(scenario.value, items, displayedSkillCastStartFrames.value);
+  if (!clipboard) return false;
+  // 删除提交成功后才替换剪贴板，失败时保留原选区和上一次复制内容。
+  if (!commitScenario('removeTimelineItems', current => removeTimelineItems(current, items)))
+    return false;
+  timelineClipboard.value = clipboard;
+  clearTimelineSelection();
+  return true;
+}
+
+function cutContextSelection(): void {
+  cutSelectedActions();
+  contextMenuTarget.value = null;
+  markerContextTarget.value = null;
+}
+
+function pasteContextSelection(): void {
+  const frame = markerContextTarget.value?.frame;
+  pasteClipboardAtTimelinePosition(frame);
+  markerContextTarget.value = null;
 }
 
 function copySelectedActions(): boolean {
@@ -5962,8 +6049,8 @@ function copySelectedActionsByShortcut(): boolean {
 
 function pasteSelectedActionsByShortcut(): boolean {
   if (timelineClipboard.value === null) return false;
-  pasteClipboardAtTimelinePosition();
-  ElMessage.success({ message: t('timeline.shortcut.pasted'), duration: 800 });
+  if (pasteClipboardAtTimelinePosition())
+    ElMessage.success({ message: t('timeline.shortcut.pasted'), duration: 800 });
   return true;
 }
 
@@ -6067,6 +6154,7 @@ useKeyboardShortcutScope({
   handleClipboard: event => {
     if (isKeyboardShortcutIsolationTarget(event.target)) return false;
     if (event.type === 'copy') return copySelectedActionsByShortcut();
+    if (event.type === 'cut') return cutSelectedActions();
     if (event.type !== 'paste') return false;
     return pasteSelectedActionsByShortcut();
   },
@@ -6076,6 +6164,9 @@ useKeyboardShortcutScope({
       undo: () => restoreEditorHistoryByShortcut('undo'),
       redo: () => restoreEditorHistoryByShortcut('redo'),
       copy: copySelectedActionsByShortcut,
+      cut: cutSelectedActions,
+      selectAll: () => selectItemRange('all'),
+      selectTrackItems: () => selectItemRange('track'),
       paste: pasteSelectedActionsByShortcut,
       delete: deleteSelectionByShortcut,
       nudgeLeft: () => nudgeSelectedActions(-1),
@@ -6160,13 +6251,83 @@ function setSelectedContingencyContractTagIds(tagIds: readonly number[]): void {
         ...current.mechanics.selections.filter(
           selection => !selection.mechanicId.startsWith(CONTINGENCY_CONTRACT_MECHANIC_PREFIX),
         ),
-        ...tagIds.map(tagId => ({
-          id: `mechanic:contingency-contract:${tagId}`,
-          mechanicId: contingencyContractMechanicId(tagId),
-          enabled: true,
-          parameters: {},
-        })),
+        ...current.mechanics.selections
+          .filter(selection =>
+            selection.mechanicId.startsWith(CONTINGENCY_CONTRACT_MECHANIC_PREFIX),
+          )
+          .map(selection => ({
+            ...selection,
+            enabled: tagIds.some(
+              tagId => selection.mechanicId === contingencyContractMechanicId(tagId),
+            ),
+          })),
+        ...tagIds
+          .filter(
+            tagId =>
+              !current.mechanics.selections.some(
+                selection => selection.mechanicId === contingencyContractMechanicId(tagId),
+              ),
+          )
+          .map(tagId => ({
+            id: `mechanic:contingency-contract:${tagId}`,
+            mechanicId: contingencyContractMechanicId(tagId),
+            enabled: true,
+            parameters: {},
+          })),
       ],
+    },
+  }));
+}
+
+function clearContractInitialVariables(tagId: number): void {
+  if (configurationReadOnly.value) return;
+  const keys = new Set(contractInitialVariables(tagId).map(field => field.key));
+  commitScenario('clearContractInitialVariables', current => ({
+    ...current,
+    mechanics: {
+      ...current.mechanics,
+      selections: current.mechanics.selections.map(selection =>
+        selection.mechanicId !== contingencyContractMechanicId(tagId)
+          ? selection
+          : {
+              ...selection,
+              parameters: Object.fromEntries(
+                Object.entries(selection.parameters).filter(([key]) => !keys.has(key)),
+              ),
+            },
+      ),
+    },
+  }));
+}
+
+function setContractInitialVariable(tagId: number, key: string, value: number): void {
+  if (configurationReadOnly.value) return;
+  const field = contractInitialVariables(tagId).find(field => field.key === key);
+  if (!field) return;
+  commitScenario('setContractInitialVariable', current => ({
+    ...current,
+    mechanics: {
+      ...current.mechanics,
+      selections: (current.mechanics.selections.some(
+        selection => selection.mechanicId === contingencyContractMechanicId(tagId),
+      )
+        ? current.mechanics.selections
+        : [
+            ...current.mechanics.selections,
+            {
+              id: `mechanic:contingency-contract:${tagId}`,
+              mechanicId: contingencyContractMechanicId(tagId),
+              enabled: false,
+              parameters: {},
+            },
+          ]
+      ).map(selection => {
+        if (selection.mechanicId !== contingencyContractMechanicId(tagId)) return selection;
+        const parameters = { ...selection.parameters, [key]: value };
+        resolveContractInitialVariables(tagId, parameters);
+        if (value === field.defaultValue) delete parameters[key];
+        return { ...selection, parameters };
+      }),
     },
   }));
 }
@@ -6684,7 +6845,15 @@ function setMobileGuideFrame(frame: number | null): void {
           alt=""
           aria-hidden="true"
         />
-        <div class="contract-side-title">{{ t('contingencyContract.operationName') }}</div>
+        <div class="contract-side-title">{{ t('contingencyContract.title') }}</div>
+        <EaSelect
+          class="contract-season-select"
+          size="sm"
+          :model-value="contractSeason"
+          :options="contractSeasonOptions"
+          :aria-label="t('contingencyContract.selectSeason')"
+          @update:model-value="selectContractSeason"
+        />
       </div>
       <div v-else class="empty-panel">{{ t('timeline.activityBar.contractUnavailable') }}</div>
     </template>
@@ -7833,11 +8002,16 @@ function setMobileGuideFrame(frame: number | null): void {
         <div v-else class="simulation-panel__empty">—</div>
       </section>
       <ContingencyContractPanel
+        :key="contractSeason"
+        :season="contractSeason"
         :read-only="configurationReadOnly"
         v-else-if="tool === 'contract'"
         :selected-tag-ids="selectedContingencyContractTagIds"
+        :selections="scenario.mechanics.selections"
         :locale="locale"
         @set-selected-tag-ids="setSelectedContingencyContractTagIds"
+        @set-initial-variable="setContractInitialVariable"
+        @clear-initial-variables="clearContractInitialVariables"
       />
       <div v-else class="empty-panel">{{ t('timeline.activityBar.contractUnavailable') }}</div>
     </template>
@@ -8063,6 +8237,7 @@ function setMobileGuideFrame(frame: number | null): void {
     @close="groupInsertPrompt = null"
   />
   <TimelineActionContextMenu
+    @cut="cutContextSelection"
     :input-read-only="[...actionSelection.selectedIds].some(isHistoricalSkillInput)"
     :delete-disabled="selectedItems.some(item => item.blocked)"
     :skill-options="onlySkillsSelected"
@@ -8103,6 +8278,9 @@ function setMobileGuideFrame(frame: number | null): void {
     @set-color="setContextCastColor"
   />
   <TimelineMarkerContextMenu
+    :can-paste="timelineClipboard !== null"
+    @cut="cutContextSelection"
+    @paste="pasteContextSelection"
     :cycle-boundary="
       selectedItems.length === 1 && markerContextTarget?.existing?.kind === 'cycleBoundary'
     "
@@ -9725,6 +9903,13 @@ button:disabled {
   object-fit: contain;
   opacity: 0.78;
   filter: saturate(1.02) brightness(0.92);
+}
+.contract-season-select {
+  width: 100%;
+  max-width: 240px;
+}
+.contract-season-select :deep(.el-select__selected-item) {
+  text-align: center;
 }
 
 .contract-side-title {
