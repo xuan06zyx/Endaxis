@@ -4,7 +4,7 @@
 Electron 包成本地应用，并补上本地存档、关窗落盘、自动更新等桌面能力。
 
 前端代码来自上游（**上游 2026-10-13 之后把活跃分支从 `refactor/v3` 换到了 `main`**，本仓库跟踪 `main`），**基本原样保留**，因此可以持续跟随上游更新。
-只有一处必要改动（见下文「对上游的唯一改动」）。
+只有一处必要改动，共 2 行（见下文「对上游的改动」）。
 
 ---
 
@@ -48,16 +48,45 @@ Electron 包成本地应用，并补上本地存档、关窗落盘、自动更�
 
 ---
 
-## 对上游的唯一改动
+## 对上游的改动（刻意压到最小）
 
-`src/ui/timeline/projectFileSession.ts`（及 `TimelineEditor.vue` 的一处桥接）：
+上游代码几乎原样保留，**只有一个文件被改、共 2 行**：
 
-1. **自动保存改为防抖合并写入**（1.2 秒窗口，最长等待 15 秒）。上游是每次改动都写，
-   桌面版长时间排轴时写入过于频繁；
-2. **新增关窗落盘**：窗口关闭前主进程会先要求渲染进程把排队的保存写进磁盘，
-   再真正关闭。否则用户改完立刻关程序，那次改动会随渲染进程一起消失。
+```diff
+  // src/ui/timeline/projectFileSession.ts
+- import { saveBrowserProject } from '../../data/browserProjectStorage';
++ import { queueBrowserSave } from '../../desktop/browserSaveBridge';
 
-浏览器版行为不变（`window.EndaxisDesktop` 不存在时走原路径）。
+    if (options.persistToBrowser) {
+      pendingBrowserSaves += 1;
+-     void saveBrowserProject(snapshot.project).then(
++     void queueBrowserSave(snapshot.project).then(
+```
+
+其余一切（错误上报、未落盘计数、离页保护、作用域销毁）都保留上游原写法。
+防抖合并、关窗落盘、preload 接线全在**我们自己的新文件**
+`src/desktop/browserSaveBridge.ts` 里 —— 上游永远不会碰它。
+
+### 为什么这么设计
+
+这段逻辑早期直接写在上游文件里，让 `projectFileSession.ts` 多了 130 行改动，
+`TimelineEditor.vue` 也多了 15 行。结果是**上游一次普通重构就冲突**：
+2026-10-19 那次定时同步就是因为上游把 `selectProjectExportScope` 搬到了新模块而失败。
+
+压到 2 行之后，补丁面从 19 个文件 / 257 行降到 **1 个文件 / 2 行**，
+而且这两行只涉及「保存调用」这一个语义点 —— 上游除非重写这段保存逻辑，
+否则不会冲突。
+
+### 两个时序细节（改这里之前务必知道）
+
+1. **首次编辑立即落盘**：队列空闲时 `queueBrowserSave` 直接返回
+   `saveBrowserProject` 的原始 Promise，不额外包装。多包一层微任务会让上游
+   「提交后立刻写盘」的测试挂掉，而且这类「差一拍」的问题极难排查。
+   连续编辑才走合并（实测 8 次连续编辑合并成 1 次写入）。
+2. **关窗等待有上限**：`flushBrowserSaveAndWait` 不会只 await 那次写入 ——
+   IndexedDB 卡死时它永不结算，「关窗等待」会变成「永不返回」。
+
+浏览器版行为不变（`window.EndaxisDesktop` 不存在时只是不注册关窗回调）。
 
 ---
 
@@ -153,7 +182,7 @@ pwsh -File scripts/sync-upstream.ps1 -Apply -Bump minor
 | 闸           | 做法                                                                                | 挡住什么                                         |
 | ------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------ |
 | 冲突即停     | 合并失败就 `merge --abort` 并开 issue                                               | 半个合并状态被提交、坏版本被发布                 |
-| **符号断言** | 合并后逐条检查 5 个关键符号（防抖常量、等待出口、落盘登记处、桥接、桥接调用的函数） | Git 报"自动合并成功"，但上游挪走了补丁依赖的代码 |
+| **符号断言** | 合并后逐条检查 5 个关键符号（桥接导入、保存钩子、关窗出口、preload 接线、自注册） | Git 报"自动合并成功"，但上游挪走了钩子依赖的代码 |
 | 验证后发布   | 合并后跑补丁单元测试 + 类型检查，失败就不发版                                       | 上游行为变更导致补丁失效却照发                   |
 | 存档格式告警 | 上游若改动 `src/core/project` 就在日志里提示                                        | 用户旧存档读不出来却无人察觉                     |
 

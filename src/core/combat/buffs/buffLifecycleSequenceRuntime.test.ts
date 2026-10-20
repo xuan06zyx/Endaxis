@@ -1547,8 +1547,7 @@ describe('attachBuffLifecycleSequences', () => {
     const definition = attachBuffLifecycleSequences<never>(
       { id: 'damage-listener', stackingType: 'unique' },
       {},
-      () =>
-        new EventContextConditionExecutor(new TargetContextOperationExecutor('enemy', terminal)),
+      () => new EventContextConditionExecutor(new TargetContextOperationExecutor('enemy', terminal)),
       undefined,
       [
         {

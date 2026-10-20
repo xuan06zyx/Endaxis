@@ -52,8 +52,7 @@ export class ComboWindowOperationExecutor implements CombatOperationExecutor {
 
   evaluate(condition: CompiledCondition, context?: CombatOperationContext): boolean {
     if (condition.kind === 'comboSkillPending') {
-      if (context === undefined)
-        throw new Error('comboSkillPending requires a combat operation context');
+      if (context === undefined) throw new Error('comboSkillPending requires a combat operation context');
       const target = this.queryTargets(condition.target, context)[0];
       return target?.kind === 'operator' && this.windows.hasPending(target.operatorId);
     }

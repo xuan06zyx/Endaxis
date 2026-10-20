@@ -10,10 +10,7 @@ import { compareCombatNumbers } from '../../math/combatNumbers';
 export interface CombatVitalsConditionDependencies {
   readonly resolveTarget: (target: CombatTarget, buffSourceId?: string) => CombatVitals;
   readonly queryTargets: NonNullable<CombatOperationExecutor['queryTargets']>;
-  readonly resolveVitals: (
-    target: RuntimeTargetRef,
-    property: 'currentHealth' | 'currentPoise',
-  ) => CombatVitals | undefined;
+  readonly resolveVitals: (target: RuntimeTargetRef, property: 'currentHealth' | 'currentPoise') => CombatVitals | undefined;
   readonly delegate: CombatOperationExecutor;
 }
 
@@ -31,20 +28,15 @@ export class CombatVitalsConditionExecutor implements CombatOperationExecutor {
 
   evaluate(condition: CompiledCondition, context?: CombatOperationContext): boolean {
     if (condition.kind === 'targetStaggered') {
-      return this.dependencies.resolveTarget(condition.target, context?.buffSourceId)
-        .hasPoiseBrokenTag;
+      return this.dependencies.resolveTarget(condition.target, context?.buffSourceId).hasPoiseBrokenTag;
     }
     if (condition.kind !== 'healthCompare' && condition.kind !== 'poiseCompare')
       return this.dependencies.delegate.evaluate(condition, context);
     if (!context) throw new Error(`${condition.kind} requires a combat operation context`);
     const target = this.dependencies.queryTargets(condition.target, context)[0];
-    const vitals =
-      target === undefined
-        ? undefined
-        : this.dependencies.resolveVitals(
-            target,
-            condition.kind === 'healthCompare' ? 'currentHealth' : 'currentPoise',
-          );
+    const vitals = target === undefined ? undefined : this.dependencies.resolveVitals(
+      target, condition.kind === 'healthCompare' ? 'currentHealth' : 'currentPoise',
+    );
     if (condition.kind === 'healthCompare') {
       const threshold = resolveActionValueOperand(condition.value, context.blackboard);
       // 木桩既有存活门禁简化保持不变；空目标不放行，其他比较照常读取真实账本。

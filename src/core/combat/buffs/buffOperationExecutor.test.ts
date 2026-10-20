@@ -3178,17 +3178,14 @@ describe('BuffOperationExecutor', () => {
     });
 
     expect(
-      executor.evaluate(
-        {
-          kind: 'buffIdStackCompare',
-          target: { kind: 'fixed', target: 'caster' },
-          compareZeroWhenTargetMissing: false,
-          buffIds: ['sword-trigger'],
-          operator: 'greaterOrEqual',
-          value: 2,
-        },
-        { blackboard: new ActionBlackboard() },
-      ),
+      executor.evaluate({
+        kind: 'buffIdStackCompare',
+        target: { kind: 'fixed', target: 'caster' },
+        compareZeroWhenTargetMissing: false,
+        buffIds: ['sword-trigger'],
+        operator: 'greaterOrEqual',
+        value: 2,
+      }, { blackboard: new ActionBlackboard() }),
     ).toBe(true);
     expect(
       executor.evaluate(

@@ -21,3 +21,6 @@ verification/
 patches/
 
 *.log
+
+# 文件工具的临时锁（ops_* 产生），不该入库。
+.dsh-ops-update-*.lock

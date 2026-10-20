@@ -1106,42 +1106,25 @@ describe('ActionBlackboardOperationExecutor', () => {
 
   it('Deck 查询取首角色快照，属性保留 double 而黑板按 float 读取', () => {
     const executor = new ActionBlackboardOperationExecutor(
-      delegate,
-      undefined,
-      undefined,
-      undefined,
+      delegate, undefined, undefined, undefined,
       {
         queryTargets: (query, context) => resolveDirectActionTargets(query, context) ?? [],
-        resolve: id =>
-          id === 'caster'
-            ? { strength: 1000, agility: 1000.00002, intellect: 100, will: 100 }
-            : { strength: 20, agility: 10, intellect: 50, will: 100 },
+        resolve: id => id === 'caster'
+          ? { strength: 1000, agility: 1000.00002, intellect: 100, will: 100 }
+          : { strength: 20, agility: 10, intellect: 50, will: 100 },
       },
     );
-    const context = {
-      blackboard: new ActionBlackboard({ value: 1000.00002 }),
-      actionInputTarget: { kind: 'operator' as const, operatorId: 'caster' },
-    };
-    const condition = {
-      kind: 'deckAttributeCompare' as const,
+    const context = { blackboard: new ActionBlackboard({ value: 1000.00002 }),
+      actionInputTarget: { kind: 'operator' as const, operatorId: 'caster' } };
+    const condition = { kind: 'deckAttributeCompare' as const,
       target: { kind: 'inputTarget' as const },
-      left: 'strength' as const,
-      operator: 'less' as const,
-      right: 'agility' as const,
-    };
+      left: 'strength' as const, operator: 'less' as const, right: 'agility' as const };
     expect(executor.evaluate(condition, context)).toBe(true);
-    expect(
-      executor.evaluate(
-        { ...condition, right: numberInput({ kind: 'blackboard', key: 'value' }) },
-        context,
-      ),
-    ).toBe(false);
-    expect(
-      executor.evaluate(condition, {
-        ...context,
-        actionInputTarget: { kind: 'enemy' },
-      }),
-    ).toBe(false);
+    expect(executor.evaluate({ ...condition,
+      right: numberInput({ kind: 'blackboard', key: 'value' }) }, context)).toBe(false);
+    expect(executor.evaluate(condition, {
+      ...context, actionInputTarget: { kind: 'enemy' },
+    })).toBe(false);
     expect(executor.evaluate(condition, { blackboard: context.blackboard })).toBe(false);
   });
 });

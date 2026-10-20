@@ -2254,10 +2254,8 @@ describe('StandardPlayerDamageEnvironment', () => {
           sourceId: 'operator',
           resolveTarget: target =>
             target === 'enemy' ? environment.runtimeOptions.enemyBuffRuntime! : operatorBuffs,
-          queryTargets: (query, context) =>
-            new TargetContextOperationExecutor('operator', executor).queryTargets(query, context),
-          resolveEventTarget: id =>
-            id === 'enemy' ? environment.runtimeOptions.enemyBuffRuntime! : operatorBuffs,
+          queryTargets: (query, context) => new TargetContextOperationExecutor('operator', executor).queryTargets(query, context),
+          resolveEventTarget: id => id === 'enemy' ? environment.runtimeOptions.enemyBuffRuntime! : operatorBuffs,
           delegate: executor,
         }),
     );
@@ -2506,13 +2504,8 @@ describe('StandardPlayerDamageEnvironment', () => {
       () =>
         new CombatVitalsConditionExecutor({
           resolveTarget: target => environment.runtimeOptions.resolveVitals!(target, 'operator'),
-          queryTargets: (query, context) =>
-            new TargetContextOperationExecutor('operator', executor).queryTargets(query, context),
-          resolveVitals: target =>
-            environment.runtimeOptions.resolveVitals!(
-              target.kind === 'enemy' ? 'enemy' : 'caster',
-              'operator',
-            ),
+          queryTargets: (query, context) => new TargetContextOperationExecutor('operator', executor).queryTargets(query, context),
+          resolveVitals: target => environment.runtimeOptions.resolveVitals!(target.kind === 'enemy' ? 'enemy' : 'caster', 'operator'),
           delegate: executor,
         }),
     );
@@ -2746,13 +2739,8 @@ describe('StandardPlayerDamageEnvironment', () => {
 
     const conditions = new CombatVitalsConditionExecutor({
       resolveTarget: target => environment.runtimeOptions.resolveVitals!(target, 'operator'),
-      queryTargets: (query, context) =>
-        new TargetContextOperationExecutor('operator', executor).queryTargets(query, context),
-      resolveVitals: target =>
-        environment.runtimeOptions.resolveVitals!(
-          target.kind === 'enemy' ? 'enemy' : 'caster',
-          'operator',
-        ),
+      queryTargets: (query, context) => new TargetContextOperationExecutor('operator', executor).queryTargets(query, context),
+      resolveVitals: target => environment.runtimeOptions.resolveVitals!(target.kind === 'enemy' ? 'enemy' : 'caster', 'operator'),
       delegate: { execute: () => true, evaluate: () => true },
     });
     // 生命比例已低于 1，证明条件读取的是伤害写入后的同一账本。
@@ -3882,14 +3870,16 @@ describe('StandardPlayerDamageEnvironment', () => {
           },
         },
       ),
-      operations: new TargetContextOperationExecutor('operator', {
-        execute: () => {
-          throw new Error('unexpected combo condition operation');
+      operations: new TargetContextOperationExecutor('operator',
+        {
+          execute: () => {
+            throw new Error('unexpected combo condition operation');
+          },
+          evaluate: () => {
+            throw new Error('unexpected delegated combo condition');
+          },
         },
-        evaluate: () => {
-          throw new Error('unexpected delegated combo condition');
-        },
-      }),
+      ),
       isOwnerAlive: () => true,
       isOwnerSilenced: () => false,
       currentComboCooldown: () => ({ oneReady: true, maxPassedTime: 0, startCdFrame: 0 }),

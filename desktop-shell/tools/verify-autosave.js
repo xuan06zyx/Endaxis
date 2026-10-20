@@ -41,8 +41,8 @@ app.setPath('userData', SCRATCH_USER_DATA);
 
 /** 与 src/ui/timeline/projectFileSession.ts 的防抖窗口保持一致。 */
 const EXPECTED_DEBOUNCE_MS = 1200;
-/** 写入被推迟的证据：观测到的延迟必须明显超过"立刻写"。 */
-const MIN_OBSERVED_DELAY_MS = 700;
+/** 连续编辑的合并断言：这批编辑应远少于同样数量的写入。 */
+const BURST_EDIT_COUNT = 8;
 const OBSERVE_TIMEOUT_MS = 20_000;
 
 /**
@@ -173,24 +173,41 @@ app.whenReady().then(async () => {
     if (!triggered.ok) {
       failures.push(`没找到可用于触发提交的输入框：${JSON.stringify(triggered.candidates)}`);
     } else {
-      record(
-        writeAt !== null,
-        `编辑后 ${OBSERVE_TIMEOUT_MS}ms 内没有任何写事务（保存路径可能断了）`,
-      );
+      record(writeAt !== null, `编辑后 ${OBSERVE_TIMEOUT_MS}ms 内没有任何写事务（保存路径可能断了）`);
       if (writeAt !== null) {
         const delay = writeAt - editedAt;
         console.log(`[verify:autosave] 编辑 → 写入延迟：${delay}ms`);
-        record(
-          delay >= MIN_OBSERVED_DELAY_MS,
-          `写入没有被推迟（延迟仅 ${delay}ms，期望 >= ${MIN_OBSERVED_DELAY_MS}ms，` +
-            `防抖窗口 ${EXPECTED_DEBOUNCE_MS}ms 可能没生效）`,
-        );
+        // 首写优先：第一次编辑会立即落盘（降低数据风险），因此不断言"必须推迟"。
+        // 合并效果由下面的突发编辑断言覆盖。
         record(
           delay <= EXPECTED_DEBOUNCE_MS + 4000,
           `写入推迟过久（${delay}ms），保存进度可能被拖住`,
         );
       }
     }
+
+    // ── 合并写入：连续编辑必须被合并成少量事务 ─────────────────────────
+    //
+    // 这是"降低写入频率"的核心收益。首写之后，防抖窗口内的后续编辑应当合并，
+    // 否则这个桥接模块就只是在原来的写入路径外面多套了一层。
+    await window.webContents.executeJavaScript(
+      `(() => { window.__endaxisSaveProbe.writes.length = 0; return true; })()`,
+      true,
+    );
+    for (let index = 0; index < BURST_EDIT_COUNT; index += 1) {
+      await window.webContents.executeJavaScript(buildEditScript(String(700000 + index)), true);
+    }
+    await new Promise(resolve => setTimeout(resolve, EXPECTED_DEBOUNCE_MS + 800));
+    const burstWrites = await window.webContents.executeJavaScript(
+      '(() => window.__endaxisSaveProbe.writes.length)()',
+      true,
+    );
+    console.log(`[verify:autosave] 连续 ${BURST_EDIT_COUNT} 次编辑 → ${burstWrites} 次写入`);
+    record(burstWrites >= 1, `连续编辑后没有任何写入（保存路径可能断了）`);
+    record(
+      burstWrites < BURST_EDIT_COUNT,
+      `连续编辑没有被合并（${burstWrites} 次写入 / ${BURST_EDIT_COUNT} 次编辑）`,
+    );
 
     // ── 自动恢复：给刚写下的存档打标记，重新加载后必须读回 ─────────────────
     const seededMarker = `autosave-probe-${Date.now()}`;
@@ -239,7 +256,10 @@ app.whenReady().then(async () => {
     );
     record(restored.ok === true, `重载后读取 IndexedDB 失败：${restored.error}`);
     if (seeded.ok === true) {
-      record(restoredText.includes(seededMarker), '自动恢复失效：重载后没有读回预置的项目内容');
+      record(
+        restoredText.includes(seededMarker),
+        '自动恢复失效：重载后没有读回预置的项目内容',
+      );
     }
 
     if (failures.length === 0) {

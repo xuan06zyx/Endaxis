@@ -83,10 +83,7 @@ describe('CombatVitalsConditionExecutor', () => {
         { blackboard: new ActionBlackboard(), actionSourceId: 'operator:source' },
       ),
     ).toBe(true);
-    expect(resolveTarget).toHaveBeenCalledWith(
-      { kind: 'operator', operatorId: 'operator:source' },
-      'currentHealth',
-    );
+    expect(resolveTarget).toHaveBeenCalledWith({ kind: 'operator', operatorId: 'operator:source' }, 'currentHealth');
   });
 
   it('resolves a saved character-team target without rerunning selection', () => {
@@ -122,10 +119,7 @@ describe('CombatVitalsConditionExecutor', () => {
         { blackboard: new ActionBlackboard(), targetContext },
       ),
     ).toBe(true);
-    expect(resolveContextTarget).toHaveBeenCalledWith(
-      { kind: 'operator', operatorId: 'ally' },
-      'currentHealth',
-    );
+    expect(resolveContextTarget).toHaveBeenCalledWith({ kind: 'operator', operatorId: 'ally' }, 'currentHealth');
     targetContext.set('CureTarget', []);
     const emptyTargetCondition = {
       kind: 'healthCompare' as const,
@@ -239,10 +233,7 @@ describe('CombatVitalsConditionExecutor', () => {
         },
       ),
     ).toBe(true);
-    expect(resolveContextTarget).toHaveBeenCalledWith(
-      { kind: 'operator', operatorId: 'controlled' },
-      'currentHealth',
-    );
+    expect(resolveContextTarget).toHaveBeenCalledWith({ kind: 'operator', operatorId: 'controlled' }, 'currentHealth');
   });
 
   it('compares current poise and preserves the native missing-poise fallback', () => {
@@ -270,7 +261,7 @@ describe('CombatVitalsConditionExecutor', () => {
     const executor = new CombatVitalsConditionExecutor({
       queryTargets: (query, context) => resolveDirectActionTargets(query, context) ?? [],
       resolveTarget: () => current,
-      resolveVitals: target => (target.kind === 'enemy' ? current : withoutPoise),
+      resolveVitals: target => target.kind === 'enemy' ? current : withoutPoise,
       delegate: { execute: vi.fn(() => false), evaluate: vi.fn(() => false) },
     });
     const condition = {

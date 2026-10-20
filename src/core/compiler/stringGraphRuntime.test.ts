@@ -234,12 +234,7 @@ describe('字符串数据图实际消费与切面恢复', () => {
           ...source.dataNodes,
           condition: {
             type: 'boolean',
-            expression: {
-              kind: 'timedMarkerPresent',
-              markerId: reference,
-              target,
-              returnTrueIfNotExists: false,
-            },
+            expression: { kind: 'timedMarkerPresent', markerId: reference, target, returnTrueIfNotExists: false },
           },
         },
       };

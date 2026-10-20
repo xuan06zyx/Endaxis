@@ -107,7 +107,11 @@ jobs:
           }
           $version = '${{ steps.sync.outputs.next }}'
           git tag "desktop-v$version"
-          git push origin "desktop-v$version"
+          # 必须用 PAT 推 tag：GITHUB_TOKEN 推送产生的 push 事件**不会触发其它工作流**
+          # （GitHub 防递归），而发布工作流正是靠 tag 推送启动的。
+          # 首次上线就踩到了：tag 推出去了，Release 却从未开始构建。
+          $remote = "https://x-access-token:$env:GH_TOKEN@github.com/${{ github.repository }}.git"
+          git push $remote "desktop-v$version"
           Write-Host "已推送 tag desktop-v$version，发布工作流将接手构建。"
 
       - name: Open issue when sync needs a human

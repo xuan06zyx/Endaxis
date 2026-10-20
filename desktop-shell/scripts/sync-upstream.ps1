@@ -123,11 +123,14 @@ Write-Host '=== 4. 断言桌面壳补丁仍然存在 ==='
 # Git 说"合并成功"不等于语义正确：上游可能删掉/挪动了补丁依赖的代码，
 # 而合并结果里补丁调用仍在，却指向了不存在的东西。这里逐条验证关键符号。
 $checks = @(
-  @{ file = 'src/ui/timeline/projectFileSession.ts'; pattern = 'BROWSER_SAVE_DEBOUNCE_MS'; why = '防抖窗口常量' },
-  @{ file = 'src/ui/timeline/projectFileSession.ts'; pattern = 'flushBrowserSaveAndWait'; why = '等待写入完成的出口' },
-  @{ file = 'src/ui/timeline/projectFileSession.ts'; pattern = 'closeFlushHandler'; why = '关窗落盘登记处' },
-  @{ file = 'src/ui/timeline/TimelineEditor.vue'; pattern = 'EndaxisDesktop'; why = '关窗落盘桥接' },
-  @{ file = 'src/ui/timeline/TimelineEditor.vue'; pattern = 'flushBrowserSaveAndWait'; why = '桥接调用的函数' }
+  # 上游文件里的**唯一**钩子：导入桥接 + 一行调用。
+  # 这两处还在，说明自动保存仍然接在桥接上；它们丢了说明上游重构了那段代码。
+  @{ file = 'src/ui/timeline/projectFileSession.ts'; pattern = "from '../../desktop/browserSaveBridge'"; why = '桥接导入' },
+  @{ file = 'src/ui/timeline/projectFileSession.ts'; pattern = 'queueBrowserSave(snapshot.project)'; why = '自动保存钩子' },
+  # 桥接模块自身（新文件，上游不碰）：关窗落盘与 preload 接线都在这里。
+  @{ file = 'src/desktop/browserSaveBridge.ts'; pattern = 'flushBrowserSaveAndWait'; why = '关窗等待出口' },
+  @{ file = 'src/desktop/browserSaveBridge.ts'; pattern = 'onFlushSaves'; why = 'preload 接线' },
+  @{ file = 'src/desktop/browserSaveBridge.ts'; pattern = 'installBridge'; why = '模块级自注册' }
 )
 $missing = @()
 foreach ($check in $checks) {

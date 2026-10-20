@@ -45,11 +45,7 @@ const props = defineProps<{
   randomMode: 'expected' | 'sampled';
   automaticControlSwitches: boolean;
   comboSkillPriorityEnabled: boolean;
-  comboSkillPriorityOperators: readonly {
-    id: string | null;
-    name: string;
-    avatar: string | null;
-  }[];
+  comboSkillPriorityOperators: readonly { id: string | null; name: string; avatar: string | null }[];
   configurationReadOnly?: boolean;
   globalRandomSeed: number;
   labels: {

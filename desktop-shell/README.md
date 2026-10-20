@@ -189,36 +189,56 @@ localStorage 全都按标准浏览器语义工作，等于把线上站点原样�
 实测（真实窗口里数 IndexedDB 写事务）：
 
 ```
-[verify:autosave] 编辑 → 写入延迟：1217ms      # 写入确实被推迟合并，不是立刻写
+[verify:autosave] 编辑 → 写入延迟：17ms        # 首写立即落盘（降低数据风险）
+[verify:autosave] 连续 8 次编辑 → 1 次写入      # 连续编辑被合并
 [verify:autosave] 重载后读回存档：命中预置标记  # 自动恢复仍然正常
 [verify:autosave] 通过：自动恢复可用，写入已按防抖窗口合并。
 ```
 
-### 这是改在上游仓库里的
+### 对上游的改动：1 个文件、2 行
 
-写入频率只能在提交处改（`src/ui/timeline/projectFileSession.ts`），所以上游仓库
-**有本地改动**，不再是干净副本：
+写入频率只能在提交处接，所以上游仓库**有本地改动**。但这段逻辑本身放在
+**我们自己的新文件** `src/desktop/browserSaveBridge.ts` 里，上游那边只有两行：
 
+```diff
+- import { saveBrowserProject } from '../../data/browserProjectStorage';
++ import { queueBrowserSave } from '../../desktop/browserSaveBridge';
+
+-     void saveBrowserProject(snapshot.project).then(
++     void queueBrowserSave(snapshot.project).then(
 ```
- M src/ui/timeline/projectFileSession.test.ts
- M src/ui/timeline/projectFileSession.ts
-```
 
-补丁已存成文件，上游更新后重新套用即可：
+其余（错误上报、未落盘计数、离页保护、作用域销毁）全部保留上游原写法；
+`TimelineEditor.vue` **完全没有改动** —— 关窗接线由桥接模块在导入时自注册。
+
+早期版本把防抖直接写进上游文件（`projectFileSession.ts` +130 行、
+`TimelineEditor.vue` +15 行），结果上游一次普通重构（把 `selectProjectExportScope`
+搬到新模块）就让定时同步冲突失败。现在补丁面是 2 行，且只涉及"保存调用"一个语义点。
+
+上游更新后重新落地这两行（幂等，且找不到锚点会拒绝执行）：
 
 ```powershell
 cd ../Endaxis
-git apply ../desktop-shell/patches/0001-debounce-browser-autosave.patch
+node desktop-shell/scripts/minimize-patch.mjs fbf6a292   # 传上游基准提交
 ```
 
-同目录还带了两个新增测试，锁住这个行为：20 次连续提交只产生 1 次写入、
-持续编辑超过最长等待必然强制落盘。上游跑 `npx vitest run src/ui/timeline/projectFileSession.test.ts`
-应该是 10 个用例全过。
+只有测试文件需要一处补充：上游的错误上报用例假设"提交后已落盘"，而合并写入
+可能把它排到防抖窗口之后，所以那处加了一行显式 `await flushBrowserSave()`
+（见 `desktop-shell/scripts/patch-upstream-test.mjs`）。
 
-只想恢复上游原样（每次提交都立刻写）：`git -C ../Endaxis checkout src/ui/timeline/`。
+测试分布：
 
-> 如果你不想让上游仓库有本地改动，另一条路是把这段逻辑搬到桌面壳里做代理层，
-> 但那需要拦截 IndexedDB 调用、比改 30 行前端代码脆弱得多，不推荐。
+- `src/desktop/browserSaveBridge.test.ts`（新增，7 个用例）锁住合并语义：
+  首写立即、连续编辑只写一次、Promise 在写完后才结算、失败不残留、关窗等待有上限。
+- `src/ui/timeline/projectFileSession.test.ts`（上游，8 个用例）仍全过。
+
+实测输出（`npm run verify:autosave`）：
+
+```
+[verify:autosave] 编辑 → 写入延迟：17ms            # 首写立即落盘
+[verify:autosave] 连续 8 次编辑 → 1 次写入        # 连续编辑被合并
+[verify:autosave] 重载后读回存档：命中预置标记
+```
 
 ---
 

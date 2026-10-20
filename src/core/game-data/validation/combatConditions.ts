@@ -438,12 +438,10 @@ export function validateCombatCondition(
       break;
     case 'deckAttributeCompare':
       validateTargetQuery(record.target, `${path}.target`, out);
-      if (typeof record.left === 'string')
-        requireEnum(record, 'left', OPERATOR_ATTRIBUTES_SET, path, out);
+      if (typeof record.left === 'string') requireEnum(record, 'left', OPERATOR_ATTRIBUTES_SET, path, out);
       else validateActionValueOperand(record.left, `${path}.left`, out);
       requireEnum(record, 'operator', COMPARISON_OPERATORS_SET, path, out);
-      if (typeof record.right === 'string')
-        requireEnum(record, 'right', OPERATOR_ATTRIBUTES_SET, path, out);
+      if (typeof record.right === 'string') requireEnum(record, 'right', OPERATOR_ATTRIBUTES_SET, path, out);
       else validateActionValueOperand(record.right, `${path}.right`, out);
       break;
   }

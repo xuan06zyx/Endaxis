@@ -368,15 +368,10 @@ describe('TargetContextOperationExecutor', () => {
       buffSourceId: 'ability-entity:3',
       actionSourceId: 'ability-entity:2',
     };
-    expect(
-      executor.queryTargets({ kind: 'abilitySystemSource', owner: { kind: 'source' } }, context),
-    ).toEqual([{ kind: 'abilityEntity', instanceId: 1 }]);
-    expect(
-      executor.queryTargets(
-        { kind: 'abilitySystemSource', owner: { kind: 'inputTarget' } },
-        context,
-      ),
-    ).toEqual([]);
+    expect(executor.queryTargets({ kind: 'abilitySystemSource', owner: { kind: 'source' } }, context))
+      .toEqual([{ kind: 'abilityEntity', instanceId: 1 }]);
+    expect(executor.queryTargets({ kind: 'abilitySystemSource', owner: { kind: 'inputTarget' } }, context))
+      .toEqual([]);
     for (const owner of ['actionSource', 'actionOwner'] as const) {
       executor.execute(
         {
@@ -393,11 +388,7 @@ describe('TargetContextOperationExecutor', () => {
     expect(targetContext.get('actionOwner')).toEqual([
       { kind: 'operator', operatorId: 'operator:recipient' },
     ]);
-    expect(query.mock.calls).toEqual([
-      ['ability-entity:2'],
-      ['ability-entity:2'],
-      ['operator:recipient'],
-    ]);
+    expect(query.mock.calls).toEqual([['ability-entity:2'], ['ability-entity:2'], ['operator:recipient']]);
     expect(recursive).not.toHaveBeenCalled();
     expect(context.buffSourceId).toBe('ability-entity:3');
   });

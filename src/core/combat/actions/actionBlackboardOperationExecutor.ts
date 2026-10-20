@@ -572,11 +572,9 @@ export class ActionBlackboardOperationExecutor implements CombatOperationExecuto
       const attributes = this.deckAttributes.resolve(target.operatorId);
       if (attributes === undefined) return false;
       return compareCombatNumbers(
-        typeof condition.left === 'string'
-          ? attributes[condition.left]
+        typeof condition.left === 'string' ? attributes[condition.left]
           : Math.fround(resolveActionValueOperand(condition.left, context.blackboard)),
-        typeof condition.right === 'string'
-          ? attributes[condition.right]
+        typeof condition.right === 'string' ? attributes[condition.right]
           : Math.fround(resolveActionValueOperand(condition.right, context.blackboard)),
         condition.operator,
         'double',

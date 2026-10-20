@@ -47,13 +47,9 @@ describe('ComboWindowOperationExecutor', () => {
     const targetContext = new RuntimeTargetContext();
     targetContext.setSingle('candidate', { kind: 'operator', operatorId: 'owner' });
     const context = { blackboard: new ActionBlackboard(), targetContext };
-    const executor = new ComboWindowOperationExecutor('other', windows, delegate, resolveSlot, () =>
-      targetContext.get('candidate'),
-    );
-    const condition = {
-      kind: 'comboSkillPending',
-      target: { kind: 'context', key: 'candidate' },
-    } as const;
+    const executor = new ComboWindowOperationExecutor('other', windows, delegate, resolveSlot,
+      () => targetContext.get('candidate'));
+    const condition = { kind: 'comboSkillPending', target: { kind: 'context', key: 'candidate' } } as const;
     expect(executor.evaluate(condition, context)).toBe(false);
     windows.open('other', 'combo');
     expect(executor.evaluate(condition, context)).toBe(false);

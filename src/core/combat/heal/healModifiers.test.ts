@@ -144,8 +144,7 @@ describe('heal modifiers', () => {
                     resolveTarget: () => {
                       throw new Error('expected explicit target');
                     },
-                    queryTargets: (_query, context) =>
-                      context.actionInputTarget ? [context.actionInputTarget] : [],
+                    queryTargets: (_query, context) => context.actionInputTarget ? [context.actionInputTarget] : [],
                     resolveVitals: target => {
                       expect(target).toEqual({ kind: 'operator', operatorId: 'ally' });
                       return allyVitals;
