@@ -1,6 +1,6 @@
 {
   "name": "endaxis-desktop",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "private": true,
   "description": "Endaxis 本地版桌面应用（Electron 套壳）——《明日方舟：终末地》排轴工具",
   "author": "Endaxis Desktop Shell",
@@ -19,6 +19,7 @@
     "verify:packaged": "node scripts/launch.mjs tools/verify-exe.js",
     "verify:autosave": "node scripts/launch.mjs tools/verify-autosave.js",
     "verify:closeflush": "node scripts/launch.mjs tools/verify-close-flush.js",
+    "verify:drop": "node scripts/launch.mjs tools/verify-drop-import.js",
     "verify:storage-migration": "node scripts/launch.mjs tools/verify-storage-migration.js",
     "verify:port-conflict": "node scripts/launch.mjs tools/verify-port-conflict.js",
     "diagnose": "node scripts/launch.mjs tools/diagnose-boot.js",

@@ -1,5 +1,6 @@
 import type { EndaxisProjectDocument } from '../core/project/schema';
 import { saveBrowserProject } from '../data/browserProjectStorage';
+import { installProjectDropImport } from './projectDropImport';
 
 /**
  * 浏览器自动保存的合并写入（防抖）与关窗落盘。
@@ -216,3 +217,7 @@ function installBridge(): void {
 }
 
 installBridge();
+
+// 上游只在这一个模块上挂了钩子，因此它也是「桌面增强」的加载点：
+// 需要随时间轴一起生效、但又不值得增加上游改动点的功能，由这里引导安装。
+installProjectDropImport();

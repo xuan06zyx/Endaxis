@@ -41,6 +41,7 @@ Windows SmartScreen 会提示"未知发布者"，需点"仍要运行"。
 > [desktop-shell/docs/RELEASE-ASSETS.md](desktop-shell/docs/RELEASE-ASSETS.md)。
 
 - 项目数据保存在本机（`%APPDATA%\endaxis-desktop`），**离线可用**
+- **把 .json（或 .png 项目码）文件拖进窗口即可导入排轴**
 - 关闭程序时会把排队中的编辑写入磁盘，不会丢最后一次改动
 - 启动时自动检查更新；更新前自动备份项目数据
 - 无法直连 GitHub 时可在「帮助 → 检查更新」里**测速并选择镜像站**

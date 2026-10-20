@@ -1,0 +1,78 @@
+{
+  "kind": "EndaxisProject",
+  "schemaVersion": 1,
+  "createdWith": "drop-import-fixture",
+  "createdAt": "2026-10-20T22:32:11.301Z",
+  "fps": 30,
+  "activeScenarioId": "scenario:1",
+  "definitionLibrary": {
+    "operators": {},
+    "weapons": {},
+    "gears": {},
+    "gearSets": {}
+  },
+  "scenarios": [
+    {
+      "id": "scenario:1",
+      "name": "拖入导入-样本",
+      "tracks": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "connections": [],
+      "enemy": {
+        "source": {
+          "kind": "custom",
+          "level": 90
+        },
+        "rank": "mob",
+        "editable": {
+          "hp": 100000,
+          "defense": 100,
+          "superArmor": 0,
+          "finisherMultiplier": 1,
+          "resistances": {},
+          "stagger": {
+            "maximum": 300,
+            "knotThresholds": [
+              0.5
+            ],
+            "knotBreakDurationFrames": 60,
+            "brokenDurationFrames": 300,
+            "finisherSpRecovery": 100
+          }
+        },
+        "edited": []
+      },
+      "battle": {
+        "prepFrames": 150,
+        "durationFrames": 3600,
+        "resourceRules": {
+          "maxSp": 300,
+          "initialSp": 200,
+          "spRecoveryPerSecond": 8
+        },
+        "cycleBoundaries": [],
+        "controlSwitches": [],
+        "automaticControlSwitches": true,
+        "externalEventMarkers": [],
+        "dodgeMarkers": []
+      },
+      "mechanics": {
+        "selections": []
+      },
+      "globalConfig": {},
+      "editor": {
+        "trackHeightWeights": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "prepExpanded": false
+      }
+    }
+  ]
+}
