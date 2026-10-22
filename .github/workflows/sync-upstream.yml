@@ -133,7 +133,7 @@ jobs:
               '',
               '### 常见原因与处理',
               '',
-              '- **上游改动了桌面壳补丁所在文件**（`src/ui/timeline/projectFileSession.ts` /
+              '- **上游改动了桌面壳补丁所在文件**（`src/ui/timeline/projectFileSession.ts` /',
               '  `src/ui/timeline/TimelineEditor.vue`）产生冲突。脚本已中止合并并保持工作区干净，',
               '  不会发布半成品。',
               '- **补丁符号消失**：Git 自动合并成功，但上游挪走了补丁依赖的代码。',

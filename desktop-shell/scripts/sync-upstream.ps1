@@ -135,7 +135,9 @@ $checks = @(
 $missing = @()
 foreach ($check in $checks) {
   if (-not (Test-Path $check.file)) { $missing += "$($check.file) 不存在"; continue }
-  $hit = Select-String -Path $check.file -Pattern $check.pattern -Quiet
+  # 必须用 -SimpleMatch：`queueBrowserSave(snapshot.project)` 里的括号在正则里
+  # 是分组，用它做 -Pattern 会永远匹配不上（实测：文本明明存在却报缺失）。
+  $hit = Select-String -Path $check.file -Pattern $check.pattern -SimpleMatch -Quiet
   if ($hit) { Write-Host "  ✓ $($check.why)" } else { Write-Host "  ✗ $($check.why)（$($check.pattern) 不见了）"; $missing += $check.why }
 }
 
