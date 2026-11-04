@@ -39,6 +39,10 @@ SkillData/BuffData 使用数字枚举编码时，通过 `--native-json-schema '<
 合约来源。该模式将公共实体变量的外部读取视为未知，保守保留可能被合约读取的字段；
 不能据此声称已验证新版合约，统一完整重建仍默认包含合约。
 
+统一重建也支持显式 `--skip-contingency-contract`，用于无法获取服务端合约配置时更新其余全部领域。
+该模式将当前合约定义、双语文本和专属图标复制到候选中参与校验，但排除在发布清单之外；
+报告通过 `preservedOutputs` 列明保留范围，`fullRebuild` 保持 false，`published` 表示其余领域是否发布成功。
+
 ### 2. 审阅范围与配置
 
 先看报告中的 `sources`、`source-coverage`、`content-inventory`、`operator-refresh-review` 及各领域 `comparison`。逐项核对新增、修改、删除与阻塞项；非玩家记录、表现变体和未知技能不能自动当作可用内容加入。
@@ -55,11 +59,17 @@ SkillData/BuffData 使用数字枚举编码时，通过 `--native-json-schema '<
 | `config/buffPresentationNames.ts`                | Buff 自身需要明确本地化名称或补充展示图标        |
 | `config/contingencyContractSimulationScope.json` | 确认合约效果的模拟范围                           |
 | `config/enemies/runtime-defaults.json`           | 有依据的敌人运行默认值变化                       |
-| `config/enemies/selection-categories.json`       | 新敌人的选择分类、未分类或隐藏状态               |
+| `config/enemies/hidden-enemies.json`             | 敌人隐藏状态；分类与顺序由原生图鉴表生成         |
 
 普通技能、天赋和潜能不逐项配置编译器，编译路径从原始动作推断。路由关系和递归技能组等确需人工确认的配置保留在对象定义中。递归放置策略必须校验起止技能、段数预算和回退序列，不按干员名称分派。
 
 Buff 的 `presentation` 只发布界面使用的字段，省略等价默认值。保留显式隐藏、无图标的显式显示，以及两个头顶栏标志均为 `false` 的排除语义；原生动画、特效和图标排序配置不进入正式定义。完整原生字段仍在来源解析层读取和校验。
+
+投射物的固定距离模型将干员和敌人视为两个端点，近似双方相向、镜头朝向敌人。
+目标固定偏移按其方向投影，纯垂直偏移不依赖水平朝向；不还原骨骼挂点或角色转身。
+我方能力实体朝向沿用干员朝向，不模拟实体转向；无实体的固定点使用原生默认朝向。
+随机目标偏移统一取范围中点 0，不在发射时随机取样。
+位置查询器与发射动作的目标偏移分别保留，不能用其中一个覆盖另一个。
 
 `config/operators.json` 的技能项可声明 `timelineBlockFollowUpSkillId`，以同干员另一技能
 可接续的时刻作为块宽边界，覆盖默认接续目标。此项专用于显示，不要求目标是结束技能，
@@ -94,7 +104,11 @@ npm run rebuild:game-data -- --source-root '<冻结来源目录>' --version '<�
 
 ## 输出与边界
 
-完整干员生成到 `src/data/operators/<slug>.generated.ts`。武器、装备、套装、系统机制、Buff、敌人及物品写入各自登记的正式目录；本地化与图片随候选一起验证。生成流程统一格式化 TypeScript，数字数组保持紧凑。
+完整干员生成到 `src/data/operators/<slug>.generated.ts`。武器、装备、套装、系统机制、Buff、敌人及物品写入各自登记的正式目录；本地化与图片随候选一起验证。
+
+生成与全量格式化共用 `src/compiler/publication/formatGeneratedSource.ts`，领域生成器不另设排版后处理。统一入口先应用仓库 Prettier 规则，再将干员文本的等级及数值数组保持横排；重复生成和全量格式化必须得到相同文本，不在发布后单独修格式。
+
+`npm run format:game-data` 按正式发布清单格式化全部游戏产物；加 `-- --check` 只检查，不写文件。仓库的 `format`、`format:check` 也包含此步骤，使用同一份发布清单，不另维护待格式化文件列表。
 
 所有游戏图片输出 WebP；时间轴导出 PNG 不属于本工具。套装最终定义保存图标路径，配置只选择装备 ID，不覆盖原生 Buff 图标。
 
@@ -120,3 +134,8 @@ node --max-old-space-size=2048 --experimental-strip-types tools/game-data-compil
 ```
 
 检查串行加载两路，比较完整模拟事实而不持有整批回执。优化规则和公共类型归属见[游戏数据架构](../../docs/architecture/game-data.md)。
+
+## 投射物回调时序
+
+投射物使用 `config/projectileSchedulePresets.ts` 配置回调时序及结束帧；运行时按 schedule 推进，
+不再计算飞行路径与敌人碰撞体。梨诺上射中转弹仅配置到达回调，不需要额外的跳过碰撞补丁。

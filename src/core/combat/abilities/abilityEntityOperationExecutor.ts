@@ -1,3 +1,4 @@
+import type { CombatSkillCastInfo } from '../state/foundationState';
 import { runtimeTargetEntityId } from '../../game-data/logicalAbilityEntity';
 import type { TargetContextOperationExecutor } from './targetContextOperationExecutor';
 import {
@@ -39,7 +40,11 @@ import type { ActionValueCalculation, PostSkillCastRequest } from '../state/foun
 type RuntimeOperation = ResolvedCombatOperationStep;
 
 interface AbilityEntityRuntimeDependencies {
-  readonly resolveOperations: (state: CombatOperationHostState) => CombatOperationExecutor;
+  readonly resolveOperations: (
+    state: CombatOperationHostState,
+    program: CompiledAbilityEntityChildSkillProgram,
+    origin: CombatSkillCastInfo | undefined,
+  ) => CombatOperationExecutor;
   readonly semanticEvents?: CombatSemanticEventRuntime;
   readonly launchProjectile?: LaunchProjectile;
   readonly finishProjectile?: (target: RuntimeTargetRef) => boolean;
@@ -64,7 +69,8 @@ export class AbilityEntityOperationExecutor implements CombatOperationExecutor {
   readonly #operatorId: string;
   readonly #entities: LogicalAbilityEntityRuntime;
   readonly #delegate: CombatOperationExecutor &
-    Pick<TargetContextOperationExecutor, 'queryTargets'>;
+    Pick<TargetContextOperationExecutor, 'queryTargets'> &
+    Partial<Pick<TargetContextOperationExecutor, 'filterTargetsByTags'>>;
   readonly #childRuntimeDependencies?: AbilityEntityRuntimeDependencies;
   readonly #resolveDefinition?: (
     abilityEntityId: string,
@@ -76,7 +82,9 @@ export class AbilityEntityOperationExecutor implements CombatOperationExecutor {
   constructor(
     operatorId: string,
     entities: LogicalAbilityEntityRuntime,
-    delegate: CombatOperationExecutor & Pick<TargetContextOperationExecutor, 'queryTargets'>,
+    delegate: CombatOperationExecutor &
+      Pick<TargetContextOperationExecutor, 'queryTargets'> &
+      Partial<Pick<TargetContextOperationExecutor, 'filterTargetsByTags'>>,
     childRuntimeDependencies?: AbilityEntityRuntimeDependencies,
     resolveDefinition?: (abilityEntityId: string) => ResolvedAbilityEntityDefinition | undefined,
     restored?: {
@@ -168,13 +176,19 @@ export class AbilityEntityOperationExecutor implements CombatOperationExecutor {
         : undefined;
       if (step.parameters.sameSourceSkillCast && sourceSkillCastId === undefined)
         throw new Error('AbilityEntity same-cast query requires inherited skill-cast info');
-      let targets = this.#entities.findOwnerSpawned({
-        ownerId: runtimeTargetEntityId(owner)!,
-        ...(step.parameters.abilityEntityIds === undefined
-          ? {}
-          : { abilityEntityIds: step.parameters.abilityEntityIds }),
-        ...(sourceSkillCastId === undefined ? {} : { sourceSkillCastId }),
-      });
+      let targets =
+        step.parameters.objectType === 'none'
+          ? []
+          : this.#entities.findOwnerSpawned({
+              ownerId: runtimeTargetEntityId(owner)!,
+              ...(sourceSkillCastId === undefined ? {} : { sourceSkillCastId }),
+            });
+      if (step.parameters.tagFilters?.length) {
+        if (!this.#delegate.filterTargetsByTags)
+          throw new Error('AbilityEntity query requires tag filtering');
+        targets = this.#delegate.filterTargetsByTags(targets, step.parameters.tagFilters);
+      }
+
       const circularOrder = step.parameters.circularOrder;
       if (circularOrder !== undefined) {
         if (targets.length !== circularOrder.desiredCount) {
@@ -212,19 +226,6 @@ export class AbilityEntityOperationExecutor implements CombatOperationExecutor {
         targets = targets.slice(0, step.parameters.maxTargets);
       }
       context.targetContext.set(step.parameters.saveToContextKey, targets);
-      return true;
-    }
-    if (step.kind === 'pickContextTarget') {
-      if (context?.targetContext === undefined) {
-        throw new Error('Context target selection requires a combat target context');
-      }
-      const index = resolveActionValueOperand(step.parameters.index, context.blackboard);
-      if (!Number.isInteger(index) || index < 0) {
-        throw new RangeError('Context target index must be a non-negative integer');
-      }
-      const target = context.targetContext.getOptional(step.parameters.sourceContextKey)?.[index];
-      if (target === undefined) return false;
-      context.targetContext.setSingle(step.parameters.saveToContextKey, target);
       return true;
     }
     if (step.kind === 'setAbilityEntityRemainingDuration') {
@@ -496,9 +497,6 @@ export class AbilityEntityOperationExecutor implements CombatOperationExecutor {
       return (
         this.#entities.findOwnerSpawned({
           ownerId: this.#operatorId,
-          ...(condition.abilityEntityIds === undefined
-            ? {}
-            : { abilityEntityIds: condition.abilityEntityIds }),
           ...(sourceSkillCastId === undefined ? {} : { sourceSkillCastId }),
         }).length > 0
       );
@@ -553,7 +551,11 @@ export class AbilityEntityOperationExecutor implements CombatOperationExecutor {
       {
         entity,
         entityBlackboard,
-        operations: this.#childRuntimeDependencies.resolveOperations(operationState),
+        operations: this.#childRuntimeDependencies.resolveOperations(
+          operationState,
+          instanceProgram,
+          inheritSourceSkillCastInfo ? context.skillCastInfo : undefined,
+        ),
         source: this.#entities.snapshot(entity).source,
         target: this.#entities.snapshot(entity).target,
         skillHostGroup: this.#entities.childSkillHosts(entity),

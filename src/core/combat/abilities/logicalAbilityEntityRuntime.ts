@@ -3,10 +3,8 @@ import type { CombatFaction } from '../../../../packages/game-data-contract/src/
 import { CombatVitals, type CombatVitalsSnapshot } from '../resources/combatVitals';
 import type { LogicalAbilityEntityFinishReason } from '../state/foundationState';
 /**
- * 零空间、单敌人模型中的逻辑能力实体目录。
- *
- * 它不保存坐标、碰撞体或朝向；所有空间查找均从同一活动实例集合开始，
- * 然后只应用 owner、生成期已解析的实体身份和存活等仍有战斗意义的筛选。
+ * 单敌人模型中的逻辑能力实体目录，保存出生位置但不模拟实体移动和碰撞体。
+ * 目标筛选仍使用宿主、实体身份和存活状态。
  */
 import type {
   AbilityEntityTargetRef,
@@ -45,6 +43,7 @@ import {
 export interface LogicalAbilityEntitySpawnRequest {
   /** 已按原生 OnStart 初始化的生命属性；目录不猜测 HP 默认值或再次求值黑板。 */
   readonly soul?: {
+    readonly canBeDirectlyBuffed: boolean;
     readonly damageTransferType: 'sharedDamage';
     readonly useMainBodyPoise?: boolean;
     readonly mainBody: RuntimeTargetRef;
@@ -322,6 +321,7 @@ export class LogicalAbilityEntityRuntime implements FrameRuntime {
           ? {}
           : {
               soul: {
+                canBeDirectlyBuffed: request.soul.canBeDirectlyBuffed,
                 damageTransferType: request.soul.damageTransferType,
                 useMainBodyPoise: request.soul.useMainBodyPoise ?? false,
                 mainBody: soulMainBody!,
@@ -476,12 +476,6 @@ export class LogicalAbilityEntityRuntime implements FrameRuntime {
     for (const instance of this.#instances.values()) {
       // children 属于直接来源；ownerId 只标识负责属性和资源结算的干员。
       if (runtimeTargetEntityId(instance.state.source) !== query.ownerId) continue;
-      if (
-        query.abilityEntityIds !== undefined &&
-        !query.abilityEntityIds.includes(instance.state.abilityEntityId)
-      ) {
-        continue;
-      }
       if (
         query.sourceSkillCastId !== undefined &&
         instance.state.sourceSkillCastId !== query.sourceSkillCastId
@@ -683,10 +677,24 @@ export class LogicalAbilityEntityRuntime implements FrameRuntime {
       : target;
   }
 
+  /** ResolvePartBuffSource 查询实际实例的原生配置，不从来源干员或模板名称推断。 */
+  resolvePartBuffSource(target: RuntimeTargetRef): RuntimeTargetRef {
+    const soul =
+      target.kind === 'abilityEntity'
+        ? this.#instances.get(target.instanceId)?.state.soul
+        : undefined;
+    return soul?.canBeDirectlyBuffed === false ? soul.mainBody : target;
+  }
+
   /** OwnerSoulFinder 读取主体当前关联；停用但尚未释放的灵体仍保留身份。 */
   ownerSoul(target: RuntimeTargetRef): RuntimeTargetRef | undefined {
     const bodyId = runtimeTargetEntityId(this.mainBody(target));
     return bodyId === undefined ? undefined : this.runtimeState.soulParts.get(bodyId);
+  }
+
+  /** 木桩默认攻击选择本体，避免灵体提前结束丢失延迟命中；显式灵体查询不受影响。 */
+  preferredAttackTarget(mainBody: RuntimeTargetRef): RuntimeTargetRef {
+    return this.mainBody(mainBody);
   }
 
   /** 独立生命账本；失衡是否转给主体由伤害路由决定，不能在此替换整个账本。 */

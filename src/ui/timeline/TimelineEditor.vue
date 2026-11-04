@@ -300,6 +300,7 @@ import {
   setSkillCastForcedCritical,
   setSkillCastLocked,
   setSkillCastRandomSeed,
+  setSkillCastInitialBlackboard,
   setTimelinePrepExpanded,
   setUnifiedInitialUltimateEnergy,
   swapTimelineTracks,
@@ -3035,6 +3036,31 @@ const visibleSkillEndFrames = computed(() => {
   return ends;
 });
 
+const skillCastBlockLayout = computed(() => {
+  const layout = new Map<string, { width: number; stackOrder: number }>();
+  for (const track of viewModel.value.tracks) {
+    const blocks = track.skillCasts.map(cast => {
+      const start = castActualStartFrame(cast.id, cast.startFrame);
+      return {
+        id: cast.id,
+        width: Math.max(
+          2,
+          timelineFrameSpanPx(
+            start,
+            Math.max(0, (visibleSkillEndFrames.value.get(cast.id) ?? cast.startFrame) - start),
+          ),
+        ),
+      };
+    });
+    // 按实际显示宽度从宽到窄叠放，同宽保留原顺序。
+    blocks.sort((a, b) => b.width - a.width);
+    blocks.forEach((block, stackOrder) => {
+      layout.set(block.id, { width: block.width, stackOrder });
+    });
+  }
+  return layout;
+});
+
 function castActualDurationPending(castId: string, definitionDurationFrames: number): boolean {
   return (
     definitionDurationFrames > 0 &&
@@ -3940,8 +3966,8 @@ function enemyName(enemyId: string): string {
 }
 
 const enemyHudName = computed(() =>
-  scenario.value.enemy.source.kind === 'prefab'
-    ? enemyName(scenario.value.enemy.source.enemyId)
+  scenario.value.enemy.source.kind !== 'custom'
+    ? enemyName(scenario.value.enemy.source.enemyId.replaceAll('_', '-'))
     : t('resourceMonitor.enemy.custom'),
 );
 
@@ -6334,6 +6360,14 @@ function setContextCastColor(color: string | null): void {
   contextMenuTarget.value = null;
 }
 
+function setSelectedCastInitialBlackboard(value: Readonly<Record<string, number>>): void {
+  const selected = selectedCastModel.value;
+  if (selected === null) return;
+  commitScenario('setSkillCastInitialBlackboard', current =>
+    setSkillCastInitialBlackboard(current, selected.trackIndex, selected.cast.id, value),
+  );
+}
+
 function setSelectedCastRandomSeed(seed: number | null): void {
   const selected = selectedCastModel.value;
   if (selected === null) return;
@@ -7507,6 +7541,7 @@ function setMobileGuideFrame(frame: number | null): void {
                     trackEffectLayout(track.trackIndex, track.operatorInstanceId).actionTop
                   "
                   :label="t('timeline.header.viewLayers.comboWindows')"
+                  :locked-label="t('timeline.header.viewLayers.comboWindowsLocked')"
                   :perfect-label="t('effects.name.perfectTiming')"
                 />
                 <div
@@ -7701,23 +7736,14 @@ function setMobileGuideFrame(frame: number | null): void {
                   @select="selectSkillCastGroup(group.casts.map(cast => cast.id))"
                 />
                 <TimelineActionBlock
-                  v-for="(cast, castIndex) in track.skillCasts"
+                  v-for="cast in track.skillCasts"
                   :key="cast.id"
                   :action-id="cast.id"
                   :label="timelineCastLabel(cast, track)"
                   :operation-type="cast.operationType"
                   :left="timelineFramePx(castActualStartFrame(cast.id, cast.startFrame))"
-                  :width="
-                    timelineFrameSpanPx(
-                      castActualStartFrame(cast.id, cast.startFrame),
-                      Math.max(
-                        0,
-                        (visibleSkillEndFrames.get(cast.id) ?? cast.startFrame) -
-                          castActualStartFrame(cast.id, cast.startFrame),
-                      ),
-                    )
-                  "
-                  :stack-order="castIndex"
+                  :width="skillCastBlockLayout.get(cast.id)!.width"
+                  :stack-order="skillCastBlockLayout.get(cast.id)!.stackOrder"
                   :duration-pending="castActualDurationPending(cast.id, cast.durationFrames)"
                   :selected="actionSelection.selectedIds.has(cast.id)"
                   :perfect="perfectComboCastIds.has(cast.id)"
@@ -8106,6 +8132,7 @@ function setMobileGuideFrame(frame: number | null): void {
         :input-read-only="selectedCastId !== null && isHistoricalSkillInput(selectedCastId)"
         :label="selectedCastModel?.label ?? ''"
         :current-definition="selectedCastModel?.currentDefinition ?? null"
+        :operator-definition="selectedCastModel?.operator ?? undefined"
         :actual-duration-frames="
           selectedCastId === null ? undefined : skillCastActualDurationFrames.get(selectedCastId)
         "
@@ -8124,6 +8151,7 @@ function setMobileGuideFrame(frame: number | null): void {
         @edit-graph="openSkillGraphEditor"
         @execution-trace="openExecutionTrace"
         @set-random-seed="setSelectedCastRandomSeed"
+        @set-initial-blackboard="setSelectedCastInitialBlackboard"
         @roll-random-seed="rollSelectedCastRandomSeed"
         @set-start-frame="setSelectedCastStartFrame"
         @set-locked="setSelectedCastLocked"

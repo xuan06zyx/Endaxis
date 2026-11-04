@@ -30,7 +30,13 @@ const compileGraphEntry = (
   nodes: Record<string, ActionGraphNode>,
   dataNodes: ActionGraphDefinition['dataNodes'] = {},
 ): ResolvedActionSequence => ({
-  graph: createActionGraphCompilation({ nodes, dataNodes }, 1, revision).compileAll(),
+  graph: createActionGraphCompilation(
+    { nodes, dataNodes },
+    1,
+    revision,
+    {},
+    { abilityEntities: {} },
+  ).compileAll(),
   entry,
   callSite: revision,
 });
@@ -344,7 +350,13 @@ it.each([0, 4, 6])('投射物在第 %i 帧分支恢复后保留伤害的技能�
         sequence: chainEntry('launch', [
           {
             kind: 'launchProjectile',
-            parameters: { inheritActionBlackboard: true, finish: 0.1, recycleDelaySeconds: 0.5 },
+            parameters: {
+              projectileId: 'stationary',
+
+              inheritActionBlackboard: true,
+
+              recycleDelaySeconds: 0.5,
+            },
             callbacks: [
               {
                 event: 'finish',

@@ -72,7 +72,13 @@ const compileGraphEntry = (
   nodes: Record<string, ActionGraphNode>,
   dataNodes: ActionGraphDefinition['dataNodes'] = {},
 ): ResolvedActionSequence => ({
-  graph: createActionGraphCompilation({ nodes, dataNodes }, 1, revision).compileAll(),
+  graph: createActionGraphCompilation(
+    { nodes, dataNodes },
+    1,
+    revision,
+    {},
+    { abilityEntities: {} },
+  ).compileAll(),
   entry,
   callSite: revision,
 });
@@ -411,6 +417,90 @@ function createAssembly(
 }
 
 describe('CombatRuntimeAssembly', () => {
+  it('固定敌人初始化后入战一次，逐帧推进不重放敌人入战事件', () => {
+    const events: { entity: string; event: string; payload: unknown }[] = [];
+    const assembly = createAssembly({
+      programs: [],
+      registerCombatAbilityEvent: nativeEventRuntimeOptions().registerCombatAbilityEvent,
+      emitAbilityEvent: (entity, event, payload) => {
+        events.push({ entity, event, payload });
+      },
+    });
+    expect(events.filter(item => item.event === 'enemyEnterFight')).toEqual([
+      { entity: 'enemy', event: 'enemyEnterFight', payload: { sourceId: 'enemy' } },
+    ]);
+    assembly.advanceFrame();
+    assembly.advanceFrame();
+    expect(events.filter(item => item.event === 'enemyEnterFight')).toHaveLength(1);
+  });
+
+  it.each([
+    ['comboSkill', 0, 25],
+    ['comboSkill', 40, 65],
+    ['normalSkill', 0, 15],
+    ['attack', 0, 0],
+    ['ultimateSkill', 0, 0],
+  ] as const)('原生 %s 的基础技力 %i 独立叠加对应费用属性', (nativeSkillType, base, expected) => {
+    const attributes = new CombatAttributeSet<string>();
+    attributes.define('AtbCostAddition', 15, {});
+    attributes.define('ComboSkillAtbCostAddition', 25, {});
+    const container = new CombatBuffContainer<string>('operator', attributes);
+    const assembly = createAssembly({
+      registerCombatAbilityEvent: nativeEventRuntimeOptions().registerCombatAbilityEvent,
+      programs: [
+        skill({
+          nativeSkillType,
+          costs: base ? [{ resource: 'sp', value: base }] : [],
+          costFrame: 0,
+        }),
+      ],
+      createOperatorBuffRuntime: () => ({
+        ...asBuffRuntime(container),
+        getAttributeValue: key => attributes.get(key),
+      }),
+    });
+    expect(assembly.tryStartSkill('operator', 'skill')).toBe(true);
+    expect(assembly.resources.sp).toBe(100 - expected);
+  });
+
+  it('连携技附加费用记录资源不足，并在实际扣费时重读', () => {
+    const attributes = new CombatAttributeSet<string>();
+    attributes.define('ComboSkillAtbCostAddition', 101, {});
+    const container = new CombatBuffContainer<string>('operator', attributes);
+    const create = () =>
+      createAssembly({
+        registerCombatAbilityEvent: nativeEventRuntimeOptions().registerCombatAbilityEvent,
+        programs: [
+          skill({
+            nativeSkillType: 'comboSkill',
+            costs: [],
+            costFrame: 2,
+            cooldownFrames: 30,
+            timelineBlockFrames: 4,
+            naturalDurationFrames: 4,
+          }),
+        ],
+        createOperatorBuffRuntime: () => ({
+          ...asBuffRuntime(container),
+          getAttributeValue: key => attributes.get(key),
+        }),
+      });
+    const unavailable = create();
+    expect(unavailable.tryStartSkill('operator', 'skill')).toBe(true);
+    expect(unavailable.receipt.entries.some(e => e.event === 'SkillCostUnavailableAtStart')).toBe(
+      true,
+    );
+    attributes.setRawValue('ComboSkillAtbCostAddition', 25);
+    const assembly = create();
+    expect(assembly.tryStartSkill('operator', 'skill')).toBe(true);
+    expect(assembly.resources.sp).toBe(100);
+    attributes.setRawValue('ComboSkillAtbCostAddition', 10);
+    assembly.advanceFrames(3);
+    expect(
+      assembly.receipt.entries.find(e => e.event === 'SkillCostApplied')?.data?.nonReturnedSpCost,
+    ).toBe(10);
+  });
+
   it('缺少未查明的闪避数据时保留输入并记录局部告警，不终止整场模拟', () => {
     const current = skill({
       skillId: 'current',
@@ -471,6 +561,62 @@ describe('CombatRuntimeAssembly', () => {
         }),
       ]),
     );
+  });
+
+  it('步态共用最后写入槽，结束后写动作不恢复先写限制，计数归零才清除', () => {
+    const program = skill({
+      costs: [],
+      costFrame: undefined,
+      timelineBlockFrames: 10,
+      timelineActions: [5, 2].map((endFrame, i) => ({
+        startFrame: 0,
+        endFrame,
+        sequence: chainEntry('gait-' + i, [
+          {
+            kind: 'limitMovementGait',
+            parameters: { min: 'Walk', max: i === 0 ? 'Sprint' : 'Run' },
+          },
+        ]),
+      })),
+    });
+    const first = createAssembly([program]);
+    first.tryStartSkill('operator', 'skill');
+    first.advanceFrame();
+    const ability = first.stateGraph.operators.get('operator')!.ability;
+    expect(ability.movementGaitActionCount).toBe(2);
+    first.advanceFrame();
+    expect(ability.movementGaitActionCount).toBe(1);
+    expect(ability.skillMovementGaitLimit?.max).toBe('Run');
+    expect(
+      structuredClone(first.stateGraph).operators.get('operator')!.ability.skillMovementGaitLimit
+        ?.max,
+    ).toBe('Run');
+    first.advanceInputFrame({
+      dodges: [
+        { kind: 'dash', dodgeId: 'restricted', operatorId: 'operator', direction: 'forward' },
+      ],
+    });
+    expect(first.receipt.entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'DodgeInputForced',
+          data: expect.objectContaining({ dodgeId: 'restricted', movementGaitTooLow: true }),
+        }),
+      ]),
+    );
+    const expired = createAssembly([program]);
+    expired.tryStartSkill('operator', 'skill');
+    for (let i = 0; i < 6; i++) expired.advanceFrame();
+    expect(expired.stateGraph.operators.get('operator')!.ability.movementGaitActionCount).toBe(0);
+    expect(expired.stateGraph.operators.get('operator')!.ability.skillMovementGaitLimit).toBeNull();
+    expired.advanceInputFrame({
+      dodges: [{ kind: 'dash', dodgeId: 'expired', operatorId: 'operator', direction: 'forward' }],
+    });
+    expect(
+      expired.receipt.entries
+        .filter(entry => entry.event === 'DodgeInputForced')
+        .every(entry => entry.data?.movementGaitTooLow !== true),
+    ).toBe(true);
   });
 
   it('原生闪避标签门禁逐项告警，但时间轴声明的 Dash 仍然执行', () => {
@@ -1176,7 +1322,7 @@ describe('CombatRuntimeAssembly', () => {
             kind: 'mergeContextTargets',
             parameters: {
               saveToContextKey: 'source',
-              sources: [{ kind: 'abilitySystemSource', owner: 'actionOwner' }],
+              sources: [{ kind: 'abilitySystemSource', owner: { kind: 'owner' } }],
             },
           },
           next: `${prefix}-branch`,
@@ -1242,9 +1388,10 @@ describe('CombatRuntimeAssembly', () => {
           parameters: {
             inheritActionBlackboard: true,
             source,
-            finish: event === 'reach' ? 'firstTickReach' : event === 'hit' ? 10 : 0.01,
+
+            projectileId: event === 'hit' ? 'hitPoint' : event === 'reach' ? 'point' : 'brief',
+
             recycleDelaySeconds: 10,
-            ...(event === 'hit' ? { hit: { finishOnHit: true } } : {}),
           },
           callbacks: [{ event, skill: callbackSkill }],
         },
@@ -1390,8 +1537,10 @@ describe('CombatRuntimeAssembly', () => {
                   action: {
                     kind: 'launchProjectile',
                     parameters: {
+                      projectileId: 'stationary',
+
                       inheritActionBlackboard: true,
-                      finish: 0.1,
+
                       recycleDelaySeconds: 0,
                     },
                     callbacks: [
@@ -1426,7 +1575,7 @@ describe('CombatRuntimeAssembly', () => {
         }),
       ],
     });
-    expect(emitAbilityEvent.mock.calls).toEqual([]);
+    expect(emitAbilityEvent.mock.calls.filter(call => call[0] === 'operator')).toEqual([]);
     expect(assembly.tryStartSkill('operator', 'skill')).toBe(true);
     const launch = emitAbilityEvent.mock.calls.find(call => call[1] === 'projectileLaunched');
     const cast = emitAbilityEvent.mock.calls.find(call => call[1] === 'beforeCastSkill');
@@ -1502,7 +1651,10 @@ describe('CombatRuntimeAssembly', () => {
                       kind: 'launchProjectile',
                       parameters: {
                         inheritActionBlackboard: true,
-                        finish: 'firstTickReach',
+
+                        projectileId: 'point',
+
+                        schedule: { endFrame: 1, callbacks: [] },
                         recycleDelaySeconds,
                       },
                       callbacks: [],
@@ -1542,6 +1694,9 @@ describe('CombatRuntimeAssembly', () => {
       expect(assembly.timeDilation!.currentGlobalScale).toBe(globalScale);
       expect(assembly.receipt.entries.some(entry => entry.event === 'SkillInterrupted')).toBe(true);
       expect(reset).not.toHaveBeenCalled();
+      // 先完成一帧逻辑寿命，再验证独立的回收等待。
+      for (let i = 1; i < Math.ceil(1 / globalScale); i++)
+        assembly.projectileLifetimes.advanceFrame();
       for (let i = 0; i < Math.floor((recycleDelaySeconds * 30) / globalScale); i++) {
         assembly.projectileLifetimes.advanceFrame();
         expect(reset).not.toHaveBeenCalled();
@@ -1565,10 +1720,13 @@ describe('CombatRuntimeAssembly', () => {
     });
     calls.length = 0;
     const projectile = assembly.projectileLifetimes.launch({
-      finishDelaySeconds: 0.01,
+      schedule: {
+        endFrame: 1,
+        callbacks: [{ event: 'finish', triggerFrames: [1] }],
+      },
+      invokeScheduledCallback: () => calls.push('finish-callback'),
       recycleDelaySeconds: 0,
       resolveTickDeltaSeconds: () => 1 / 30,
-      finish: () => calls.push('finish-callback'),
       beforeReset: () => calls.push('end-callback'),
       abilityRuntime: { advanceFrame: () => calls.push('ability') },
     });
@@ -1794,11 +1952,11 @@ describe('CombatRuntimeAssembly', () => {
     );
 
     assembly.advanceFrame();
-    expect(emitted).not.toHaveBeenCalled();
+    expect(emitted.mock.calls.filter(call => call[0] === 'operator')).toEqual([]);
     assembly.advanceFrame();
     assembly.advanceFrame();
 
-    expect(emitted.mock.calls).toEqual([
+    expect(emitted.mock.calls.filter(call => call[0] === 'operator')).toEqual([
       ['operator', 'ownerSwitchToGuard', { sourceId: 'operator', targetId: 'operator' }],
       ['operator', 'ownerSwitchToCenter', { sourceId: 'operator', targetId: 'operator' }],
     ]);
@@ -2120,7 +2278,7 @@ describe('CombatRuntimeAssembly', () => {
     assembly.requestPostSkillCast('operator', { skillId: 'second' });
     assembly.advanceFrame();
 
-    expect(emitAbilityEvent.mock.calls).toEqual([
+    expect(emitAbilityEvent.mock.calls.filter(call => call[0] === 'operator')).toEqual([
       [
         'operator',
         'beforeCastSkill',
@@ -2150,6 +2308,12 @@ describe('CombatRuntimeAssembly', () => {
           element: 'electric',
           skillId: 'first',
           skillCastId: 1,
+          skillCastInfo: {
+            skillCastId: 1,
+            originSkillId: 'first',
+            originSkillType: 'battleSkill',
+            nonReturnedSpCost: 0,
+          },
         },
       ],
       [
@@ -2658,7 +2822,8 @@ describe('CombatRuntimeAssembly', () => {
                                 kind: 'launchProjectile',
                                 parameters: {
                                   inheritActionBlackboard: true,
-                                  finish: 'firstTickReach',
+
+                                  projectileId: 'point',
                                 },
                                 callbacks: [],
                               },
@@ -3048,7 +3213,7 @@ describe('CombatRuntimeAssembly', () => {
       skillLevel: 1,
       skill: gilbertaBattleSkill,
       programs,
-      importedAbilityEntityDefinitions: createIndependentAbilityEntityImportResolver(
+      resourceImports: createIndependentAbilityEntityImportResolver(
         gilbertaGeneratedOperator.abilityEntityDefinitions ?? {},
         programs,
       )(1),
@@ -3058,6 +3223,7 @@ describe('CombatRuntimeAssembly', () => {
     );
     if (spawnAction === undefined) throw new Error('Gilberta generated spawn action is missing');
     const castId = 'gilberta-monitor-cast';
+    const operatorBuffs = new CombatBuffContainer('operator', new CombatAttributeSet<string>());
     const program: CompiledSkillProgram = {
       ...compiled,
       skillId: 'gilberta-monitor-fixture',
@@ -3084,7 +3250,7 @@ describe('CombatRuntimeAssembly', () => {
       undefined,
       () => operatorVitals,
       emptyEnemyBuffRuntime,
-      undefined,
+      () => asBuffRuntime(operatorBuffs),
       testEnemy,
       undefined,
       createAbilityEntityBuffRuntime,
@@ -3124,7 +3290,7 @@ describe('CombatRuntimeAssembly', () => {
     );
   });
 
-  it('resolves owner/entity-id AbilityEntity targets through the assembled time-dilation chain', () => {
+  it('resolves direct-owner AbilityEntity targets through the assembled time-dilation chain', () => {
     const program = skill({
       costs: [],
       costFrame: undefined,
@@ -3145,7 +3311,6 @@ describe('CombatRuntimeAssembly', () => {
                 abilityEntityTargets: [
                   {
                     kind: 'ownerSpawned',
-                    abilityEntityIds: ['marked'],
                   },
                 ],
               },
@@ -3178,8 +3343,8 @@ describe('CombatRuntimeAssembly', () => {
     assembly.abilityEntities.spawn({
       abilityEntityId: 'plain',
       definition: { lifetime: { kind: 'limited', durationSeconds: 2 } },
-      ownerId: 'operator',
-      source: { kind: 'operator', operatorId: 'operator' },
+      ownerId: 'other',
+      source: { kind: 'operator', operatorId: 'other' },
     });
     if (markedEntity.kind !== 'abilityEntity') throw new Error('spawn must return an entity');
 
@@ -4971,7 +5136,7 @@ describe('CombatRuntimeAssembly', () => {
 
     assembly.advanceFrames(3);
     expect(createOperatorBuffRuntime).toHaveBeenCalledOnce();
-    expect(createOperatorBuffRuntime).toHaveBeenCalledWith('operator', undefined, undefined);
+    expect(createOperatorBuffRuntime).toHaveBeenCalledWith('operator', undefined);
     expect(advanceFrame).toHaveBeenCalledTimes(3);
   });
 
@@ -5798,8 +5963,8 @@ describe('CombatRuntimeAssembly', () => {
                 parameters: {
                   saveToContextKey: 'recipients',
                   sources: [
-                    { kind: 'target', target: 'caster' },
-                    { kind: 'context', contextKey: 'selected' },
+                    { kind: 'fixed', target: 'caster' },
+                    { kind: 'context', key: 'selected' },
                   ],
                 },
               },
@@ -6018,4 +6183,18 @@ it('冻结标签立即中断当前技能，移除标签不恢复技能', () => {
   expect(assembly.receipt.entries.filter(entry => entry.event === 'SkillInterrupted')).toHaveLength(
     1,
   );
+});
+
+it('顶层初始化覆盖只改本次实例，不修改定义或引入未声明变量', () => {
+  const program = skill({ initialBlackboard: { delay: 3 } });
+  const assembly = createAssembly([program]);
+  expect(
+    assembly.tryStartPlayerInput('operator', 'skill', undefined, 'battleSkill', {
+      initialBlackboard: { delay: 5, unknown: 9 },
+    }),
+  ).toBe(true);
+  const state = assembly.stateGraph.operators.get('operator')!.skills.get('skill\u0000')!;
+  expect(state.blackboard.values.get('delay')).toBe(5);
+  expect(state.blackboard.values.has('unknown')).toBe(false);
+  expect(program.initialBlackboard).toEqual({ delay: 3 });
 });

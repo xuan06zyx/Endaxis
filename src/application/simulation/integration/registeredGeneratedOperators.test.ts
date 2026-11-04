@@ -93,8 +93,8 @@ it('正式下落攻击从起跳经过起手再执行落地技能', async () => {
     const session = createEditorSimulationService().createCombatSession(scenario);
     session.advanceToFrame(10);
     const restored = session.fork(session.runtime.save());
-    session.advanceToFrame(180);
-    restored.advanceToFrame(180);
+    expect(() => session.advanceToFrame(180), operator.slug).not.toThrow();
+    expect(() => restored.advanceToFrame(180), operator.slug).not.toThrow();
     const result = session.collectResult();
     expect(restored.collectResult(), operator.slug).toEqual(result);
     const starts = result.receiptEntries.filter(
@@ -123,9 +123,12 @@ it('正式下落攻击从起跳经过起手再执行落地技能', async () => {
     const preview = library
       .flatMap(entry => entry.skills)
       .find(skill => skill.skillKey === segment.key)!;
-    expect(skillPlacementDisplayFrames(preview.timelineBlockFrames), operator.slug).toBe(
-      boundary!.frame + 1,
-    );
+    // 技能库展示候选接续时长；例如伊冯落地时只有保留普攻段数才能走早期窗口。
+    // 实际边界由当前输入映射决定，不能用预览窗口替代运行时判定。
+    expect(
+      skillPlacementDisplayFrames(preview.timelineBlockFrames),
+      operator.slug,
+    ).toBeLessThanOrEqual(boundary!.frame + 1);
     const inputHistory = new CombatReceiptHistory();
     for (const entry of result.receiptEntries) inputHistory.append(entry);
     const timing = new SkillInputGroupTiming(inputHistory, () => 1);
@@ -247,6 +250,34 @@ it('祀正式定义可放置全部技能并完成模拟', async () => {
     ['chr_0036_jsspsi_normal_skill', 'chr_0036_jsspsi_normal_skill_1'].includes(cast.id),
   ).map((cast, index) => ({ ...cast, placement: { startFrame: index * 60 } }));
   const returningSession = createEditorSimulationService().createCombatSession(returning);
+  const attackingSoul = structuredClone(returning);
+  attackingSoul.tracks[1] = {
+    ...structuredClone(returning.tracks[0]!),
+    id: 'perlica',
+    operator: { ...returning.tracks[0]!.operator!, operatorSlug: 'perlica', talentStates: {} },
+    skillCasts: [150, 1000].map((startFrame, index) => ({
+      id: `attack-soul:${index}`,
+      source: {
+        kind: 'operatorSkill',
+        skillGroupKey: 'basicAttack',
+        skillKey: perlica.skillGroups.find(group => group.key === 'basicAttack')!.skillIds[0]!,
+      },
+      placement: { startFrame },
+    })),
+  };
+  const soulAttacks = await createEditorSimulationService().simulate(attackingSoul, 1100);
+  const hits = (castId: string) =>
+    soulAttacks.receiptEntries.filter(
+      entry => entry.event === 'DamageApplied' && entry.data?.castId === castId,
+    );
+  expect(hits('attack-soul:0').length).toBeGreaterThan(0);
+  expect(hits('attack-soul:0').every(entry => entry.data?.transferredSourceId === undefined)).toBe(
+    true,
+  );
+  expect(hits('attack-soul:1').length).toBeGreaterThan(0);
+  expect(hits('attack-soul:1').every(entry => entry.data?.transferredSourceId === undefined)).toBe(
+    true,
+  );
   returningSession.advanceToFrame(90);
   const returningFork = returningSession.fork(returningSession.runtime.save());
   returningSession.advanceToFrame(900);
@@ -469,7 +500,7 @@ function numberedPlacementIds(prefix: string) {
 }
 
 describe('registered generated operators', () => {
-  it.each(['battleSkill', 'comboSkill', 'ultimate'])(
+  it.each(['battleSkill', 'comboSkill', 'ultimate'] as const)(
     '噗切娜 %s 的专属行为可经页面模拟入口执行',
     async skillGroupKey => {
       const operator = gameDataRepository.getOperator('purrchena');
@@ -609,6 +640,7 @@ describe('registered generated operators', () => {
         scenario: placed,
         endFrame: 60,
         criticalSamples: new ExplicitCriticalSampleSource([1]),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         elementalInflictionDocument: elementalAttachments,
         resolveNonRandomRuntimeSnapshot: () => ({
           runtimeExtensionMultiplier: 1,
@@ -682,6 +714,7 @@ describe('registered generated operators', () => {
         scenario: ended,
         endFrame: 240,
         criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         elementalInflictionDocument: elementalAttachments,
         resolveNonRandomRuntimeSnapshot: () => ({
           runtimeExtensionMultiplier: 1,
@@ -799,6 +832,7 @@ describe('registered generated operators', () => {
       scenario: combo,
       endFrame: 120,
       criticalSamples: new ExplicitCriticalSampleSource(Array(100).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -872,6 +906,7 @@ describe('registered generated operators', () => {
         scenario: simulatedScenario,
         endFrame: 650,
         criticalSamples: new ExplicitCriticalSampleSource(Array(100).fill(1)),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         elementalInflictionDocument: elementalAttachments,
         resolveNonRandomRuntimeSnapshot: () => ({
           runtimeExtensionMultiplier: 1,
@@ -985,6 +1020,7 @@ describe('registered generated operators', () => {
           scenario: placed,
           endFrame: 80,
           criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+          rangeSamples: { nextRangeSample: () => 0.5 },
           elementalInflictionDocument: elementalAttachments,
           resolveNonRandomRuntimeSnapshot: () => ({
             runtimeExtensionMultiplier: 1,
@@ -1053,6 +1089,7 @@ describe('registered generated operators', () => {
         scenario: placed,
         endFrame: 150,
         criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         elementalInflictionDocument: elementalAttachments,
         resolveNonRandomRuntimeSnapshot: () => ({
           runtimeExtensionMultiplier: 1,
@@ -1122,6 +1159,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 90,
       criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -1139,17 +1177,16 @@ describe('registered generated operators', () => {
       },
     });
 
-    expect(result.receiptEntries).toContainEqual(
-      expect.objectContaining({
-        event: 'AbilityEntitySpawned',
-        // 第46帧发射后，由下一次投射物 Tick 落地生成枪。
-        frame: 47,
-        sourceId: 'track:avywenna:ultimate',
-        data: expect.objectContaining({
-          abilityEntityId: 'abilityentity_chr_0012_avywen_ultimate_skill_lance',
-        }),
-      }),
+    const lances = result.receiptEntries.filter(
+      entry =>
+        entry.event === 'AbilityEntitySpawned' &&
+        entry.data?.abilityEntityId === 'abilityentity_chr_0012_avywen_ultimate_skill_lance',
     );
+    expect(lances).toHaveLength(1);
+    // 落地回调应在发射后执行，不再要求零距离下首 Tick 落地。
+    const launch = result.receiptEntries.find(entry => entry.event === 'ProjectileLaunched');
+    expect(launch).toBeDefined();
+    expect(lances[0]!.frame).toBeGreaterThan(launch!.frame);
     expect(result.receiptEntries).toContainEqual(
       expect.objectContaining({
         event: 'DamageApplied',
@@ -1206,6 +1243,7 @@ describe('registered generated operators', () => {
       scenario,
       endFrame: 120,
       criticalSamples: new ExplicitCriticalSampleSource(Array(40).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -1228,15 +1266,21 @@ describe('registered generated operators', () => {
         entry => entry.event === 'DamageApplied' && entry.sourceId === 'track:avywenna:return',
       ).length,
     ).toBeGreaterThanOrEqual(3);
-    expect(result.receiptEntries).toContainEqual(
-      expect.objectContaining({
-        event: 'DamageApplied',
-        // 回收弹体在第47帧发射，下一次投射物 Tick 命中。
-        frame: 48,
-        sourceId: 'track:avywenna:return',
-        targetId: 'enemy',
-      }),
+    const called = result.receiptEntries.filter(
+      entry =>
+        entry.event === 'BuffCreated' &&
+        entry.data?.buffId === 'buff_chr_0012_avywen_lance_becalled',
     );
+    const returnedHits = result.receiptEntries.filter(
+      entry =>
+        entry.event === 'DamageApplied' &&
+        String(entry.data?.stepKey).includes('chr_0012_avywen_combo_skill_lance_back'),
+    );
+    // 三个落点各生成一把枪，每个回收对象只产生一次回收命中。
+    expect(called).toHaveLength(3);
+    expect(new Set(called.map(entry => entry.targetId)).size).toBe(3);
+    expect(returnedHits).toHaveLength(called.length);
+    expect(returnedHits.every(entry => entry.frame > called[0]!.frame)).toBe(true);
   });
 
   it('applies Xaihi ultimate Crystal enhancement to a later basic attack', () => {
@@ -1336,6 +1380,7 @@ describe('registered generated operators', () => {
         scenario: placed,
         endFrame: 180,
         criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         elementalInflictionDocument: elementalAttachments,
         resolveNonRandomRuntimeSnapshot: () => ({
           runtimeExtensionMultiplier: 1,
@@ -1419,6 +1464,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 180,
       criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -1505,6 +1551,7 @@ describe('registered generated operators', () => {
         scenario: placed,
         endFrame: 660,
         criticalSamples: new ExplicitCriticalSampleSource(Array(80).fill(1)),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         elementalInflictionDocument: elementalAttachments,
         resolveNonRandomRuntimeSnapshot: () => ({
           runtimeExtensionMultiplier: 1,
@@ -1600,6 +1647,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 180,
       criticalSamples: new ExplicitCriticalSampleSource(Array(80).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -1767,6 +1815,7 @@ describe('registered generated operators', () => {
         scenario: placed,
         endFrame: 180,
         criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         elementalInflictionDocument: elementalAttachments,
         resolveNonRandomRuntimeSnapshot: () => ({
           runtimeExtensionMultiplier: 1,
@@ -1859,6 +1908,7 @@ describe('registered generated operators', () => {
         scenario: placed,
         endFrame: 1310,
         criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         elementalInflictionDocument: elementalAttachments,
         spellInflictionSettings: skillSettings,
         resolveNonRandomRuntimeSnapshot: () => ({
@@ -1923,6 +1973,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 120,
       criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -1953,8 +2004,8 @@ describe('registered generated operators', () => {
         entry.data?.castId === 'skillCast:fluorite:ultimate',
     );
     expect(launches.map(entry => entry.frame)).toEqual([60, 64, 68, 73]);
-    // Battle 阶段发射后，下帧 Default 阶段才执行投射物首次碰撞。
-    expect(hits.map(entry => entry.frame)).toEqual(launches.map(entry => entry.frame + 1));
+    // 每枚弹体使用3米标定的2帧时延，保留四次命中及原生限次。
+    expect(hits.map(entry => entry.frame)).toEqual(launches.map(entry => entry.frame + 2));
     expect(hits.every(entry => Number(entry.data?.value) > 0)).toBe(true);
     expect(fluorite.conversionSupport).toEqual({
       completeness: 'complete',
@@ -2037,6 +2088,7 @@ describe('registered generated operators', () => {
         scenario: placed,
         endFrame: 500,
         criticalSamples: new ExplicitCriticalSampleSource(Array(80).fill(1)),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         resolveNonRandomRuntimeSnapshot: () => ({
           runtimeExtensionMultiplier: 1,
           appliesIgniteDamageMultiplier: false,
@@ -2144,6 +2196,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 360,
       criticalSamples: new ExplicitCriticalSampleSource(Array(80).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -2279,7 +2332,8 @@ describe('registered generated operators', () => {
                   {
                     kind: 'heal',
                     parameters: {
-                      target: 'controlledOperator',
+                      target: { kind: 'mainCharacter' },
+                      healer: { kind: 'source' },
                       tags: ['Skill/Character/Common/Heal/ComboSkillHeal'],
                       attribute: 'intellect',
                       multiplier: { kind: 'constant', value: 0.3 },
@@ -2305,6 +2359,7 @@ describe('registered generated operators', () => {
         scenario: placed,
         endFrame: 300,
         criticalSamples: new ExplicitCriticalSampleSource(Array(40).fill(1)),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         elementalInflictionDocument: elementalAttachments,
         resolveNonRandomRuntimeSnapshot: () => ({
           runtimeExtensionMultiplier: 1,
@@ -2391,6 +2446,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 300,
       criticalSamples: new ExplicitCriticalSampleSource(Array(40).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       probabilitySamples: new ExplicitProbabilitySampleSource(Array(40).fill(1)),
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
@@ -2554,6 +2610,7 @@ describe('registered generated operators', () => {
       scenario,
       endFrame: 0,
       criticalSamples: new ExplicitCriticalSampleSource([]),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -2633,6 +2690,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 60,
       criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       probabilitySamples: new ExplicitProbabilitySampleSource(Array(20).fill(0)),
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
@@ -2716,6 +2774,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 90,
       criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       probabilitySamples: new ExplicitProbabilitySampleSource(Array(20).fill(0)),
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
@@ -2793,6 +2852,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 90,
       criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       probabilitySamples: new ExplicitProbabilitySampleSource(Array(20).fill(0)),
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
@@ -2875,6 +2935,7 @@ describe('registered generated operators', () => {
         scenario: placed,
         endFrame: 90,
         criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         probabilitySamples: new ExplicitProbabilitySampleSource(Array(20).fill(0)),
         elementalInflictionDocument: elementalAttachments,
         resolveNonRandomRuntimeSnapshot: () => ({
@@ -2966,6 +3027,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 150,
       criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -3062,6 +3124,7 @@ describe('registered generated operators', () => {
         scenario: placed,
         endFrame: 1_340,
         criticalSamples: new ExplicitCriticalSampleSource(Array(40).fill(1)),
+        rangeSamples: { nextRangeSample: () => 0.5 },
         elementalInflictionDocument: elementalAttachments,
         resolveNonRandomRuntimeSnapshot: () => ({
           runtimeExtensionMultiplier: 1,
@@ -3143,6 +3206,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 180,
       criticalSamples: new ExplicitCriticalSampleSource(Array(40).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       spellInflictionSettings: {
         schemaVersion: 1,
@@ -3243,6 +3307,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 150,
       criticalSamples: new ExplicitCriticalSampleSource(Array(40).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -3357,6 +3422,7 @@ describe('registered generated operators', () => {
       scenario,
       endFrame: 240,
       criticalSamples: new ExplicitCriticalSampleSource(Array(100).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       probabilitySamples: new ExplicitProbabilitySampleSource(Array(100).fill(1)),
       elementalInflictionDocument: elementalAttachments,
       spellInflictionSettings: skillSettings,
@@ -3444,6 +3510,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 90,
       criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -3498,6 +3565,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 80,
       criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -3558,6 +3626,7 @@ describe('registered generated operators', () => {
       scenario: placed,
       endFrame: 150,
       criticalSamples: new ExplicitCriticalSampleSource(Array(20).fill(1)),
+      rangeSamples: { nextRangeSample: () => 0.5 },
       elementalInflictionDocument: elementalAttachments,
       resolveNonRandomRuntimeSnapshot: () => ({
         runtimeExtensionMultiplier: 1,
@@ -3575,7 +3644,7 @@ describe('registered generated operators', () => {
       },
     });
 
-    // 落地与超时是替代路径：首 Tick 生成，三秒后不能再生成第二份。
+    // 第28帧发射，按原生顶点轨迹与速度倍率计算18帧落地；结束路线不能再生成第二份。
     expect(
       result.receiptEntries
         .filter(
@@ -3584,7 +3653,7 @@ describe('registered generated operators', () => {
             entry.data?.abilityEntityId === 'abilityentity_chr_0027_tangtang_comboskill_water',
         )
         .map(entry => entry.frame),
-    ).toEqual([28]);
+    ).toEqual([46]);
 
     expect(result.receiptEntries).toContainEqual(
       expect.objectContaining({

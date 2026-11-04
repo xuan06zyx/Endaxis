@@ -20,35 +20,14 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
         },
         next: null,
       },
-      dealDamage_4: {
-        action: {
-          kind: 'dealDamage',
-          parameters: {
-            damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_1' },
-            tags: ['comboSkill'],
-            features: ['canBreakWeakness'],
-            stagger: { kind: 'valueNode', nodeId: 'data_2' },
-          },
-        },
-        next: null,
-      },
-      mergeContextTargets_5: {
-        action: {
-          kind: 'mergeContextTargets',
-          parameters: {
-            saveToContextKey: 'combo_tar',
-            sources: [{ kind: 'target', target: 'enemy' }],
-          },
-        },
-        next: 'dealDamage_4',
-      },
       dealDamage_6: {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'combo_tar' },
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_3' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_1' },
             tags: ['comboSkill'],
             features: ['canBreakWeakness'],
             stagger: { kind: 'valueNode', nodeId: 'data_2' },
@@ -61,12 +40,37 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
           kind: 'mergeContextTargets',
           parameters: {
             saveToContextKey: 'combo_tar',
-            sources: [{ kind: 'target', target: 'enemy' }],
+            sources: [{ kind: 'fixed', target: 'enemy' }],
           },
         },
         next: 'dealDamage_6',
       },
-      changeResource_8: {
+      dealDamage_10: {
+        action: {
+          kind: 'dealDamage',
+          parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'combo_tar' },
+            damageType: 'physical',
+            attackScale: { kind: 'valueNode', nodeId: 'data_3' },
+            tags: ['comboSkill'],
+            features: ['canBreakWeakness'],
+            stagger: { kind: 'valueNode', nodeId: 'data_2' },
+          },
+        },
+        next: null,
+      },
+      mergeContextTargets_11: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: {
+            saveToContextKey: 'combo_tar',
+            sources: [{ kind: 'fixed', target: 'enemy' }],
+          },
+        },
+        next: 'dealDamage_10',
+      },
+      changeResource_12: {
         action: {
           kind: 'changeResource',
           parameters: {
@@ -79,9 +83,9 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
             spGainSource: 'default',
           },
         },
-        next: 'mergeContextTargets_7',
+        next: 'mergeContextTargets_11',
       },
-      startTimeDilation_11: {
+      startTimeDilation_15: {
         action: {
           kind: 'startTimeDilation',
           parameters: {
@@ -96,7 +100,7 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
         },
         next: null,
       },
-      startTimeDilation_10: {
+      startTimeDilation_14: {
         action: {
           kind: 'startTimeDilation',
           parameters: {
@@ -111,17 +115,17 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
         },
         next: null,
       },
-      ifElse_12: {
+      ifElse_16: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
           condition: { kind: 'conditionNode', nodeId: 'data_5' },
-          whenTrue: { $sequence: 'startTimeDilation_10' },
-          whenFalse: { $sequence: 'startTimeDilation_11' },
+          whenTrue: { $sequence: 'startTimeDilation_14' },
+          whenFalse: { $sequence: 'startTimeDilation_15' },
         },
         next: null,
       },
-      changeResource_13: {
+      changeResource_17: {
         action: {
           kind: 'changeResource',
           parameters: {
@@ -133,59 +137,15 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
             onlyMainOperator: true,
           },
         },
-        next: 'ifElse_12',
+        next: 'ifElse_16',
       },
-      ifElse_14: {
+      ifElse_18: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
           condition: { kind: 'conditionNode', nodeId: 'data_7' },
-          whenTrue: { $sequence: 'changeResource_13' },
+          whenTrue: { $sequence: 'changeResource_17' },
           whenFalse: { $sequence: null },
-        },
-        next: null,
-      },
-      dealDamage_21: {
-        action: {
-          kind: 'dealDamage',
-          parameters: {
-            damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_8' },
-            tags: ['comboSkill'],
-          },
-        },
-        next: null,
-      },
-      mergeContextTargets_22: {
-        action: {
-          kind: 'mergeContextTargets',
-          parameters: {
-            saveToContextKey: 'combo_tar_1',
-            sources: [{ kind: 'target', target: 'enemy' }],
-          },
-        },
-        next: 'dealDamage_21',
-      },
-      changeResource_23: {
-        action: {
-          kind: 'changeResource',
-          parameters: {
-            resource: 'sp',
-            amount: { kind: 'valueNode', nodeId: 'data_9' },
-            coefficient: { kind: 'constant', value: 1 },
-            source: { kind: 'source' },
-            targets: { kind: 'source' },
-            spGainKind: 'gain',
-            spGainSource: 'skill',
-          },
-        },
-        next: 'mergeContextTargets_22',
-      },
-      jumpTimeline_24: {
-        action: {
-          kind: 'jumpTimeline',
-          parameters: { destinationFrame: 120 },
-          condition: { kind: 'conditionNode', nodeId: 'data_10' },
         },
         next: null,
       },
@@ -193,8 +153,10 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'combo_tar_1' },
             damageType: 'physical',
-            attackScale: { kind: 'valueNode', nodeId: 'data_11' },
+            attackScale: { kind: 'valueNode', nodeId: 'data_8' },
             tags: ['comboSkill'],
           },
         },
@@ -205,7 +167,7 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
           kind: 'mergeContextTargets',
           parameters: {
             saveToContextKey: 'combo_tar_1',
-            sources: [{ kind: 'target', target: 'enemy' }],
+            sources: [{ kind: 'fixed', target: 'enemy' }],
           },
         },
         next: 'dealDamage_25',
@@ -225,7 +187,53 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
         },
         next: 'mergeContextTargets_26',
       },
-      jumpTimeline_31: {
+      jumpTimeline_28: {
+        action: {
+          kind: 'jumpTimeline',
+          parameters: { destinationFrame: 120 },
+          condition: { kind: 'conditionNode', nodeId: 'data_10' },
+        },
+        next: null,
+      },
+      dealDamage_29: {
+        action: {
+          kind: 'dealDamage',
+          parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'combo_tar_1' },
+            damageType: 'physical',
+            attackScale: { kind: 'valueNode', nodeId: 'data_11' },
+            tags: ['comboSkill'],
+          },
+        },
+        next: null,
+      },
+      mergeContextTargets_30: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: {
+            saveToContextKey: 'combo_tar_1',
+            sources: [{ kind: 'fixed', target: 'enemy' }],
+          },
+        },
+        next: 'dealDamage_29',
+      },
+      changeResource_31: {
+        action: {
+          kind: 'changeResource',
+          parameters: {
+            resource: 'sp',
+            amount: { kind: 'valueNode', nodeId: 'data_9' },
+            coefficient: { kind: 'constant', value: 1 },
+            source: { kind: 'source' },
+            targets: { kind: 'source' },
+            spGainKind: 'gain',
+            spGainSource: 'skill',
+          },
+        },
+        next: 'mergeContextTargets_30',
+      },
+      jumpTimeline_35: {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 65 },
@@ -233,34 +241,35 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_32: {
+      checkCondition_36: {
         action: {
           kind: 'checkCondition',
           parameters: { condition: { kind: 'conditionNode', nodeId: 'data_14' } },
         },
-        next: 'jumpTimeline_31',
+        next: 'jumpTimeline_35',
       },
-      checkCondition_30: {
+      checkCondition_34: {
         action: {
           kind: 'checkCondition',
           parameters: { condition: { kind: 'conditionNode', nodeId: 'data_16' } },
         },
-        next: 'jumpTimeline_31',
+        next: 'jumpTimeline_35',
       },
-      ifElse_33: {
+      ifElse_37: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
           condition: { kind: 'conditionNode', nodeId: 'data_19' },
-          whenTrue: { $sequence: 'checkCondition_30' },
-          whenFalse: { $sequence: 'checkCondition_32' },
+          whenTrue: { $sequence: 'checkCondition_34' },
+          whenFalse: { $sequence: 'checkCondition_36' },
         },
         next: null,
       },
-      storeSourceAttributeValue_34: {
+      storeSourceAttributeValue_38: {
         action: {
           kind: 'storeSourceAttributeValue',
           parameters: {
+            target: { kind: 'owner' },
             attribute: { kind: 'secondary' },
             stage: 'finalNonConverted',
             useFloor: false,
@@ -270,9 +279,9 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
             targetKey: 'prob',
           },
         },
-        next: 'ifElse_33',
+        next: 'ifElse_37',
       },
-      calculateActionValue_35: {
+      calculateActionValue_39: {
         action: {
           kind: 'calculateActionValue',
           parameters: {
@@ -282,9 +291,9 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
             right: { kind: 'valueNode', nodeId: 'data_21' },
           },
         },
-        next: 'storeSourceAttributeValue_34',
+        next: 'storeSourceAttributeValue_38',
       },
-      calculateActionValue_36: {
+      calculateActionValue_40: {
         action: {
           kind: 'calculateActionValue',
           parameters: {
@@ -294,9 +303,9 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
             right: { kind: 'valueNode', nodeId: 'data_13' },
           },
         },
-        next: 'calculateActionValue_35',
+        next: 'calculateActionValue_39',
       },
-      applyBuff_38: {
+      applyBuff_42: {
         action: {
           kind: 'applyBuff',
           parameters: {
@@ -313,7 +322,7 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
         },
         next: null,
       },
-      findTargets_39: {
+      findTargets_43: {
         action: {
           kind: 'findTargets',
           parameters: {
@@ -322,32 +331,39 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
             saveToContextKey: 'team',
           },
         },
-        next: 'applyBuff_38',
+        next: 'applyBuff_42',
       },
-      ifElse_40: {
+      ifElse_44: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
           condition: { kind: 'conditionNode', nodeId: 'data_23' },
-          whenTrue: { $sequence: 'findTargets_39' },
+          whenTrue: { $sequence: 'findTargets_43' },
           whenFalse: { $sequence: null },
         },
         next: null,
       },
-      checkCondition_41: {
+      checkCondition_45: {
         action: {
           kind: 'checkCondition',
           parameters: { condition: { kind: 'conditionNode', nodeId: 'data_24' } },
         },
         next: null,
       },
-      ifElse_42: {
+      ifElse_46: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
           condition: { kind: 'conditionNode', nodeId: 'data_25' },
           whenTrue: { $sequence: null },
           whenFalse: { $sequence: null },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_47: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: { skillIds: ['chr_0024_deepfin_normal_skill'] },
         },
         next: null,
       },
@@ -419,7 +435,7 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
       },
       data_25: {
         type: 'boolean',
-        expression: { kind: 'checkActionResult', action: { $sequence: 'checkCondition_41' } },
+        expression: { kind: 'checkActionResult', action: { $sequence: 'checkCondition_45' } },
       },
     },
   },
@@ -427,6 +443,7 @@ export const aleshChr_0024_deepfin_combo_skillActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const aleshChr_0024_deepfin_combo_skill: SkillDefinition = {
+  actionGraph: aleshChr_0024_deepfin_combo_skillActionGraph,
   key: 'chr_0024_deepfin_combo_skill',
   element: 'physical',
   blackboard: {
@@ -451,38 +468,41 @@ export const aleshChr_0024_deepfin_combo_skill: SkillDefinition = {
   exclusiveFrame: 130,
   offsetRecordFrame: 0,
   dontInterruptCombo: true,
-  inputWindows: {
-    allowedNextSkills: [
-      { startFrame: 39, endFrame: 65, skillIds: ['chr_0024_deepfin_normal_skill'] },
-      { startFrame: 94, endFrame: 120, skillIds: ['chr_0024_deepfin_normal_skill'] },
-      { startFrame: 120, endFrame: 130, skillIds: ['chr_0024_deepfin_normal_skill'] },
-    ],
-  },
   costFrame: 0,
   scheduledSequences: [
     { startFrame: 0, endFrame: 23, sequence: { $sequence: 'applyBuff_3' } },
-    { startFrame: 38, endFrame: 41, sequence: { $sequence: 'mergeContextTargets_5' } },
-    { startFrame: 93, endFrame: 96, sequence: { $sequence: 'changeResource_8' } },
-    { startFrame: 38, endFrame: 43, sequence: { $sequence: 'ifElse_14' } },
-    { startFrame: 93, endFrame: 98, sequence: { $sequence: 'ifElse_14' } },
-    { startFrame: 22, endFrame: 24, sequence: { $sequence: 'changeResource_23' } },
-    { startFrame: 64, endFrame: 66, sequence: { $sequence: 'jumpTimeline_24' } },
-    { startFrame: 77, endFrame: 79, sequence: { $sequence: 'changeResource_27' } },
-    { startFrame: 10, endFrame: 11, sequence: { $sequence: 'calculateActionValue_36' } },
-    { startFrame: 93, endFrame: 96, sequence: { $sequence: 'ifElse_40' } },
-    { startFrame: 34, endFrame: 75, sequence: { $sequence: 'ifElse_42' } },
+    { startFrame: 38, endFrame: 41, sequence: { $sequence: 'mergeContextTargets_7' } },
+    { startFrame: 93, endFrame: 96, sequence: { $sequence: 'changeResource_12' } },
+    { startFrame: 38, endFrame: 43, sequence: { $sequence: 'ifElse_18' } },
+    { startFrame: 93, endFrame: 98, sequence: { $sequence: 'ifElse_18' } },
+    { startFrame: 22, endFrame: 24, sequence: { $sequence: 'changeResource_27' } },
+    { startFrame: 64, endFrame: 66, sequence: { $sequence: 'jumpTimeline_28' } },
+    { startFrame: 77, endFrame: 79, sequence: { $sequence: 'changeResource_31' } },
+    { startFrame: 10, endFrame: 11, sequence: { $sequence: 'calculateActionValue_40' } },
+    { startFrame: 93, endFrame: 96, sequence: { $sequence: 'ifElse_44' } },
+    { startFrame: 34, endFrame: 75, sequence: { $sequence: 'ifElse_46' } },
+    { startFrame: 39, endFrame: 65, sequence: { $sequence: 'reachSkillOperableBoundary_47' } },
+    { startFrame: 94, endFrame: 120, sequence: { $sequence: 'reachSkillOperableBoundary_47' } },
+    { startFrame: 120, endFrame: 130, sequence: { $sequence: 'reachSkillOperableBoundary_47' } },
   ],
+  defaultTarget: 'enemy',
   smartTarget: 'trigger',
   cooldownFrames: [270, 270, 270, 270, 270, 270, 270, 270, 270, 270, 270, 240],
   skillType: 'comboSkill',
   levelSource: 'comboSkill',
   nativeSkillType: 'comboSkill',
-  actionGraph: aleshChr_0024_deepfin_combo_skillActionGraph,
 };
 
 export const aleshChr_0024_deepfin_attack1ActionGraph = {
   main: {
     nodes: {
+      mergeContextTargets_1: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+        },
+        next: null,
+      },
       changeResource_3: {
         action: {
           kind: 'changeResource',
@@ -527,6 +547,8 @@ export const aleshChr_0024_deepfin_attack1ActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'tar' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_3' },
             tags: ['normalAttack'],
@@ -534,7 +556,14 @@ export const aleshChr_0024_deepfin_attack1ActionGraph = {
         },
         next: 'ifElse_5',
       },
-      reachSkillOperableBoundary_7: {
+      overrideBasicAttackMapping_7: {
+        action: {
+          kind: 'overrideBasicAttackMapping',
+          parameters: { skillIds: ['chr_0024_deepfin_attack2'], priority: 'skill' },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_8: {
         action: {
           kind: 'reachSkillOperableBoundary',
           parameters: { skillIds: ['chr_0024_deepfin_attack2'] },
@@ -555,6 +584,7 @@ export const aleshChr_0024_deepfin_attack1ActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const aleshChr_0024_deepfin_attack1: SkillDefinition = {
+  actionGraph: aleshChr_0024_deepfin_attack1ActionGraph,
   key: 'chr_0024_deepfin_attack1',
   element: 'physical',
   blackboard: {
@@ -565,33 +595,29 @@ export const aleshChr_0024_deepfin_attack1: SkillDefinition = {
   naturalDurationFrames: 130,
   exclusiveFrame: 25,
   offsetRecordFrame: 7,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 7,
-        endFrame: 25,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0024_deepfin_attack2',
-      },
-    ],
-    allowedNextSkills: [{ startFrame: 12, endFrame: 25, skillIds: ['chr_0024_deepfin_attack2'] }],
-  },
   costFrame: 9,
   scheduledSequences: [
+    { startFrame: 7, endFrame: 8, sequence: { $sequence: 'mergeContextTargets_1' } },
     { startFrame: 7, endFrame: 8, sequence: { $sequence: 'dealDamage_6' } },
-    { startFrame: 12, endFrame: 25, sequence: { $sequence: 'reachSkillOperableBoundary_7' } },
+    { startFrame: 7, endFrame: 25, sequence: { $sequence: 'overrideBasicAttackMapping_7' } },
+    { startFrame: 12, endFrame: 25, sequence: { $sequence: 'reachSkillOperableBoundary_8' } },
   ],
   defaultTarget: 'enemy',
-  timelineContinuationSkillId: 'chr_0024_deepfin_attack2',
   skillType: 'basicAttack',
   levelSource: 'basicAttack',
   nativeSkillType: 'attack',
-  actionGraph: aleshChr_0024_deepfin_attack1ActionGraph,
 };
 
 export const aleshChr_0024_deepfin_attack2ActionGraph = {
   main: {
     nodes: {
+      mergeContextTargets_1: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+        },
+        next: null,
+      },
       changeResource_3: {
         action: {
           kind: 'changeResource',
@@ -636,6 +662,8 @@ export const aleshChr_0024_deepfin_attack2ActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'tar' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_3' },
             tags: ['normalAttack'],
@@ -665,7 +693,14 @@ export const aleshChr_0024_deepfin_attack2ActionGraph = {
         },
         next: 'startTimeDilation_7',
       },
-      reachSkillOperableBoundary_9: {
+      overrideBasicAttackMapping_9: {
+        action: {
+          kind: 'overrideBasicAttackMapping',
+          parameters: { skillIds: ['chr_0024_deepfin_attack3'], priority: 'skill' },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_10: {
         action: {
           kind: 'reachSkillOperableBoundary',
           parameters: { skillIds: ['chr_0024_deepfin_attack3'] },
@@ -684,7 +719,7 @@ export const aleshChr_0024_deepfin_attack2ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target: { kind: 'context', key: 'tar' },
           containsHittableTarget: false,
           excludeDeadEntity: false,
           operator: 'greaterOrEqual',
@@ -697,6 +732,7 @@ export const aleshChr_0024_deepfin_attack2ActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const aleshChr_0024_deepfin_attack2: SkillDefinition = {
+  actionGraph: aleshChr_0024_deepfin_attack2ActionGraph,
   key: 'chr_0024_deepfin_attack2',
   element: 'physical',
   blackboard: {
@@ -707,34 +743,30 @@ export const aleshChr_0024_deepfin_attack2: SkillDefinition = {
   naturalDurationFrames: 128,
   exclusiveFrame: 25,
   offsetRecordFrame: 5,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 6,
-        endFrame: 25,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0024_deepfin_attack3',
-      },
-    ],
-    allowedNextSkills: [{ startFrame: 10, endFrame: 25, skillIds: ['chr_0024_deepfin_attack3'] }],
-  },
   costFrame: 8,
   scheduledSequences: [
+    { startFrame: 5, endFrame: 6, sequence: { $sequence: 'mergeContextTargets_1' } },
     { startFrame: 5, endFrame: 11, sequence: { $sequence: 'dealDamage_6' } },
     { startFrame: 5, endFrame: 8, sequence: { $sequence: 'checkCondition_8' } },
-    { startFrame: 10, endFrame: 25, sequence: { $sequence: 'reachSkillOperableBoundary_9' } },
+    { startFrame: 6, endFrame: 25, sequence: { $sequence: 'overrideBasicAttackMapping_9' } },
+    { startFrame: 10, endFrame: 25, sequence: { $sequence: 'reachSkillOperableBoundary_10' } },
   ],
   defaultTarget: 'enemy',
-  timelineContinuationSkillId: 'chr_0024_deepfin_attack3',
   skillType: 'basicAttack',
   levelSource: 'basicAttack',
   nativeSkillType: 'attack',
-  actionGraph: aleshChr_0024_deepfin_attack2ActionGraph,
 };
 
 export const aleshChr_0024_deepfin_attack3ActionGraph = {
   main: {
     nodes: {
+      mergeContextTargets_1: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+        },
+        next: null,
+      },
       startTimeDilation_2: {
         action: {
           kind: 'startTimeDilation',
@@ -786,6 +818,8 @@ export const aleshChr_0024_deepfin_attack3ActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'tar' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_4' },
             tags: ['normalAttack'],
@@ -793,7 +827,14 @@ export const aleshChr_0024_deepfin_attack3ActionGraph = {
         },
         next: 'ifElse_6',
       },
-      reachSkillOperableBoundary_8: {
+      overrideBasicAttackMapping_8: {
+        action: {
+          kind: 'overrideBasicAttackMapping',
+          parameters: { skillIds: ['chr_0024_deepfin_attack4'], priority: 'skill' },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_9: {
         action: {
           kind: 'reachSkillOperableBoundary',
           parameters: { skillIds: ['chr_0024_deepfin_attack4'] },
@@ -806,7 +847,7 @@ export const aleshChr_0024_deepfin_attack3ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target: { kind: 'inputTarget' },
           containsHittableTarget: true,
           excludeDeadEntity: false,
           operator: 'greaterOrEqual',
@@ -825,6 +866,7 @@ export const aleshChr_0024_deepfin_attack3ActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const aleshChr_0024_deepfin_attack3: SkillDefinition = {
+  actionGraph: aleshChr_0024_deepfin_attack3ActionGraph,
   key: 'chr_0024_deepfin_attack3',
   element: 'physical',
   blackboard: {
@@ -835,34 +877,30 @@ export const aleshChr_0024_deepfin_attack3: SkillDefinition = {
   naturalDurationFrames: 145,
   exclusiveFrame: 29,
   offsetRecordFrame: 13,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 13,
-        endFrame: 31,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0024_deepfin_attack4',
-      },
-    ],
-    allowedNextSkills: [{ startFrame: 16, endFrame: 31, skillIds: ['chr_0024_deepfin_attack4'] }],
-  },
   costFrame: 12,
   scheduledSequences: [
+    { startFrame: 13, endFrame: 14, sequence: { $sequence: 'mergeContextTargets_1' } },
     { startFrame: 13, endFrame: 14, sequence: { $sequence: 'checkCondition_3' } },
     { startFrame: 13, endFrame: 14, sequence: { $sequence: 'dealDamage_7' } },
-    { startFrame: 16, endFrame: 31, sequence: { $sequence: 'reachSkillOperableBoundary_8' } },
+    { startFrame: 13, endFrame: 31, sequence: { $sequence: 'overrideBasicAttackMapping_8' } },
+    { startFrame: 16, endFrame: 31, sequence: { $sequence: 'reachSkillOperableBoundary_9' } },
   ],
   defaultTarget: 'enemy',
-  timelineContinuationSkillId: 'chr_0024_deepfin_attack4',
   skillType: 'basicAttack',
   levelSource: 'basicAttack',
   nativeSkillType: 'attack',
-  actionGraph: aleshChr_0024_deepfin_attack3ActionGraph,
 };
 
 export const aleshChr_0024_deepfin_attack4ActionGraph = {
   main: {
     nodes: {
+      mergeContextTargets_1: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+        },
+        next: null,
+      },
       changeResource_2: {
         action: {
           kind: 'changeResource',
@@ -917,6 +955,8 @@ export const aleshChr_0024_deepfin_attack4ActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'tar' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_4' },
             tags: ['normalAttack'],
@@ -924,7 +964,14 @@ export const aleshChr_0024_deepfin_attack4ActionGraph = {
         },
         next: 'ifElse_6',
       },
-      reachSkillOperableBoundary_8: {
+      overrideBasicAttackMapping_8: {
+        action: {
+          kind: 'overrideBasicAttackMapping',
+          parameters: { skillIds: ['chr_0024_deepfin_attack5'], priority: 'skill' },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_9: {
         action: {
           kind: 'reachSkillOperableBoundary',
           parameters: { skillIds: ['chr_0024_deepfin_attack5'] },
@@ -949,6 +996,7 @@ export const aleshChr_0024_deepfin_attack4ActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const aleshChr_0024_deepfin_attack4: SkillDefinition = {
+  actionGraph: aleshChr_0024_deepfin_attack4ActionGraph,
   key: 'chr_0024_deepfin_attack4',
   element: 'physical',
   blackboard: {
@@ -959,33 +1007,29 @@ export const aleshChr_0024_deepfin_attack4: SkillDefinition = {
   naturalDurationFrames: 90,
   exclusiveFrame: 30,
   offsetRecordFrame: 15,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 15,
-        endFrame: 33,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0024_deepfin_attack5',
-      },
-    ],
-    allowedNextSkills: [{ startFrame: 22, endFrame: 33, skillIds: ['chr_0024_deepfin_attack5'] }],
-  },
   costFrame: 8,
   scheduledSequences: [
+    { startFrame: 15, endFrame: 16, sequence: { $sequence: 'mergeContextTargets_1' } },
     { startFrame: 15, endFrame: 16, sequence: { $sequence: 'dealDamage_7' } },
-    { startFrame: 22, endFrame: 33, sequence: { $sequence: 'reachSkillOperableBoundary_8' } },
+    { startFrame: 15, endFrame: 33, sequence: { $sequence: 'overrideBasicAttackMapping_8' } },
+    { startFrame: 22, endFrame: 33, sequence: { $sequence: 'reachSkillOperableBoundary_9' } },
   ],
   defaultTarget: 'enemy',
-  timelineContinuationSkillId: 'chr_0024_deepfin_attack5',
   skillType: 'basicAttack',
   levelSource: 'basicAttack',
   nativeSkillType: 'attack',
-  actionGraph: aleshChr_0024_deepfin_attack4ActionGraph,
 };
 
 export const aleshChr_0024_deepfin_attack5ActionGraph = {
   main: {
     nodes: {
+      mergeContextTargets_1: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+        },
+        next: null,
+      },
       startTimeDilation_2: {
         action: {
           kind: 'startTimeDilation',
@@ -1025,6 +1069,8 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'tar' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_3' },
             tags: ['normalAttack', 'normalAttackLastCombo'],
@@ -1088,6 +1134,8 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'tar' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_3' },
             tags: ['normalAttack'],
@@ -1097,7 +1145,14 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
         },
         next: 'ifElse_12',
       },
-      reachSkillOperableBoundary_14: {
+      overrideBasicAttackMapping_14: {
+        action: {
+          kind: 'overrideBasicAttackMapping',
+          parameters: { skillIds: ['chr_0024_deepfin_attack1'], priority: 'skill' },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_15: {
         action: {
           kind: 'reachSkillOperableBoundary',
           parameters: { skillIds: ['chr_0024_deepfin_attack1'] },
@@ -1131,6 +1186,7 @@ export const aleshChr_0024_deepfin_attack5ActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const aleshChr_0024_deepfin_attack5: SkillDefinition = {
+  actionGraph: aleshChr_0024_deepfin_attack5ActionGraph,
   key: 'chr_0024_deepfin_attack5',
   element: 'physical',
   blackboard: {
@@ -1142,29 +1198,19 @@ export const aleshChr_0024_deepfin_attack5: SkillDefinition = {
   naturalDurationFrames: 104,
   exclusiveFrame: 40,
   offsetRecordFrame: 18,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 14,
-        endFrame: 40,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0024_deepfin_attack1',
-      },
-    ],
-    allowedNextSkills: [{ startFrame: 31, endFrame: 40, skillIds: ['chr_0024_deepfin_attack1'] }],
-  },
   costFrame: 12,
   scheduledSequences: [
+    { startFrame: 18, endFrame: 19, sequence: { $sequence: 'mergeContextTargets_1' } },
     { startFrame: 18, endFrame: 19, sequence: { $sequence: 'dealDamage_6' } },
+    { startFrame: 19, endFrame: 20, sequence: { $sequence: 'mergeContextTargets_1' } },
     { startFrame: 19, endFrame: 20, sequence: { $sequence: 'dealDamage_13' } },
-    { startFrame: 31, endFrame: 40, sequence: { $sequence: 'reachSkillOperableBoundary_14' } },
+    { startFrame: 14, endFrame: 40, sequence: { $sequence: 'overrideBasicAttackMapping_14' } },
+    { startFrame: 31, endFrame: 40, sequence: { $sequence: 'reachSkillOperableBoundary_15' } },
   ],
   defaultTarget: 'enemy',
-  timelineContinuationSkillId: 'chr_0024_deepfin_attack1',
   skillType: 'basicAttack',
   levelSource: 'basicAttack',
   nativeSkillType: 'attack',
-  actionGraph: aleshChr_0024_deepfin_attack5ActionGraph,
 };
 
 export const aleshChr_0024_deepfin_power_attackActionGraph = {
@@ -1214,6 +1260,8 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'inputTarget' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_2' },
             calculation: 'breakingAttack',
@@ -1224,7 +1272,14 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
         next: 'ifElse_4',
       },
       gainFinisherSp_7: {
-        action: { kind: 'gainFinisherSp', parameters: { factor: 1, recipient: 'team' } },
+        action: {
+          kind: 'gainFinisherSp',
+          parameters: {
+            source: { kind: 'source' },
+            target: { kind: 'inputTarget' },
+            factor: { kind: 'constant', value: 1 },
+          },
+        },
         next: null,
       },
       startTimeDilation_9: {
@@ -1266,6 +1321,8 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'inputTarget' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_5' },
             calculation: 'breakingAttack',
@@ -1330,6 +1387,15 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
         },
         next: null,
       },
+      reachSkillOperableBoundary_18: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: {
+            skillIds: ['chr_0024_deepfin_normal_skill', 'chr_0024_deepfin_combo_skill'],
+          },
+        },
+        next: null,
+      },
     },
     dataNodes: {
       data_1: {
@@ -1341,7 +1407,7 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target: { kind: 'inputTarget' },
           containsHittableTarget: false,
           excludeDeadEntity: false,
           operator: 'greaterOrEqual',
@@ -1357,7 +1423,7 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target: { kind: 'inputTarget' },
           containsHittableTarget: false,
           excludeDeadEntity: false,
           operator: 'greaterOrEqual',
@@ -1374,6 +1440,7 @@ export const aleshChr_0024_deepfin_power_attackActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const aleshChr_0024_deepfin_power_attack: SkillDefinition = {
+  actionGraph: aleshChr_0024_deepfin_power_attackActionGraph,
   key: 'chr_0024_deepfin_power_attack',
   element: 'physical',
   blackboard: {
@@ -1385,15 +1452,6 @@ export const aleshChr_0024_deepfin_power_attack: SkillDefinition = {
   exclusiveFrame: 75,
   offsetRecordFrame: 0,
   dontInterruptCombo: true,
-  inputWindows: {
-    allowedNextSkills: [
-      {
-        startFrame: 47,
-        endFrame: 75,
-        skillIds: ['chr_0024_deepfin_normal_skill', 'chr_0024_deepfin_combo_skill'],
-      },
-    ],
-  },
   costFrame: 4,
   scheduledSequences: [
     { startFrame: 13, endFrame: 15, sequence: { $sequence: 'dealDamage_5' } },
@@ -1401,17 +1459,24 @@ export const aleshChr_0024_deepfin_power_attack: SkillDefinition = {
     { startFrame: 13, endFrame: 15, sequence: { $sequence: 'checkCondition_15' } },
     { startFrame: 0, endFrame: 75, sequence: { $sequence: 'applyBuff_16' } },
     { startFrame: 0, endFrame: 47, sequence: { $sequence: 'applyBuff_17' } },
+    { startFrame: 47, endFrame: 75, sequence: { $sequence: 'reachSkillOperableBoundary_18' } },
   ],
   defaultTarget: 'enemy',
   skillType: 'finisher',
   levelSource: 'basicAttack',
   nativeSkillType: 'breakingAttack',
-  actionGraph: aleshChr_0024_deepfin_power_attackActionGraph,
 };
 
 export const aleshChr_0024_deepfin_plunging_attack_endActionGraph = {
   main: {
     nodes: {
+      mergeContextTargets_1: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+        },
+        next: null,
+      },
       changeResource_3: {
         action: {
           kind: 'changeResource',
@@ -1441,6 +1506,8 @@ export const aleshChr_0024_deepfin_plunging_attack_endActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'tar' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_3' },
             tags: ['normalAttack', 'plungingAttack'],
@@ -1462,6 +1529,7 @@ export const aleshChr_0024_deepfin_plunging_attack_endActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const aleshChr_0024_deepfin_plunging_attack_end: SkillDefinition = {
+  actionGraph: aleshChr_0024_deepfin_plunging_attack_endActionGraph,
   key: 'chr_0024_deepfin_plunging_attack_end',
   element: 'physical',
   blackboard: {
@@ -1473,12 +1541,14 @@ export const aleshChr_0024_deepfin_plunging_attack_end: SkillDefinition = {
   exclusiveFrame: 20,
   offsetRecordFrame: 0,
   costFrame: 0,
-  scheduledSequences: [{ startFrame: 1, endFrame: 6, sequence: { $sequence: 'dealDamage_5' } }],
+  scheduledSequences: [
+    { startFrame: 1, endFrame: 5, sequence: { $sequence: 'mergeContextTargets_1' } },
+    { startFrame: 1, endFrame: 6, sequence: { $sequence: 'dealDamage_5' } },
+  ],
   defaultTarget: 'enemy',
   skillType: 'plungingAttack',
   levelSource: 'basicAttack',
   nativeSkillType: 'attack',
-  actionGraph: aleshChr_0024_deepfin_plunging_attack_endActionGraph,
 };
 
 export const aleshChr_0024_deepfin_normal_skillActionGraph = {
@@ -1697,6 +1767,8 @@ export const aleshChr_0024_deepfin_normal_skillActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'inputTarget' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_14' },
             tags: ['normalSkill'],
@@ -1838,7 +1910,7 @@ export const aleshChr_0024_deepfin_normal_skillActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target: { kind: 'inputTarget' },
           containsHittableTarget: false,
           excludeDeadEntity: false,
           operator: 'greaterOrEqual',
@@ -1856,7 +1928,7 @@ export const aleshChr_0024_deepfin_normal_skillActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'buffStackCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target: { kind: 'inputTarget' },
           compareZeroWhenTargetMissing: false,
           operator: 'greaterOrEqual',
           value: { kind: 'constant', value: 1 },
@@ -1870,6 +1942,7 @@ export const aleshChr_0024_deepfin_normal_skillActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const aleshChr_0024_deepfin_normal_skill: SkillDefinition = {
+  actionGraph: aleshChr_0024_deepfin_normal_skillActionGraph,
   key: 'chr_0024_deepfin_normal_skill',
   element: 'physical',
   blackboard: {
@@ -1898,12 +1971,12 @@ export const aleshChr_0024_deepfin_normal_skill: SkillDefinition = {
     { startFrame: 27, endFrame: 28, sequence: { $sequence: 'ifElse_34' } },
     { startFrame: 27, endFrame: 28, sequence: { $sequence: 'repeatEachTick_39' } },
   ],
+  defaultTarget: 'enemy',
   smartTarget: 'enemy',
   costs: [{ resource: 'sp', value: 100 }],
   skillType: 'battleSkill',
   levelSource: 'battleSkill',
   nativeSkillType: 'normalSkill',
-  actionGraph: aleshChr_0024_deepfin_normal_skillActionGraph,
 };
 
 export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
@@ -1928,6 +2001,8 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'inputTarget' },
             damageType: 'cryo',
             attackScale: { kind: 'valueNode', nodeId: 'data_1' },
             tags: ['ultimateSkill'],
@@ -2136,6 +2211,26 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
         },
         next: null,
       },
+      overrideBasicAttackMapping_28: {
+        action: {
+          kind: 'overrideBasicAttackMapping',
+          parameters: { skillIds: ['chr_0024_deepfin_attack1'], priority: 'skill' },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_29: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: {
+            skillIds: [
+              'chr_0024_deepfin_attack1',
+              'chr_0024_deepfin_normal_skill',
+              'chr_0024_deepfin_combo_skill',
+            ],
+          },
+        },
+        next: null,
+      },
     },
     dataNodes: {
       data_1: { type: 'number', expression: { kind: 'blackboard', key: 'atk_scale' } },
@@ -2146,7 +2241,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'healthCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target: { kind: 'inputTarget' },
           valueType: 'ratio',
           operator: 'lessOrEqual',
           value: { kind: 'valueNode', nodeId: 'data_4' },
@@ -2205,6 +2300,7 @@ export const aleshChr_0024_deepfin_ultimate_skillActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const aleshChr_0024_deepfin_ultimate_skill: SkillDefinition = {
+  actionGraph: aleshChr_0024_deepfin_ultimate_skillActionGraph,
   key: 'chr_0024_deepfin_ultimate_skill',
   element: 'cryo',
   blackboard: {
@@ -2222,27 +2318,6 @@ export const aleshChr_0024_deepfin_ultimate_skill: SkillDefinition = {
   naturalDurationFrames: 180,
   exclusiveFrame: 110,
   offsetRecordFrame: 0,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 87,
-        endFrame: 113,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0024_deepfin_attack1',
-      },
-    ],
-    allowedNextSkills: [
-      {
-        startFrame: 96,
-        endFrame: 113,
-        skillIds: [
-          'chr_0024_deepfin_attack1',
-          'chr_0024_deepfin_normal_skill',
-          'chr_0024_deepfin_combo_skill',
-        ],
-      },
-    ],
-  },
   costFrame: 0,
   scheduledSequences: [
     { startFrame: 0, endFrame: 3, sequence: { $sequence: 'startTimeDilation_1' } },
@@ -2252,6 +2327,8 @@ export const aleshChr_0024_deepfin_ultimate_skill: SkillDefinition = {
     { startFrame: 0, endFrame: 110, sequence: { $sequence: 'applyBuff_25' } },
     { startFrame: 0, endFrame: 77, sequence: { $sequence: 'hideUi_26' } },
     { startFrame: 0, endFrame: 77, sequence: { $sequence: 'startUltimateTimeDilation_27' } },
+    { startFrame: 87, endFrame: 113, sequence: { $sequence: 'overrideBasicAttackMapping_28' } },
+    { startFrame: 96, endFrame: 113, sequence: { $sequence: 'reachSkillOperableBoundary_29' } },
   ],
   defaultTarget: 'enemy',
   cooldownFrames: 600,
@@ -2259,7 +2336,6 @@ export const aleshChr_0024_deepfin_ultimate_skill: SkillDefinition = {
   skillType: 'ultimate',
   levelSource: 'ultimate',
   nativeSkillType: 'ultimateSkill',
-  actionGraph: aleshChr_0024_deepfin_ultimate_skillActionGraph,
 };
 
 export const aleshCommon_character_perfect_dodgeActionGraph = {

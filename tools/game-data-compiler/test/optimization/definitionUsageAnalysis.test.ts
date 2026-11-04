@@ -28,6 +28,40 @@ import { pruneUnusedGraphSkillValues } from '../../src/compiler/optimization/gra
 import { extractGraphDataNodes } from '../../src/compiler/extractGraphDataNodes.ts';
 
 describe('黑板用途的读取对象', () => {
+  it('发射时间表保留数值输入读取', () => {
+    const read = (key: string) => ({ kind: 'blackboard' as const, key });
+    const action: CombatStepForKind<'launchProjectile'> = {
+      kind: 'launchProjectile',
+      callbacks: [],
+      parameters: {
+        projectileId: 'fixture_projectile',
+        inheritActionBlackboard: true,
+        schedule: {
+          endFrame: read('duration'),
+          callbacks: [{ event: 'hit', triggerFrames: [read('delay')] }],
+        },
+      },
+    };
+    const expected = new Set(['duration', 'delay']);
+    expect(analyzeStepUsage(action).reads).toEqual(expected);
+    const graph = { nodes: { launch: { action, next: null } } };
+    expect(analyzeGraphSequenceUsage(graph, { $sequence: 'launch' }).reads).toEqual(expected);
+  });
+
+  it('逻辑点保留数量输入的变量读取', () => {
+    const read = (key: string) => ({ kind: 'blackboard' as const, key });
+    const usage = analyzeStepUsage({
+      kind: 'createSpatialPointTargets',
+      parameters: {
+        saveToContextKey: 'points',
+        count: read('count'),
+        origin: { kind: 'source' },
+      },
+    });
+    expect(usage.reads).toEqual(new Set(['count']));
+    expect(usage.unknownAccess).toBe(false);
+  });
+
   it('距离与方向检查的目标查询可分配位置身份，不能当成纯比较删除', () => {
     const executor = new TargetContextOperationExecutor('ally', {
       execute: () => false,
@@ -67,6 +101,22 @@ describe('黑板用途的读取对象', () => {
       ).toBe(true);
       const allocated = executor.runtimeState.nextSpatialPointId - before;
       expect(allocated).toBe(query.kind === 'fixedPoint' ? 1 : 0);
+      expect(
+        analyzeStepUsage({
+          kind: 'storeShieldValue',
+          parameters: { target: query, value: 'current', outputKey: 'shield' },
+        }).unknownAccess,
+      ).toBe(allocated > 0);
+      expect(
+        analyzeStepUsage({
+          kind: 'setGlobalCooldown',
+          parameters: {
+            target: query,
+            markerId: 'cooldown',
+            durationSeconds: { kind: 'constant', value: 1 },
+          },
+        }).unknownAccess,
+      ).toBe(allocated > 0);
       for (const condition of [distance, angle]) {
         expect(analyzeConditionUsage(condition).observable).toBe(allocated > 0);
         const optimized = optimizeActionGraphDefinition(
@@ -320,15 +370,14 @@ describe('黑板用途的读取对象', () => {
   });
 
   it('环排序读取查询到的实体板，技能上同名初值可以删除', () => {
-    const query: CombatStepForKind<'findOwnerSpawnedAbilityEntities'> = {
+    const query = {
       kind: 'findOwnerSpawnedAbilityEntities',
       parameters: {
         owner: { kind: 'source' },
         saveToContextKey: 'places',
-        abilityEntityIds: ['place'],
         circularOrder: { indexBlackboardKey: 'slot', desiredCount: 3, reverseFlag: 1 },
       },
-    };
+    } satisfies CombatStepForKind<'findOwnerSpawnedAbilityEntities'>;
     const input: SkillDefinition = skillFixture({
       key: 'fixture',
       timelineBlockFrames: 1,
@@ -346,7 +395,6 @@ describe('黑板用途的读取对象', () => {
     expect(usage.externalReads).toEqual([
       {
         kind: 'abilityEntity',
-        abilityEntityIds: ['place'],
         owner: { kind: 'source' },
         key: 'slot',
       },
@@ -391,7 +439,6 @@ describe('黑板用途的读取对象', () => {
     ).toEqual([
       {
         kind: 'abilityEntity',
-        abilityEntityIds: ['place'],
         owner: { kind: 'context', key: 'owners' },
         sameSourceSkillCast: true,
         key: 'slot',

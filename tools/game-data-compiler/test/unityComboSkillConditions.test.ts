@@ -450,13 +450,7 @@ describe('Unity RID 条件适配', () => {
     const f = unityComboConditionFixture();
     f.references['2708501211437859826']!.data.buffStackNumType = 1;
     const compiled = compilePendingComboConditionSource(parse(f).conditions[1]!, projection);
-    expect(
-      chainOf(compiled).some(
-        step =>
-          step.kind === 'checkCondition' &&
-          step.parameters.condition.kind === 'buffTagIdCountCompare',
-      ),
-    ).toBe(true);
+    expect(chainOf(compiled).some(step => step.kind === 'checkCondition' && step.parameters.condition.kind === 'buffTagIdCountCompare')).toBe(true);
   });
   it.each([
     [16, 16],

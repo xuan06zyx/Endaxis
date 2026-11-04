@@ -87,8 +87,8 @@ export {
   type KnownNativeActionLeafSource,
 } from './source/actionLeaf.ts';
 export {
-  parseCharacterTypeIdReadActionSource,
-  type CharacterTypeIdReadActionSource,
+  parseCharacterIdentityReadActionSource,
+  type CharacterIdentityReadActionSource,
 } from './source/characterIdentityActions.ts';
 export {
   parseAdvancedBuffFinishActionSource,
@@ -693,8 +693,8 @@ export {
   type ProjectileCallbackInvocationSource,
 } from './compiler/abilities/projectileBlackboard.ts';
 export {
-  createZeroDistanceProjectileProjectionExtensionSource,
-  type ZeroDistanceProjectileProjectionCatalogSource,
+  createProjectileProjectionExtensionSource,
+  type ProjectileProjectionCatalogSource,
 } from './compiler/abilities/projectileRuntimeProjection.ts';
 export {
   parseProjectileRuntimeSource,

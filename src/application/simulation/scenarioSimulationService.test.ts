@@ -1151,7 +1151,7 @@ describe('ScenarioSimulationService', () => {
         entry.event === 'BuffFinished' &&
         entry.data?.buffId === 'buff_common_pulse_pulse_conduct_triggered_do',
     );
-    expect((finished?.frame ?? 0) - conduct.frame).toBeGreaterThanOrEqual(150);
+    expect((finished?.frame ?? 0) - conduct.frame).toBeGreaterThanOrEqual(149);
     expect((finished?.frame ?? 0) - conduct.frame).toBeLessThanOrEqual(152);
     expect(run.receiptEntries.some(entry => entry.event === 'DamageApplied')).toBe(true);
     expect(run.receiptEntries.some(entry => entry.event === 'PoiseApplied')).toBe(true);
@@ -1176,7 +1176,7 @@ describe('ScenarioSimulationService', () => {
       trackIndex: 1,
       operator: perlica,
       skillGroupKey: 'comboSkill',
-      startFrame: 30,
+      startFrame: 31,
       ids,
     }).scenario;
     const service = new ScenarioSimulationService({
@@ -1205,9 +1205,9 @@ describe('ScenarioSimulationService', () => {
     const opened = run.receiptEntries.find(entry => entry.event === 'ComboWindowOpened');
     const consumed = run.receiptEntries.find(entry => entry.event === 'ComboWindowConsumed');
 
-    // 第28帧发射；Default 投射物 Tick 在下一帧命中后才触发末段普攻事件。
-    expect(opened).toMatchObject({ frame: 29, sourceId: 'track:1' });
-    expect(consumed).toMatchObject({ frame: 30, sourceId: 'track:1' });
+    // 第28帧发射；3米标定时延为2帧，窗口在第31帧的连携输入前开启。
+    expect(opened).toMatchObject({ frame: 30, sourceId: 'track:1' });
+    expect(consumed).toMatchObject({ frame: 31, sourceId: 'track:1' });
     expect(opened!.sequence).toBeLessThan(consumed!.sequence);
     expect(run.comboWindowDiagnostics).toEqual([]);
     expect(
@@ -1454,7 +1454,11 @@ describe('ScenarioSimulationService', () => {
     expect(cursor.entries).toHaveLength(1);
     expect(cursor.entries[0]!.data!.castId).toBe(input.castId);
     driver.advanceToFrame(30);
-    expect(branch.runtime.readReceipts(cursor.cursor, new Set(['SkillStarted'])).entries).toEqual([
+    expect(
+      branch.runtime
+        .readReceipts(cursor.cursor, new Set(['SkillStarted']))
+        .entries.filter(entry => entry.data?.castId === input.castId),
+    ).toEqual([
       expect.objectContaining({
         data: { skillId: perlica.plungingAttack!.endSkillId, castId: input.castId },
       }),

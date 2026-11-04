@@ -1,4 +1,6 @@
-import type { ActionTargetQuery } from '../../../../packages/game-data-contract/src/conditions';
+import type { GameplayTag, GameplayTagQueryType } from '../tags/gameplayTags';
+import type { CompiledTargetQuery } from '../../compiler/compiledGraphData';
+import type { BuffLookupQuery } from '../../../../packages/game-data-contract/src/conditions';
 import type { CompiledCondition } from '../../compiler/compiledGraphData.ts';
 import type { OwnerSpawnedAbilityEntityQuery } from '../../game-data/logicalAbilityEntity';
 import {
@@ -18,13 +20,13 @@ import {
 } from '../../game-data/logicalAbilityEntity';
 import { compareCombatNumbers } from '../../math/combatNumbers';
 import { resolveActionValueOperand } from '../actions/actionBlackboard';
-import { abilityEventSourceId, abilityEventTargetId } from '../events/combatAbilityEvent';
 import type { CombatVitals } from '../resources/combatVitals';
 import type { CombatOperationContext, CombatOperationExecutor } from '../skills/skillRuntime';
 import type { SpatialPointIdentityState } from '../state/environmentState';
 import { matchesCombatObjectType, resolveCombatObjectType } from './combatObjectType';
 
 export interface CharacterTeamTargetQueryDependencies {
+  readonly squadSlotCount?: number;
   readonly readSquadSlot?: (index: number) => string | undefined;
   readonly listOperatorIds: () => readonly string[];
   readonly isOperatorControlled: (operatorId: string) => boolean;
@@ -33,7 +35,7 @@ export interface CharacterTeamTargetQueryDependencies {
 
 /** 直接引用只读取动作环境；返回 undefined 表示还需要实体目录或队伍查询。 */
 export function resolveDirectActionTargets(
-  query: ActionTargetQuery,
+  query: CompiledTargetQuery,
   context: CombatOperationContext,
   casterId?: string,
 ): readonly RuntimeTargetRef[] | undefined {
@@ -59,7 +61,6 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
   constructor(
     readonly operatorId: string,
     readonly delegate: CombatOperationExecutor,
-    readonly resolveAbilitySystemSourceId: (id: string) => string = id => id,
     readonly characterTeam?: CharacterTeamTargetQueryDependencies,
     /** 单层原生来源查询，不能传入递归追溯到干员的旧解析端口。 */
     readonly findAbilitySystemSource?: (ownerId: string) => RuntimeTargetRef,
@@ -67,17 +68,22 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
     readonly resolveAbilityEntityObjectType?: (instanceId: number) => CombatObjectType,
     readonly listUnfinishedProjectiles?: () => readonly RuntimeTargetRef[],
     readonly targetQueries?: {
-      /** 固定地面模型中实体当前的离地高度；没有坐标的句柄返回 undefined。 */
+      matchesTags?(
+        target: RuntimeTargetRef,
+        query: Pick<Extract<CompiledTargetQuery, { kind: 'tagFilter' }>, 'tags' | 'tagQueryType'>,
+      ): boolean | undefined;
+      /** 实体当前的离地高度；无法提供高度的目标返回 undefined。 */
       height?(target: RuntimeTargetRef): number | undefined;
       mainBody?(target: RuntimeTargetRef): RuntimeTargetRef;
       exclusionTarget?(target: RuntimeTargetRef): RuntimeTargetRef;
-      allyHitBox?(
+      factionHitBox?(
         owner: RuntimeTargetRef,
-        query: Extract<ActionTargetQuery, { kind: 'allyHitBox' }>,
+        query: Extract<CompiledTargetQuery, { kind: 'factionHitBox' }>,
       ): readonly RuntimeTargetRef[];
       abilityEntityTarget?(owner: RuntimeTargetRef): RuntimeTargetRef | undefined;
       ownerSoul?(owner: RuntimeTargetRef): RuntimeTargetRef | undefined;
-      enemyMatchesTags?(query: Extract<ActionTargetQuery, { kind: 'enemyByTags' }>): boolean;
+      enemyMatchesTags?(query: Extract<CompiledTargetQuery, { kind: 'enemyByTags' }>): boolean;
+      hasMatchingBuff?(target: RuntimeTargetRef, query: BuffLookupQuery): boolean | undefined;
       entityLifeState?(target: RuntimeTargetRef): 'alive' | 'dead' | 'unknown' | undefined;
       mainTarget(): RuntimeTargetRef | undefined;
       ownerSpawned(query: OwnerSpawnedAbilityEntityQuery): readonly RuntimeTargetRef[];
@@ -87,6 +93,19 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
   ) {}
 
   execute(step: ResolvedCombatOperationStep, context?: CombatOperationContext): boolean {
+    if (step.kind === 'pickContextTarget') {
+      if (context?.targetContext === undefined) {
+        throw new Error('Context target selection requires a combat target context');
+      }
+      const index = resolveActionValueOperand(step.parameters.index, context.blackboard);
+      if (!Number.isInteger(index) || index < 0) {
+        throw new RangeError('Context target index must be a non-negative integer');
+      }
+      const target = context.targetContext.getOptional(step.parameters.sourceContextKey)?.[index];
+      if (target === undefined) return false;
+      context.targetContext.setSingle(step.parameters.saveToContextKey, target);
+      return true;
+    }
     if (step.kind === 'physicsCast') {
       if (!context?.targetContext || !this.targetQueries?.height)
         throw new Error('physicsCast requires target context and ground height query');
@@ -96,10 +115,17 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
         height === undefined ? undefined : height + step.parameters.startHeightOffset;
       const hit =
         distance !== undefined && distance >= 0 && distance <= step.parameters.maxDistance;
-      // 命中位置拥有空间点身份，不能放入 enemy 身份作为代替。
+      // 命中点拥有独立身份，不能用 enemy 身份代替。
       context.targetContext.set(
         step.parameters.saveToContextKey,
-        hit ? [{ kind: 'spatialPoint', pointId: this.runtimeState.nextSpatialPointId++ }] : [],
+        hit
+          ? [
+              {
+                kind: 'spatialPoint',
+                pointId: this.runtimeState.nextSpatialPointId++,
+              },
+            ]
+          : [],
       );
       return hit;
     }
@@ -118,6 +144,33 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
         partId !== undefined ? [runtimeTargetFromEntityId(partId)] : source ? [source] : [],
       );
       return true;
+    }
+    if (step.kind === 'findNextAliveCharacterBySquadSlot') {
+      if (!context?.targetContext || !step.parameters.saveToContextKey) return false;
+      const team = this.characterTeam;
+      const count = team?.squadSlotCount;
+      const readSlot = team?.readSquadSlot;
+      const lifeState = this.targetQueries?.entityLifeState;
+      if (count === undefined || !Number.isInteger(count) || count < 0 || !readSlot || !lifeState)
+        throw new Error(
+          'next alive squad member requires complete squad slots and entity life states',
+        );
+      const start = Math.trunc(
+        resolveActionValueOperand(step.parameters.slotIndex, context.blackboard),
+      );
+      for (let offset = 1; offset <= count; offset++) {
+        const operatorId = readSlot(((start + offset) | 0) % count);
+        if (operatorId === undefined) continue;
+        const target = { kind: 'operator' as const, operatorId };
+        const state = lifeState(target);
+        if (state === undefined || state === 'unknown')
+          throw new Error(`squad member '${operatorId}' has no known life state`);
+        if (state !== 'alive') continue;
+        context.targetContext.set(step.parameters.saveToContextKey, [target]);
+        return true;
+      }
+      // 原生失败不调用UpdateTargetGroup，保留此前命名组。
+      return false;
     }
     if (step.kind === 'findCharacterBySquadSlot') {
       if (!context?.targetContext || !step.parameters.saveToContextKey) return false;
@@ -145,11 +198,9 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
       if (!context?.targetContext) throw new Error('copyContextTargets requires a target context');
       let targets = this.queryTargets(step.parameters.source, context);
       if (step.parameters.excludeTargets !== undefined) {
-        const normalize = this.targetQueries?.exclusionTarget;
-        if (!normalize) throw new Error('target exclusion requires the ability entity directory');
-        const excluded = this.queryTargets(step.parameters.excludeTargets, context).map(normalize);
-        targets = targets.filter(
-          target => !excluded.some(other => sameTarget(normalize(target), other)),
+        targets = this.#excludeTargets(
+          targets,
+          this.queryTargets(step.parameters.excludeTargets, context),
         );
       }
       const replace = step.parameters.replacePartsWithMainBodies;
@@ -170,15 +221,24 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
         throw new Error('createSpatialPointTargets requires a combat target context');
       }
       const count = resolveActionValueOperand(step.parameters.count, context.blackboard);
-      if (!Number.isInteger(count) || count < 0) {
-        throw new RangeError('spatial point count must be a non-negative integer');
-      }
+      if (!Number.isFinite(count) || !Number.isSafeInteger(Math.ceil(count)))
+        throw new RangeError('spatial point count must be finite and safely representable');
+      const origins =
+        step.parameters.origin === undefined
+          ? undefined
+          : this.queryTargets(step.parameters.origin, context);
+      if (origins !== undefined && origins.length > 1)
+        throw new Error('spatial point origin must resolve to at most one target');
+      const origin = origins?.[0];
       context.targetContext.set(
         step.parameters.saveToContextKey,
-        Array.from({ length: count }, () => ({
-          kind: 'spatialPoint' as const,
-          pointId: this.runtimeState.nextSpatialPointId++,
-        })),
+        Array.from(
+          { length: origins !== undefined && origin === undefined ? 0 : Math.ceil(count) },
+          () => ({
+            kind: 'spatialPoint' as const,
+            pointId: this.runtimeState.nextSpatialPointId++,
+          }),
+        ),
       );
       return true;
     }
@@ -192,12 +252,7 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
     }
     const targets: RuntimeTargetRef[] = [];
     for (const source of step.parameters.sources) {
-      const additions =
-        source.kind === 'context'
-          ? context.targetContext.get(source.contextKey)
-          : source.kind === 'abilitySystemSource'
-            ? [this.#findAbilitySystemSource(source.owner, context)]
-            : [this.#resolveTarget(source.target, context)];
+      const additions = this.queryTargets(source, context);
       for (const target of additions) {
         if (!targets.some(existing => sameTarget(existing, target))) targets.push(target);
       }
@@ -206,20 +261,14 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
     return true;
   }
 
-  #findAbilitySystemSource(
-    owner: 'actionOwner' | 'actionSource',
-    context: CombatOperationContext,
-  ): RuntimeTargetRef {
-    if (this.findAbilitySystemSource === undefined) {
-      throw new Error('SourceFinder requires a single-level AbilitySystem source query');
-    }
-    const ownerId =
-      owner === 'actionOwner'
-        ? (context.actionOwnerId ?? context.buffOwnerId)
-        : (context.actionSourceId ?? context.buffSourceId);
-    // 本轮只接入带明确身份的 Buff/动作回调；定义所属干员不等于实体子技能的动作宿主。
-    if (ownerId === undefined) throw new Error(`SourceFinder ${owner} identity is unavailable`);
-    return this.findAbilitySystemSource(ownerId);
+  #excludeTargets(
+    targets: readonly RuntimeTargetRef[],
+    excludedTargets: readonly RuntimeTargetRef[],
+  ): RuntimeTargetRef[] {
+    const normalize = this.targetQueries?.exclusionTarget;
+    if (!normalize) throw new Error('target exclusion requires the ability entity directory');
+    const excluded = excludedTargets.map(normalize);
+    return targets.filter(target => !excluded.some(other => sameTarget(normalize(target), other)));
   }
 
   #findCharacterTeamTargets(
@@ -323,8 +372,7 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
       const source = this.queryTargets(condition.source, context)[0];
       const target = this.queryTargets(condition.target, context)[0];
       if (!source || !target) return false;
-      // 场景没有位置和碰撞体积，实体与空间点的位置、半径均按0处理。
-      // 目标解析仍执行，不能把缺失目标也当成距离0。
+      // 固定距离只用于投射物；技能范围仍采用双方处于有效范围内的零距离近似。
       const distance = 0;
       return condition.lessThan
         ? distance <= Math.fround(condition.distance)
@@ -359,42 +407,56 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
     return children.every(child => parents.some(parent => sameTarget(parent, child)));
   }
 
-  #resolveTarget(
-    target: 'caster' | 'enemy' | 'eventTarget' | 'eventSource' | 'buffSource' | 'currentTarget',
-    context: CombatOperationContext,
-  ): RuntimeTargetRef {
-    if (target === 'caster') return { kind: 'operator', operatorId: this.operatorId };
-    if (target === 'enemy') return { kind: 'enemy' };
-    if (target === 'eventSource') {
-      const event = context.event;
-      const sourceId = event === undefined ? undefined : abilityEventSourceId(event);
-      if (typeof sourceId !== 'string')
-        throw new Error('eventSource requires a combat event with source identity');
-      return runtimeTargetFromEntityId(sourceId);
-    }
-    if (target === 'buffSource') {
-      if (context.buffSourceId === undefined) {
-        throw new Error('buffSource requires a Buff lifecycle context');
-      }
-      const sourceId = this.resolveAbilitySystemSourceId(context.buffSourceId);
-      return runtimeTargetFromEntityId(sourceId);
-    }
-    if (target === 'currentTarget') {
-      if (context.currentTarget === undefined) {
-        throw new Error('currentTarget requires a forEach combat target');
-      }
-      return context.currentTarget;
-    }
-    const targetId = eventTargetId(context);
-    return runtimeTargetFromEntityId(targetId);
+  filterTargetsByTags(
+    targets: readonly RuntimeTargetRef[],
+    filters: readonly {
+      tags: readonly GameplayTag[];
+      queryType: GameplayTagQueryType;
+    }[],
+  ): readonly RuntimeTargetRef[] {
+    if (!this.targetQueries?.matchesTags) throw new Error('TagValidator requires entity tags');
+    return targets.filter(target =>
+      filters.every(
+        filter =>
+          target.kind === 'spatialPoint' ||
+          this.targetQueries!.matchesTags!(target, {
+            tags: filter.tags,
+            tagQueryType: filter.queryType,
+          }) !== false,
+      ),
+    );
   }
 
   queryTargets(
-    query: ActionTargetQuery,
+    query: CompiledTargetQuery,
     context: CombatOperationContext,
   ): readonly RuntimeTargetRef[] {
     const direct = resolveDirectActionTargets(query, context, this.operatorId);
     if (direct !== undefined) return direct;
+    if (query.kind === 'distanceFilter') {
+      const targets = this.queryTargets(query.targets, context);
+      const center = this.queryTargets(query.center, context)[0];
+      if (!center) return [];
+      const threshold = resolveActionValueOperand(query.threshold, context.blackboard);
+      // 范围筛选保留既有近似，不随投射物飞行距离改变。
+      return compareCombatNumbers(0, Math.fround(threshold), query.operator) ? targets : [];
+    }
+    if (query.kind === 'tagFilter') {
+      return this.filterTargetsByTags(this.queryTargets(query.targets, context), [
+        { tags: query.tags, queryType: query.tagQueryType },
+      ]);
+    }
+
+    if (query.kind === 'buffFilter') {
+      if (!this.targetQueries?.hasMatchingBuff)
+        throw new Error('BuffValidator requires a target Buff query');
+      return this.queryTargets(query.targets, context).filter(target => {
+        // 原生仅验证能 Lock 为 AbilitySystem 的句柄，空间点等目标保持原样。
+        if (target.kind === 'spatialPoint') return true;
+        const hasBuff = this.targetQueries!.hasMatchingBuff!(target, query.query);
+        return hasBuff === undefined || hasBuff === query.requireBuff;
+      });
+    }
     if (query.kind === 'abilitySystemSource') {
       const owner = this.queryTargets(query.owner, context)[0];
       const id = owner === undefined ? undefined : runtimeTargetEntityId(owner);
@@ -403,12 +465,12 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
         throw new Error('SourceFinder requires a single-level AbilitySystem source query');
       return [this.findAbilitySystemSource(id)];
     }
-    if (query.kind === 'allyHitBox') {
+    if (query.kind === 'factionHitBox') {
       const owner = this.queryTargets(query.owner, context)[0];
       if (!owner || owner.kind === 'spatialPoint') return [];
-      if (!this.targetQueries?.allyHitBox)
+      if (!this.targetQueries?.factionHitBox)
         throw new Error('ally hit-box query requires scene targets');
-      return this.targetQueries.allyHitBox(owner, query);
+      return this.targetQueries.factionHitBox(owner, query);
     }
     if (query.kind === 'ownerSoul') {
       const owner = this.queryTargets(query.owner, context)[0];
@@ -425,6 +487,11 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
       if (owner?.kind !== 'abilityEntity') return [];
       const target = this.targetQueries.abilityEntityTarget(owner);
       return target === undefined ? [] : [target];
+    }
+    if (query.kind === 'exclude') {
+      const targets = this.queryTargets(query.targets, context);
+      const excluded = this.queryTargets(query.excludeTargets, context);
+      return this.#excludeTargets(targets, excluded);
     }
     if (query.kind === 'enemyByTags') {
       if (!this.targetQueries?.enemyMatchesTags)
@@ -476,7 +543,6 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
         throw new Error('same-cast target query requires SkillCastInfo');
       const entities = this.targetQueries.ownerSpawned({
         ownerId,
-        abilityEntityIds: query.abilityEntityIds,
         ...(sourceSkillCastId === undefined ? {} : { sourceSkillCastId }),
       });
       if (query.objectType === 'abilityEntity') return entities;
@@ -488,15 +554,4 @@ export class TargetContextOperationExecutor implements CombatOperationExecutor {
     }
     throw new Error('unsupported action target query');
   }
-}
-
-function eventTargetId(context: CombatOperationContext): string {
-  const event = context.event;
-  if (event !== undefined && 'payload' in event) {
-    const target = abilityEventTargetId(event);
-    if (target === undefined)
-      throw new Error('eventTarget requires a combat event with target identity');
-    return target;
-  }
-  throw new Error('eventTarget requires a combat event with target identity');
 }

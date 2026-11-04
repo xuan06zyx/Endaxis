@@ -16,13 +16,16 @@ export interface LogicalAbilityEntityDefinition {
   readonly childSkill?: { readonly skillId: string };
 }
 
-/** 零空间模型中仍需保持身份的运行时目标；空间点只有临时身份，没有坐标。 */
+/** 运行时目标身份；空间点保存生成时的位置，不因此变成可受击实体。 */
 export type RuntimeTargetRef =
   | { readonly kind: 'operator'; readonly operatorId: string }
   | { readonly kind: 'enemy' }
   | { readonly kind: 'godEntity' }
   | AbilityEntityTargetRef
-  | { readonly kind: 'spatialPoint'; readonly pointId: number };
+  | {
+      readonly kind: 'spatialPoint';
+      readonly pointId: number;
+    };
 
 /** 普通能力实体与投射物技能宿主共用的实例句柄。 */
 export interface AbilityEntityTargetRef {
@@ -57,7 +60,6 @@ export function runtimeTargetFromEntityId(entityId: string): RuntimeTargetRef {
 /** OwnerSpawnedEntityFinder 经生成期解析后仍需保留的非空间筛选。 */
 export interface OwnerSpawnedAbilityEntityQuery {
   readonly ownerId: string;
-  readonly abilityEntityIds?: readonly string[];
   /** 原生 SkillCastIdValidator：只保留同一来源施法生成的实例。 */
   readonly sourceSkillCastId?: number;
 }

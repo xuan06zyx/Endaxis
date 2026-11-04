@@ -452,6 +452,7 @@ export function projectOperatorDefinition(
       ...(modes === undefined ? {} : { playerActionModes: modes }),
     },
     activeSkills,
+    audit: candidate.audit,
   };
 }
 
@@ -462,7 +463,10 @@ export function planOperatorDefinition(input: Parameters<typeof projectOperatorD
   return {
     ...candidate,
     operator: optimized.operator,
-    audit: { ...candidate.audit, optimization: optimized.report },
+    audit: {
+      ...candidate.audit,
+      optimization: optimized.report,
+    },
   };
 }
 

@@ -1,5 +1,9 @@
 import { OperatorPlanningSources } from './operatorPlanningSources.ts';
 import {
+  configuredProjectileSchedule,
+  shouldOmitProjectileLaunch,
+} from './projectileScheduleDefaults.ts';
+import {
   parseNativeJsonEncodingSchema,
   type NativeJsonEncodingSchema,
 } from '../src/source/nativeJsonEncoding.ts';
@@ -18,7 +22,6 @@ import type { BlackboardReceiverSource } from '../src/compiler/references/extern
 import { parseAbilityEntityBlackboardReceiverSource } from '../src/source/abilityEntity.ts';
 import type { DeclaredBlackboardValueSource } from '../src/source/blackboard.ts';
 import {
-  parseProjectileRuntimeSource,
   parseProjectileBlackboardReceiverSource,
   type ProjectileRuntimeSource,
 } from '../src/source/projectileRuntime.ts';
@@ -30,7 +33,7 @@ import {
   prepareSkillDefinitionInputSource,
   assertNoUnprojectedSkillRootEffects,
 } from '../src/compiler/skills/skillDefinitionInput.ts';
-import { createZeroDistanceProjectileProjectionExtensionSource } from '../src/compiler/abilities/projectileRuntimeProjection.ts';
+import { createProjectileProjectionExtensionSource } from '../src/compiler/abilities/projectileRuntimeProjection.ts';
 import {
   compileOperatorActiveSkillRuntimeDefinitionSource,
   renderOperatorActiveSkillRuntimeDefinitionSource,
@@ -210,16 +213,7 @@ export function prepareProjectileProjection(
   const callbackGraphs = closure.callbackGraphs;
   const callbackIds = [...callbackGraphs.keys()].sort();
   const runtimeCatalog = new Map(
-    projectileIds.map(
-      id =>
-        [
-          id,
-          parseProjectileRuntimeSource(
-            readJson(path.resolve(args.sourceRoot, 'ProjectileData', `${id}.json`)),
-            `ProjectileData.${id}`,
-          ),
-        ] as const,
-    ),
+    projectileIds.map(id => [id, sources.projectileRuntime(args.sourceRoot, id)] as const),
   );
   const templateCatalog = collectDecodedProjectileBlackboards(runtimeCatalog);
   const priorities = sources.timeDilationPriorities(args.timeDilationCatalog);
@@ -232,7 +226,9 @@ export function prepareProjectileProjection(
   let compileProjectileLaunch: NonNullable<
     CombatActionProjectionExtensionsSource['compileProjectileLaunch']
   >;
-  compileProjectileLaunch = createZeroDistanceProjectileProjectionExtensionSource({
+  compileProjectileLaunch = createProjectileProjectionExtensionSource({
+    resolveSchedule: configuredProjectileSchedule,
+    shouldOmitLaunch: shouldOmitProjectileLaunch,
     catalog: {
       runtimes: runtimeCatalog,
       templates: templateCatalog,
@@ -305,8 +301,7 @@ export function planOperatorActiveSkillRuntime(
   const callbackIds = [...callbackGraphs.keys()].sort();
   const runtimeCatalog = new Map(
     projectileIds.map(id => {
-      const value = readJson(path.resolve(args.sourceRoot, 'ProjectileData', `${id}.json`));
-      return [id, parseProjectileRuntimeSource(value, `ProjectileData.${id}`)] as const;
+      return [id, sources.projectileRuntime(args.sourceRoot, id)] as const;
     }),
   );
   const templateCatalog = collectDecodedProjectileBlackboards(runtimeCatalog);
@@ -502,7 +497,9 @@ export function planOperatorActiveSkillRuntime(
     ),
   );
   let projectile: NonNullable<CombatActionProjectionExtensionsSource['compileProjectileLaunch']>;
-  projectile = createZeroDistanceProjectileProjectionExtensionSource({
+  projectile = createProjectileProjectionExtensionSource({
+    resolveSchedule: configuredProjectileSchedule,
+    shouldOmitLaunch: shouldOmitProjectileLaunch,
     catalog: {
       runtimes: runtimeCatalog,
       templates: templateCatalog,
@@ -773,7 +770,7 @@ export function planOperatorActiveSkillRuntime(
             supplementalBuffIds: [...args.supplementalBuffIds].sort(),
             omittedVisualOnlyBuffIds: [...visualOnlyIds].sort(),
             source: { file: sourcePath, sha256: sha256(sourceText) },
-            scope: 'full-active-skill-action-graph-zero-distance-runtime',
+            scope: 'full-active-skill-action-graph-scheduled-projectiles',
           },
           null,
           2,

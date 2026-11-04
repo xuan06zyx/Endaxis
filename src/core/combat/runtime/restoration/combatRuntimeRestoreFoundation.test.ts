@@ -154,8 +154,9 @@ it('整场恢复基础阶段直接绑定共享账本、环境和全部基础 Buf
       buffs: saved.enemyBuffs,
     },
     instances: {
-      abilityEntities: { instances: new Map(), deadSources: [], soulParts: new Map() },
       projectiles: createProjectileLifecycleState(),
+      abilityEntities: { instances: new Map(), deadSources: [], soulParts: new Map() },
+
       globalBuffs: createGlobalBuffState(),
     },
   };
@@ -322,7 +323,17 @@ it('正式装配从活动技能切面恢复后继续得到相同逐帧结果', (
     'schedule-callback': {
       action: {
         kind: 'launchProjectile' as const,
-        parameters: { inheritActionBlackboard: true, finish: 0.05, recycleDelaySeconds: 0.05 },
+        parameters: {
+          projectileId: 'restoration',
+          schedule: {
+            endFrame: 3,
+            callbacks: [{ event: 'finish' as const, triggerFrames: [3] }],
+          },
+
+          inheritActionBlackboard: true,
+
+          recycleDelaySeconds: 0.05,
+        },
         callbacks: [
           {
             event: 'finish' as const,
@@ -402,7 +413,15 @@ it('正式装配从活动技能切面恢复后继续得到相同逐帧结果', (
     timelineActions: [
       {
         startFrame: 0,
-        sequence: compileGraphEntry('skill-main', 'apply-persistent', skillSequenceNodes),
+        sequence: compileGraphEntry(
+          'skill-main',
+          'apply-persistent',
+          skillSequenceNodes,
+          {},
+          {
+            abilityEntities: {},
+          },
+        ),
       },
     ],
   };

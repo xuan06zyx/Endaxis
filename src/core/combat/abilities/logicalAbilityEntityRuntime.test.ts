@@ -52,6 +52,7 @@ describe('LogicalAbilityEntityRuntime', () => {
 
   it('Soul 主体不随目标改变，独立生命在恢复后保持隔离且死亡不提前回收', () => {
     const runtime = createRuntime();
+    expect(runtime.preferredAttackTarget({ kind: 'enemy' })).toEqual({ kind: 'enemy' });
     const entity = runtime.spawn({
       abilityEntityId: 'soul',
       ownerId: 'caster',
@@ -59,6 +60,7 @@ describe('LogicalAbilityEntityRuntime', () => {
       target: { kind: 'enemy' },
       definition: { faction: 'bad', lifetime: { kind: 'infinite' } },
       soul: {
+        canBeDirectlyBuffed: false,
         damageTransferType: 'sharedDamage',
         mainBody: { kind: 'enemy' },
         damageRatio: 1.5,
@@ -78,6 +80,7 @@ describe('LogicalAbilityEntityRuntime', () => {
     runtime.setTarget(entity, { kind: 'operator', operatorId: 'other' });
     runtime.soulVitals(entity)!.takeDamage(20);
     expect(runtime.mainBody(entity)).toEqual({ kind: 'enemy' });
+    expect(runtime.resolvePartBuffSource(entity)).toEqual({ kind: 'enemy' });
     expect(runtime.faction(entity)).toBe('bad');
     expect(runtime.snapshot(entity).source).toEqual({ kind: 'operator', operatorId: 'caster' });
     const ordinary = runtime.spawn({
@@ -91,7 +94,6 @@ describe('LogicalAbilityEntityRuntime', () => {
     const targetOperations = new TargetContextOperationExecutor(
       'caster',
       { execute: () => false, evaluate: () => false },
-      undefined,
       undefined,
       undefined,
       undefined,
@@ -140,14 +142,17 @@ describe('LogicalAbilityEntityRuntime', () => {
     expect(killed).not.toHaveBeenCalled();
     expect(restored.soulVitals(entity)!.health).toBe(80);
     expect(restored.mainBody(entity)).toEqual({ kind: 'enemy' });
+    expect(restored.resolvePartBuffSource(entity)).toEqual({ kind: 'enemy' });
     expect(restored.faction(entity)).toBe('bad');
     expect(restored.ownerSoul({ kind: 'enemy' })).toEqual(entity);
     expect(restored.ownerSoul(entity)).toEqual(entity);
+    expect(restored.preferredAttackTarget({ kind: 'enemy' })).toEqual({ kind: 'enemy' });
     restored.soulVitals(entity)!.takeDamage(100);
     expect(killed).toHaveBeenCalledOnce();
     expect(restored.isAlive(entity)).toBe(false);
     expect(restored.isActive(entity)).toBe(true);
     expect(restored.ownerSoul({ kind: 'enemy' })).toEqual(entity);
+    expect(restored.preferredAttackTarget({ kind: 'enemy' })).toEqual({ kind: 'enemy' });
     expect(runtime.soulVitals(entity)!.health).toBe(80);
     const deadRestored = new LogicalAbilityEntityRuntime({
       restoredState: structuredClone(restored.runtimeState),
@@ -672,7 +677,7 @@ describe('LogicalAbilityEntityRuntime', () => {
       expect(observed).toEqual(['spawned', 'child', 'finished']);
     },
   );
-  it('uses one instance set for zero-space range and owner/entity-id lookup', () => {
+  it('uses one instance set for zero-space range and direct-owner lookup', () => {
     const runtime = createRuntime();
     const a = runtime.spawn({
       abilityEntityId: 'water',
@@ -680,7 +685,7 @@ describe('LogicalAbilityEntityRuntime', () => {
       ownerId: 'a',
       source: { kind: 'operator', operatorId: 'a' },
     });
-    runtime.spawn({
+    const sword = runtime.spawn({
       abilityEntityId: 'sword',
       definition: { lifetime: { kind: 'infinite' } },
       ownerId: 'a',
@@ -697,16 +702,15 @@ describe('LogicalAbilityEntityRuntime', () => {
     expect(
       runtime.findOwnerSpawned({
         ownerId: 'a',
-        abilityEntityIds: ['water'],
       }),
-    ).toEqual([a]);
+    ).toEqual([a, sword]);
     const child = runtime.spawn({
       abilityEntityId: 'water',
       definition: { lifetime: { kind: 'infinite' } },
       ownerId: 'a',
       source: a,
     });
-    expect(runtime.findOwnerSpawned({ ownerId: 'a', abilityEntityIds: ['water'] })).toEqual([a]);
+    expect(runtime.findOwnerSpawned({ ownerId: 'a' })).toEqual([a, sword]);
     expect(runtime.findOwnerSpawned({ ownerId: `ability-entity:${a.instanceId}` })).toEqual([
       child,
     ]);
@@ -767,7 +771,6 @@ describe('LogicalAbilityEntityRuntime', () => {
     expect(
       runtime.findOwnerSpawned({
         ownerId: 'arcane',
-        abilityEntityIds: ['seal'],
         sourceSkillCastId: 17,
       }),
     ).toEqual([first]);

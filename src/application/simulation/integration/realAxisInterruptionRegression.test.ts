@@ -14,6 +14,28 @@ const resources = {
   normalSkillUltimateEnergy: { selfGainPerSp: 0.065, otherGainPerSp: 0.065 },
 };
 
+it('汤汤第三段普攻在五米固定站位四发均命中，飞行切面不丢失或重复伤害', () => {
+  const scenario = createEmptyScenario('tangtang-capsule', '散射与受击体');
+  scenario.tracks[0] = track('tangtang', [['basicAttack', 'basicAttack3', 0]]);
+  const session = createEditorSimulationService().createCombatSession(scenario);
+  session.advanceToFrame(20);
+  const restored = session.fork(session.runtime.save());
+  session.advanceToFrame(150);
+  restored.advanceToFrame(150);
+  const result = session.collectResult();
+  expect(restored.collectResult()).toEqual(result);
+  expect(result.receiptEntries.filter(entry => entry.event === 'ProjectileLaunched')).toHaveLength(
+    4,
+  );
+  expect(
+    result.receiptEntries.filter(
+      entry =>
+        entry.event === 'DamageApplied' &&
+        String(entry.data?.stepKey).includes('chr_0027_tangtang_attack3_projhit'),
+    ),
+  ).toHaveLength(4);
+});
+
 it('莱万汀终结技清除提前中断连携留下的普通攻击缓存', async () => {
   const scenario = createEmptyScenario('laevatain-mode-offset', '强化普攻接续');
   scenario.tracks[0] = track('laevatain', [
@@ -44,6 +66,7 @@ it('腐蚀重复施加在正式切面恢复后仍继承累计减抗', async () =
     ['battleSkill', 'battleSkill', 191],
     ['battleSkill', 'battleSkill', 743],
   ]);
+  scenario.tracks[1]!.operator!.talentStates = { '1': 2 };
   scenario.tracks[2] = track('tangtang', [
     ['battleSkill', 'battleSkill', 3],
     ['battleSkill', 'battleSkill', 79],
@@ -56,7 +79,17 @@ it('腐蚀重复施加在正式切面恢复后仍继承累计减抗', async () =
       cast.id = `${item.id}:${index}`;
     });
   }
-  const result = await createEditorSimulationService().simulate(scenario, 1400);
+  const session = createEditorSimulationService().createCombatSession(scenario);
+  session.advanceToFrame(700);
+  const corrosion = [...session.runtime.readState().enemy.buffs!.instances.values()].find(
+    item => item.identity.definitionId === 'buff_common_natural_cryst_triggered_wrapper',
+  );
+  expect(corrosion?.blackboard.values.get('duration')).toBe(25);
+  const restored = session.fork(session.runtime.save());
+  session.advanceToFrame(1400);
+  restored.advanceToFrame(1400);
+  const result = session.collectResult();
+  expect(restored.collectResult()).toEqual(result);
   const effects = result.receiptEntries.filter(
     entry =>
       entry.data?.buffId === 'buff_common_natural_cryst_triggered_wrapper' &&
@@ -370,26 +403,42 @@ it.each([true, false])('赛希晶体仅被主控重击消费且正确保留来�
   ).toMatchObject({ sourceId: 'xaihi', frame: carrier!.frame });
 });
 
-it('诀直接创建腐蚀时，天赋与潜能只延长一次寿命', async () => {
-  for (const upgraded of [false, true]) {
+it('诀腐蚀天赋按等级与潜能修改时长和减抗上限，切面恢复不重复收集', () => {
+  let baseMaximum = 0;
+  for (const [talent, potential, seconds, effectiveness] of [
+    [0, 0, 15, 1],
+    [1, 0, 20, 1.05],
+    [2, 0, 25, 1.1],
+    [0, 5, 15, 1],
+    [2, 5, 30, 1.3],
+  ] as const) {
     const scenario = createEmptyScenario('arcane-corrosion', '直接创建腐蚀');
     const operator = track('arcane', [['ultimate', 'ultimate', 1]]);
-    operator.operator!.potential = upgraded ? 5 : 0;
-    operator.operator!.talentStates = upgraded ? { '0': 2, '1': 2 } : {};
+    operator.operator!.potential = potential;
+    operator.operator!.talentStates = { '1': talent };
     scenario.tracks[0] = operator;
-    const result = await new ScenarioSimulationService({
-      index: gameDataRepository,
-      spellInflictionSettings: skillSettings,
-      resources,
-    }).simulate(scenario, 1500);
-    const entries = result.receiptEntries.filter(
-      e => e.data?.buffId === 'buff_common_natural_natural_corrupt_do',
-    );
+    const session = createEditorSimulationService().createCombatSession(scenario);
+    session.advanceToFrame(150);
+    const buff = [...session.runtime.readState().enemy.buffs!.instances.values()].find(
+      item => item.identity.definitionId === 'buff_common_natural_natural_corrupt_do',
+    )!;
+    expect(buff).toBeDefined();
+    const maximum = buff.blackboard.values.get('max_def_decrease');
+    expect(typeof maximum).toBe('number');
+    if (talent === 0) baseMaximum = maximum as number;
+    expect(maximum).toBeCloseTo(baseMaximum * effectiveness);
+    const restored = session.fork(session.runtime.save());
+    session.advanceToFrame(1500);
+    restored.advanceToFrame(1500);
+    expect(restored.collectResult()).toEqual(session.collectResult());
+    const entries = session
+      .collectResult()
+      .receiptEntries.filter(e => e.data?.buffId === 'buff_common_natural_natural_corrupt_do');
     const start = entries.find(e => e.event === 'BuffApplied');
     const end = entries.find(e => e.event === 'BuffFinished');
     expect(start).toBeDefined();
     expect(end).toBeDefined();
-    expect(end!.frame - start!.frame).toBe((upgraded ? 30 : 15) * 30);
+    expect(end!.frame - start!.frame).toBe(seconds * 30);
   }
 });
 
@@ -1172,4 +1221,62 @@ it('retains inputs but interrupts A4 before its first hit during another operato
         entry.frame === 31,
     ),
   ).toBe(true);
+});
+
+it.each([true, false])(
+  '提弗洛斯浮空连携在单敌人模型中瞄准敌人并支持切面恢复：主控 %s',
+  async controlled => {
+    const scenario = createEmptyScenario('typhoeus-reach-target', '连携到达目标');
+    const owner = track('typhoeus', [
+      ['battleSkill', 'battleSkill', 10],
+      ['comboSkill', 'comboSkill', 100],
+    ]);
+    owner.skillCasts[1]!.source = {
+      kind: 'operatorSkill',
+      skillGroupKey: 'floatingComboSkill',
+      skillKey: 'chr_0034_typhoea_combo_skillfloating',
+    };
+    scenario.tracks[0] = controlled ? owner : track('arcane', []);
+    if (!controlled) scenario.tracks[1] = owner;
+    const session = createEditorSimulationService().createCombatSession(scenario);
+    session.advanceToFrame(136);
+    const restored = session.fork(session.runtime.save());
+    session.advanceToFrame(230);
+    restored.advanceToFrame(230);
+    const run = session.collectResult();
+    expect(restored.collectResult()).toEqual(run);
+    const hits = run.receiptEntries.filter(
+      e =>
+        e.event === 'DamageApplied' &&
+        String(e.data?.stepKey).includes('chr_0034_typhoea_combo_01_projhit'),
+    );
+    expect(
+      run.receiptEntries.some(
+        e => e.event === 'ProjectileLaunched' && e.data?.castId === 'typhoeus:comboSkill',
+      ),
+    ).toBe(true);
+    // 主控瞄准与非主控主目标均使用场景敌人。
+    expect(hits.length).toBe(1);
+  },
+);
+
+it('梨诺战技上射到达后继续攻击，飞行切面不重复发射', async () => {
+  const scenario = createEmptyScenario('liino-ascent', '梨诺上射');
+  scenario.tracks[0] = track('liino', [['battleSkill', 'battleSkill', 10]]);
+  const session = createEditorSimulationService().createCombatSession(scenario);
+  session.advanceToFrame(34);
+  const restored = session.fork(session.runtime.save());
+  session.advanceToFrame(300);
+  restored.advanceToFrame(300);
+  const run = session.collectResult();
+  expect(restored.collectResult()).toEqual(run);
+  const hits = run.receiptEntries.filter(
+    e =>
+      e.event === 'DamageApplied' &&
+      /chr_0035_liino_normal_skill_projhit(?:_02)?(?:[^a-zA-Z0-9_]|$)/.test(
+        String(e.data?.stepKey),
+      ),
+  );
+  expect(hits).toHaveLength(6);
+  expect(hits.every(e => e.frame > 34)).toBe(true);
 });

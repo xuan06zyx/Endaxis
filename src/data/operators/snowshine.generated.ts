@@ -8,6 +8,13 @@ import type { OperatorDefinition } from '../../../packages/game-data-contract/sr
 export const snowshineChr_0014_aurora_attack1ActionGraph = {
   main: {
     nodes: {
+      mergeContextTargets_1: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+        },
+        next: null,
+      },
       changeResource_2: {
         action: {
           kind: 'changeResource',
@@ -63,6 +70,8 @@ export const snowshineChr_0014_aurora_attack1ActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'tar' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_4' },
             tags: ['normalAttack'],
@@ -70,7 +79,14 @@ export const snowshineChr_0014_aurora_attack1ActionGraph = {
         },
         next: 'ifElse_6',
       },
-      reachSkillOperableBoundary_8: {
+      overrideBasicAttackMapping_8: {
+        action: {
+          kind: 'overrideBasicAttackMapping',
+          parameters: { skillIds: ['chr_0014_aurora_attack2'], priority: 'skill' },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_9: {
         action: {
           kind: 'reachSkillOperableBoundary',
           parameters: { skillIds: ['chr_0014_aurora_attack2'] },
@@ -95,6 +111,7 @@ export const snowshineChr_0014_aurora_attack1ActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const snowshineChr_0014_aurora_attack1: SkillDefinition = {
+  actionGraph: snowshineChr_0014_aurora_attack1ActionGraph,
   key: 'chr_0014_aurora_attack1',
   element: 'physical',
   blackboard: {
@@ -105,33 +122,29 @@ export const snowshineChr_0014_aurora_attack1: SkillDefinition = {
   naturalDurationFrames: 111,
   exclusiveFrame: 35,
   offsetRecordFrame: 19,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 0,
-        endFrame: 47,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0014_aurora_attack2',
-      },
-    ],
-    allowedNextSkills: [{ startFrame: 32, endFrame: 47, skillIds: ['chr_0014_aurora_attack2'] }],
-  },
   costFrame: 0,
   scheduledSequences: [
+    { startFrame: 19, endFrame: 20, sequence: { $sequence: 'mergeContextTargets_1' } },
     { startFrame: 19, endFrame: 20, sequence: { $sequence: 'dealDamage_7' } },
-    { startFrame: 32, endFrame: 47, sequence: { $sequence: 'reachSkillOperableBoundary_8' } },
+    { startFrame: 0, endFrame: 47, sequence: { $sequence: 'overrideBasicAttackMapping_8' } },
+    { startFrame: 32, endFrame: 47, sequence: { $sequence: 'reachSkillOperableBoundary_9' } },
   ],
   defaultTarget: 'enemy',
-  timelineContinuationSkillId: 'chr_0014_aurora_attack2',
   skillType: 'basicAttack',
   levelSource: 'basicAttack',
   nativeSkillType: 'attack',
-  actionGraph: snowshineChr_0014_aurora_attack1ActionGraph,
 };
 
 export const snowshineChr_0014_aurora_attack2ActionGraph = {
   main: {
     nodes: {
+      mergeContextTargets_1: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+        },
+        next: null,
+      },
       changeResource_2: {
         action: {
           kind: 'changeResource',
@@ -186,6 +199,8 @@ export const snowshineChr_0014_aurora_attack2ActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'tar' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_4' },
             tags: ['normalAttack'],
@@ -193,7 +208,14 @@ export const snowshineChr_0014_aurora_attack2ActionGraph = {
         },
         next: 'ifElse_6',
       },
-      reachSkillOperableBoundary_8: {
+      overrideBasicAttackMapping_8: {
+        action: {
+          kind: 'overrideBasicAttackMapping',
+          parameters: { skillIds: ['chr_0014_aurora_attack3'], priority: 'skill' },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_9: {
         action: {
           kind: 'reachSkillOperableBoundary',
           parameters: { skillIds: ['chr_0014_aurora_attack3'] },
@@ -218,6 +240,7 @@ export const snowshineChr_0014_aurora_attack2ActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const snowshineChr_0014_aurora_attack2: SkillDefinition = {
+  actionGraph: snowshineChr_0014_aurora_attack2ActionGraph,
   key: 'chr_0014_aurora_attack2',
   element: 'physical',
   blackboard: {
@@ -228,28 +251,17 @@ export const snowshineChr_0014_aurora_attack2: SkillDefinition = {
   naturalDurationFrames: 110,
   exclusiveFrame: 30,
   offsetRecordFrame: 19,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 0,
-        endFrame: 43,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0014_aurora_attack3',
-      },
-    ],
-    allowedNextSkills: [{ startFrame: 28, endFrame: 43, skillIds: ['chr_0014_aurora_attack3'] }],
-  },
   costFrame: 9,
   scheduledSequences: [
+    { startFrame: 19, endFrame: 20, sequence: { $sequence: 'mergeContextTargets_1' } },
     { startFrame: 19, endFrame: 20, sequence: { $sequence: 'dealDamage_7' } },
-    { startFrame: 28, endFrame: 43, sequence: { $sequence: 'reachSkillOperableBoundary_8' } },
+    { startFrame: 0, endFrame: 43, sequence: { $sequence: 'overrideBasicAttackMapping_8' } },
+    { startFrame: 28, endFrame: 43, sequence: { $sequence: 'reachSkillOperableBoundary_9' } },
   ],
   defaultTarget: 'enemy',
-  timelineContinuationSkillId: 'chr_0014_aurora_attack3',
   skillType: 'basicAttack',
   levelSource: 'basicAttack',
   nativeSkillType: 'attack',
-  actionGraph: snowshineChr_0014_aurora_attack2ActionGraph,
 };
 
 export const snowshineChr_0014_aurora_attack3ActionGraph = {
@@ -294,6 +306,8 @@ export const snowshineChr_0014_aurora_attack3ActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'inputTarget' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_3' },
             tags: ['normalAttack'],
@@ -388,6 +402,8 @@ export const snowshineChr_0014_aurora_attack3ActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'inputTarget' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_8' },
             tags: ['normalAttack', 'normalAttackLastCombo'],
@@ -426,7 +442,14 @@ export const snowshineChr_0014_aurora_attack3ActionGraph = {
         },
         next: null,
       },
-      reachSkillOperableBoundary_29: {
+      overrideBasicAttackMapping_29: {
+        action: {
+          kind: 'overrideBasicAttackMapping',
+          parameters: { skillIds: ['chr_0014_aurora_attack1'], priority: 'skill' },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_30: {
         action: {
           kind: 'reachSkillOperableBoundary',
           parameters: { skillIds: ['chr_0014_aurora_attack1'] },
@@ -439,7 +462,7 @@ export const snowshineChr_0014_aurora_attack3ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target: { kind: 'inputTarget' },
           containsHittableTarget: false,
           excludeDeadEntity: false,
           operator: 'greaterOrEqual',
@@ -457,7 +480,7 @@ export const snowshineChr_0014_aurora_attack3ActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target: { kind: 'inputTarget' },
           containsHittableTarget: false,
           excludeDeadEntity: false,
           operator: 'greaterOrEqual',
@@ -476,6 +499,7 @@ export const snowshineChr_0014_aurora_attack3ActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const snowshineChr_0014_aurora_attack3: SkillDefinition = {
+  actionGraph: snowshineChr_0014_aurora_attack3ActionGraph,
   key: 'chr_0014_aurora_attack3',
   element: 'physical',
   blackboard: {
@@ -489,29 +513,17 @@ export const snowshineChr_0014_aurora_attack3: SkillDefinition = {
   naturalDurationFrames: 131,
   exclusiveFrame: 65,
   offsetRecordFrame: 39,
-  inputWindows: {
-    commandMappings: [
-      {
-        startFrame: 0,
-        endFrame: 75,
-        input: 'basicAttack',
-        targetSkillId: 'chr_0014_aurora_attack1',
-      },
-    ],
-    allowedNextSkills: [{ startFrame: 61, endFrame: 75, skillIds: ['chr_0014_aurora_attack1'] }],
-  },
   costFrame: 9,
   scheduledSequences: [
     { startFrame: 21, endFrame: 27, sequence: { $sequence: 'repeatEachTick_18' } },
     { startFrame: 39, endFrame: 43, sequence: { $sequence: 'repeatEachTick_28' } },
-    { startFrame: 61, endFrame: 75, sequence: { $sequence: 'reachSkillOperableBoundary_29' } },
+    { startFrame: 0, endFrame: 75, sequence: { $sequence: 'overrideBasicAttackMapping_29' } },
+    { startFrame: 61, endFrame: 75, sequence: { $sequence: 'reachSkillOperableBoundary_30' } },
   ],
   defaultTarget: 'enemy',
-  timelineContinuationSkillId: 'chr_0014_aurora_attack1',
   skillType: 'basicAttack',
   levelSource: 'basicAttack',
   nativeSkillType: 'attack',
-  actionGraph: snowshineChr_0014_aurora_attack3ActionGraph,
 };
 
 export const snowshineChr_0014_aurora_power_attackActionGraph = {
@@ -553,13 +565,22 @@ export const snowshineChr_0014_aurora_power_attackActionGraph = {
         next: null,
       },
       gainFinisherSp_6: {
-        action: { kind: 'gainFinisherSp', parameters: { factor: 1, recipient: 'team' } },
+        action: {
+          kind: 'gainFinisherSp',
+          parameters: {
+            source: { kind: 'source' },
+            target: { kind: 'inputTarget' },
+            factor: { kind: 'constant', value: 1 },
+          },
+        },
         next: 'ifElse_5',
       },
       dealDamage_7: {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'inputTarget' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_3' },
             calculation: 'breakingAttack',
@@ -595,13 +616,20 @@ export const snowshineChr_0014_aurora_power_attackActionGraph = {
         },
         next: null,
       },
+      reachSkillOperableBoundary_10: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: { skillIds: ['chr_0014_aurora_normal_skill', 'chr_0014_aurora_combo_skill'] },
+        },
+        next: null,
+      },
     },
     dataNodes: {
       data_1: {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target: { kind: 'inputTarget' },
           containsHittableTarget: false,
           excludeDeadEntity: false,
           operator: 'greaterOrEqual',
@@ -619,6 +647,7 @@ export const snowshineChr_0014_aurora_power_attackActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const snowshineChr_0014_aurora_power_attack: SkillDefinition = {
+  actionGraph: snowshineChr_0014_aurora_power_attackActionGraph,
   key: 'chr_0014_aurora_power_attack',
   element: 'physical',
   blackboard: { atk_scale: [4, 4.4, 4.8, 5.2, 5.6, 6, 6.4, 6.8, 7.2, 7.7, 8.3, 9] },
@@ -627,31 +656,29 @@ export const snowshineChr_0014_aurora_power_attack: SkillDefinition = {
   exclusiveFrame: 75,
   offsetRecordFrame: 0,
   dontInterruptCombo: true,
-  inputWindows: {
-    allowedNextSkills: [
-      {
-        startFrame: 41,
-        endFrame: 75,
-        skillIds: ['chr_0014_aurora_normal_skill', 'chr_0014_aurora_combo_skill'],
-      },
-    ],
-  },
   costFrame: 9,
   scheduledSequences: [
     { startFrame: 41, endFrame: 43, sequence: { $sequence: 'dealDamage_7' } },
     { startFrame: 0, endFrame: 75, sequence: { $sequence: 'applyBuff_8' } },
     { startFrame: 0, endFrame: 41, sequence: { $sequence: 'applyBuff_9' } },
+    { startFrame: 41, endFrame: 75, sequence: { $sequence: 'reachSkillOperableBoundary_10' } },
   ],
   defaultTarget: 'enemy',
   skillType: 'finisher',
   levelSource: 'basicAttack',
   nativeSkillType: 'breakingAttack',
-  actionGraph: snowshineChr_0014_aurora_power_attackActionGraph,
 };
 
 export const snowshineChr_0014_aurora_plunging_attack_endActionGraph = {
   main: {
     nodes: {
+      mergeContextTargets_1: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+        },
+        next: null,
+      },
       changeResource_2: {
         action: {
           kind: 'changeResource',
@@ -672,6 +699,8 @@ export const snowshineChr_0014_aurora_plunging_attack_endActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'tar' },
             damageType: 'physical',
             attackScale: { kind: 'valueNode', nodeId: 'data_2' },
             tags: ['normalAttack', 'plungingAttack'],
@@ -689,6 +718,7 @@ export const snowshineChr_0014_aurora_plunging_attack_endActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const snowshineChr_0014_aurora_plunging_attack_end: SkillDefinition = {
+  actionGraph: snowshineChr_0014_aurora_plunging_attack_endActionGraph,
   key: 'chr_0014_aurora_plunging_attack_end',
   element: 'physical',
   blackboard: {
@@ -700,29 +730,20 @@ export const snowshineChr_0014_aurora_plunging_attack_end: SkillDefinition = {
   exclusiveFrame: 20,
   offsetRecordFrame: 0,
   costFrame: 9,
-  scheduledSequences: [{ startFrame: 1, endFrame: 2, sequence: { $sequence: 'dealDamage_3' } }],
+  scheduledSequences: [
+    { startFrame: 1, endFrame: 2, sequence: { $sequence: 'mergeContextTargets_1' } },
+    { startFrame: 1, endFrame: 2, sequence: { $sequence: 'dealDamage_3' } },
+  ],
   defaultTarget: 'enemy',
   skillType: 'plungingAttack',
   levelSource: 'basicAttack',
   nativeSkillType: 'attack',
-  actionGraph: snowshineChr_0014_aurora_plunging_attack_endActionGraph,
 };
 
 export const snowshineChr_0014_aurora_normal_skillActionGraph = {
   main: {
     nodes: {
-      findTargets_opt1: {
-        action: {
-          kind: 'findTargets',
-          parameters: {
-            owner: { kind: 'owner' },
-            query: { kind: 'mainTarget', owner: { kind: 'owner' } },
-            saveToContextKey: 'MainTar',
-          },
-        },
-        next: null,
-      },
-      changeResource_8: {
+      changeResource_9: {
         action: {
           kind: 'changeResource',
           parameters: {
@@ -737,7 +758,7 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
         },
         next: null,
       },
-      applyBuff_9: {
+      applyBuff_10: {
         action: {
           kind: 'applyBuff',
           parameters: {
@@ -754,18 +775,18 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
         },
         next: null,
       },
-      checkCondition_10: {
+      checkCondition_11: {
         action: {
           kind: 'checkCondition',
           parameters: { condition: { kind: 'constant', value: true } },
         },
-        next: 'applyBuff_9',
+        next: 'applyBuff_10',
       },
-      markCurrentSkillCanInterrupt_11: {
+      markCurrentSkillCanInterrupt_12: {
         action: { kind: 'markCurrentSkillCanInterrupt', parameters: {} },
         next: null,
       },
-      changeResource_13: {
+      changeResource_14: {
         action: {
           kind: 'changeResource',
           parameters: {
@@ -778,17 +799,17 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
         },
         next: null,
       },
-      ifElse_14: {
+      ifElse_15: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
           condition: { kind: 'conditionNode', nodeId: 'data_4' },
-          whenTrue: { $sequence: 'changeResource_13' },
+          whenTrue: { $sequence: 'changeResource_14' },
           whenFalse: { $sequence: null },
         },
         next: null,
       },
-      applyBuff_15: {
+      applyBuff_16: {
         action: {
           kind: 'applyBuff',
           parameters: {
@@ -803,27 +824,27 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
             inheritSourceSkillCastInfo: true,
           },
         },
-        next: 'ifElse_14',
+        next: 'ifElse_15',
       },
-      checkCondition_16: {
+      checkCondition_17: {
         action: {
           kind: 'checkCondition',
           parameters: { condition: { kind: 'constant', value: true } },
         },
-        next: 'applyBuff_15',
+        next: 'applyBuff_16',
       },
-      interruptCurrentSkill_17: {
+      interruptCurrentSkill_18: {
         action: { kind: 'interruptCurrentSkill', parameters: { targets: { kind: 'owner' } } },
         next: null,
       },
-      copyContextTargets_25: {
+      copyContextTargets_26: {
         action: {
           kind: 'copyContextTargets',
           parameters: { source: { kind: 'context', key: 'Attacker' }, saveToContextKey: 'HitTar' },
         },
         next: null,
       },
-      aura_33: {
+      aura_34: {
         action: {
           kind: 'aura',
           parameters: {
@@ -837,17 +858,17 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
         },
         next: null,
       },
-      ifElse_34: {
+      ifElse_35: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
           condition: { kind: 'conditionNode', nodeId: 'data_6' },
-          whenTrue: { $sequence: 'aura_33' },
+          whenTrue: { $sequence: 'aura_34' },
           whenFalse: { $sequence: null },
         },
         next: null,
       },
-      aura_35: {
+      aura_36: {
         action: {
           kind: 'aura',
           parameters: {
@@ -864,9 +885,9 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
           onEnter: { $sequence: null },
           onExit: { $sequence: null },
         },
-        next: 'ifElse_34',
+        next: 'ifElse_35',
       },
-      jumpTimeline_39: {
+      jumpTimeline_40: {
         action: {
           kind: 'jumpTimeline',
           parameters: { destinationFrame: 107 },
@@ -874,66 +895,59 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
         },
         next: null,
       },
-      copyContextTargets_40: {
+      copyContextTargets_41: {
         action: {
           kind: 'copyContextTargets',
           parameters: { source: { kind: 'inputTarget' }, saveToContextKey: 'Attacker' },
         },
-        next: 'jumpTimeline_39',
-      },
-      checkCondition_41: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_9' } },
-        },
-        next: 'copyContextTargets_40',
+        next: 'jumpTimeline_40',
       },
       checkCondition_42: {
         action: {
           kind: 'checkCondition',
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_9' } },
+        },
+        next: 'copyContextTargets_41',
+      },
+      checkCondition_43: {
+        action: {
+          kind: 'checkCondition',
           parameters: { condition: { kind: 'conditionNode', nodeId: 'data_10' } },
         },
-        next: 'checkCondition_41',
+        next: 'checkCondition_42',
       },
-      copyContextTargets_37: {
-        action: {
-          kind: 'copyContextTargets',
-          parameters: { source: { kind: 'fixed', target: 'enemy' }, saveToContextKey: 'Attacker' },
-        },
-        next: 'jumpTimeline_39',
-      },
-      checkCondition_38: {
+      checkCondition_39: {
         action: {
           kind: 'checkCondition',
           parameters: { condition: { kind: 'conditionNode', nodeId: 'data_11' } },
         },
-        next: 'copyContextTargets_37',
+        next: 'copyContextTargets_41',
       },
-      listenForCombatEvents_43: {
+      listenForCombatEvents_44: {
         action: {
           kind: 'listenForCombatEvents',
           parameters: {
             responses: [
               {
                 key: 'SkillData.chr_0014_aurora_normal_skill.actionGroupData.timelineActions[19]._sequenceActionData.actionData[0].abilityActionMap[0].actions[0]',
-                event: { kind: 'operatorHit' },
+                event: { kind: 'abilityEvent', event: 'beforeTakeDamage' },
                 phase: 'dataAction',
                 priority: 0,
-                sequence: { $sequence: 'checkCondition_38' },
+                sequence: { $sequence: 'checkCondition_39' },
               },
               {
                 key: 'SkillData.chr_0014_aurora_normal_skill.actionGroupData.timelineActions[19]._sequenceActionData.actionData[0].abilityActionMap[1].actions[0]',
                 event: { kind: 'abilityEvent', event: 'addedBuff' },
                 phase: 'dataAction',
                 priority: 0,
-                sequence: { $sequence: 'checkCondition_42' },
+                sequence: { $sequence: 'checkCondition_43' },
               },
             ],
           },
         },
         next: null,
       },
-      applyBuff_46: {
+      applyBuff_47: {
         action: {
           kind: 'applyBuff',
           parameters: {
@@ -951,7 +965,7 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
         },
         next: null,
       },
-      changeResource_47: {
+      changeResource_48: {
         action: {
           kind: 'changeResource',
           parameters: {
@@ -966,7 +980,7 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
         },
         next: null,
       },
-      startTimeDilation_49: {
+      startTimeDilation_50: {
         action: {
           kind: 'startTimeDilation',
           parameters: {
@@ -981,20 +995,22 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
         },
         next: null,
       },
-      ifElse_50: {
+      ifElse_51: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
           condition: { kind: 'conditionNode', nodeId: 'data_13' },
-          whenTrue: { $sequence: 'startTimeDilation_49' },
+          whenTrue: { $sequence: 'startTimeDilation_50' },
           whenFalse: { $sequence: null },
         },
         next: null,
       },
-      dealDamage_51: {
+      dealDamage_52: {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'inputTarget' },
             damageType: 'cryo',
             attackScale: { kind: 'valueNode', nodeId: 'data_14' },
             tags: ['normalSkill'],
@@ -1002,20 +1018,20 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
             stagger: { kind: 'valueNode', nodeId: 'data_15' },
           },
         },
-        next: 'ifElse_50',
+        next: 'ifElse_51',
       },
-      once_52: {
-        action: { kind: 'once', parameters: {}, body: { $sequence: 'changeResource_47' } },
-        next: 'dealDamage_51',
+      once_53: {
+        action: { kind: 'once', parameters: {}, body: { $sequence: 'changeResource_48' } },
+        next: 'dealDamage_52',
       },
-      applyElementalInfliction_53: {
+      applyElementalInfliction_54: {
         action: {
           kind: 'applyElementalInfliction',
           parameters: { element: 'cryo', isExtra: false },
         },
-        next: 'once_52',
+        next: 'once_53',
       },
-      repeatEachTick_54: {
+      repeatEachTick_55: {
         action: {
           kind: 'repeatEachTick',
           parameters: {
@@ -1028,11 +1044,18 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
               targetTriggerIntervalSeconds: 0,
             },
           },
-          body: { $sequence: 'applyElementalInfliction_53' },
+          body: { $sequence: 'applyElementalInfliction_54' },
         },
         next: null,
       },
-      startTimeDilation_55: {
+      reachSkillOperableBoundary_56: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: { skillIds: ['chr_0014_aurora_normal_skill'] },
+        },
+        next: null,
+      },
+      startTimeDilation_57: {
         action: {
           kind: 'startTimeDilation',
           parameters: {
@@ -1078,7 +1101,7 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
         },
         next: null,
       },
-      aura_56: {
+      aura_58: {
         action: {
           kind: 'aura',
           parameters: {
@@ -1098,14 +1121,7 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
         },
         next: null,
       },
-      copyContextTargets_opt1: {
-        action: {
-          kind: 'copyContextTargets',
-          parameters: { source: { kind: 'fixed', target: 'enemy' }, saveToContextKey: 'HitTar' },
-        },
-        next: null,
-      },
-      findTargets_opt2: {
+      findTargets_opt1: {
         action: {
           kind: 'findTargets',
           parameters: {
@@ -1114,25 +1130,43 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
             saveToContextKey: 'MainTar',
           },
         },
-        next: 'copyContextTargets_opt1',
+        next: null,
       },
-      ifElse_opt3: {
+      copyContextTargets_opt2: {
         action: {
-          kind: 'ifElse',
-          parameters: { alwaysNext: true },
-          condition: { kind: 'conditionNode', nodeId: 'data_16' },
-          whenTrue: { $sequence: 'copyContextTargets_25' },
-          whenFalse: { $sequence: 'copyContextTargets_25' },
+          kind: 'copyContextTargets',
+          parameters: { source: { kind: 'context', key: 'MainTar' }, saveToContextKey: 'HitTar' },
         },
         next: null,
+      },
+      findTargets_opt3: {
+        action: {
+          kind: 'findTargets',
+          parameters: {
+            owner: { kind: 'owner' },
+            query: { kind: 'mainTarget', owner: { kind: 'owner' } },
+            saveToContextKey: 'MainTar',
+          },
+        },
+        next: 'copyContextTargets_opt2',
       },
       ifElse_opt4: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
+          condition: { kind: 'conditionNode', nodeId: 'data_16' },
+          whenTrue: { $sequence: 'copyContextTargets_26' },
+          whenFalse: { $sequence: 'copyContextTargets_26' },
+        },
+        next: null,
+      },
+      ifElse_opt5: {
+        action: {
+          kind: 'ifElse',
+          parameters: { alwaysNext: true },
           condition: { kind: 'conditionNode', nodeId: 'data_17' },
-          whenTrue: { $sequence: 'findTargets_opt2' },
-          whenFalse: { $sequence: 'ifElse_opt3' },
+          whenTrue: { $sequence: 'findTargets_opt3' },
+          whenFalse: { $sequence: 'ifElse_opt4' },
         },
         next: null,
       },
@@ -1200,7 +1234,7 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
         type: 'boolean',
         expression: {
           kind: 'entityCountCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target: { kind: 'inputTarget' },
           containsHittableTarget: false,
           excludeDeadEntity: false,
           operator: 'greaterOrEqual',
@@ -1231,6 +1265,7 @@ export const snowshineChr_0014_aurora_normal_skillActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const snowshineChr_0014_aurora_normal_skill: SkillDefinition = {
+  actionGraph: snowshineChr_0014_aurora_normal_skillActionGraph,
   key: 'chr_0014_aurora_normal_skill',
   element: 'cryo',
   blackboard: {
@@ -1247,34 +1282,74 @@ export const snowshineChr_0014_aurora_normal_skill: SkillDefinition = {
   exclusiveFrame: 145,
   offsetRecordFrame: 0,
   dontInterruptCombo: true,
-  inputWindows: {
-    allowedNextSkills: [
-      { startFrame: 135, endFrame: 145, skillIds: ['chr_0014_aurora_normal_skill'] },
-    ],
-  },
   costFrame: 0,
   scheduledSequences: [
     { startFrame: 0, endFrame: 3, sequence: { $sequence: 'findTargets_opt1' } },
-    { startFrame: 0, endFrame: 3, sequence: { $sequence: 'changeResource_8' } },
-    { startFrame: 0, endFrame: 5, sequence: { $sequence: 'checkCondition_10' } },
-    { startFrame: 67, endFrame: 70, sequence: { $sequence: 'markCurrentSkillCanInterrupt_11' } },
-    { startFrame: 107, endFrame: 109, sequence: { $sequence: 'checkCondition_16' } },
-    { startFrame: 106, endFrame: 107, sequence: { $sequence: 'interruptCurrentSkill_17' } },
-    { startFrame: 107, endFrame: 110, sequence: { $sequence: 'ifElse_opt4' } },
-    { startFrame: 0, endFrame: 51, sequence: { $sequence: 'aura_35' } },
-    { startFrame: 0, endFrame: 51, sequence: { $sequence: 'listenForCombatEvents_43' } },
-    { startFrame: 107, endFrame: 108, sequence: { $sequence: 'applyBuff_46' } },
-    { startFrame: 125, endFrame: 127, sequence: { $sequence: 'repeatEachTick_54' } },
-    { startFrame: 107, endFrame: 110, sequence: { $sequence: 'startTimeDilation_55' } },
-    { startFrame: 107, endFrame: 125, sequence: { $sequence: 'aura_56' } },
+    { startFrame: 0, endFrame: 3, sequence: { $sequence: 'changeResource_9' } },
+    { startFrame: 0, endFrame: 5, sequence: { $sequence: 'checkCondition_11' } },
+    { startFrame: 67, endFrame: 70, sequence: { $sequence: 'markCurrentSkillCanInterrupt_12' } },
+    { startFrame: 107, endFrame: 109, sequence: { $sequence: 'checkCondition_17' } },
+    { startFrame: 106, endFrame: 107, sequence: { $sequence: 'interruptCurrentSkill_18' } },
+    { startFrame: 107, endFrame: 110, sequence: { $sequence: 'ifElse_opt5' } },
+    { startFrame: 0, endFrame: 51, sequence: { $sequence: 'aura_36' } },
+    { startFrame: 0, endFrame: 51, sequence: { $sequence: 'listenForCombatEvents_44' } },
+    { startFrame: 107, endFrame: 108, sequence: { $sequence: 'applyBuff_47' } },
+    { startFrame: 125, endFrame: 127, sequence: { $sequence: 'repeatEachTick_55' } },
+    { startFrame: 135, endFrame: 145, sequence: { $sequence: 'reachSkillOperableBoundary_56' } },
+    { startFrame: 107, endFrame: 110, sequence: { $sequence: 'startTimeDilation_57' } },
+    { startFrame: 107, endFrame: 125, sequence: { $sequence: 'aura_58' } },
   ],
   defaultTarget: 'enemy',
   costs: [{ resource: 'sp', value: 100 }],
   skillType: 'battleSkill',
   levelSource: 'battleSkill',
   nativeSkillType: 'normalSkill',
-  actionGraph: snowshineChr_0014_aurora_normal_skillActionGraph,
 };
+
+const snowshineChr_0014_aurora_combo_skillActionGraphCallback1 = {
+  actionGraph: {
+    main: {
+      nodes: {
+        spawnAbilityEntity_1: {
+          action: {
+            kind: 'spawnAbilityEntity',
+            parameters: {
+              bornAt: { kind: 'inputTarget' },
+              abilityEntityId: 'abilityentity_chr_0014_aurora_combo_skill',
+              childSkillId: 'chr_0014_aurora_combo_skill_abilityrange',
+              source: { kind: 'source' },
+              inheritActionBlackboard: true,
+              dieWhenSourceDies: false,
+              target: 'enemy',
+            },
+          },
+          next: null,
+        },
+      },
+    },
+    macros: {},
+  },
+  skillId: 'chr_0014_aurora_combo_skill_bear_gene',
+  nativeSkillType: 'normalSkill',
+  naturalDurationFrames: 60,
+  castResource: {
+    costFrame: 9,
+    cooldownSeconds: 0,
+    maxChargeTime: 1,
+    cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+  },
+  blackboard: {
+    duration: 0,
+    heal_scale: 0,
+    heal_scale_loop: 0,
+    heal_static_value: 0,
+    heal_static_value_loop: 0,
+    interval: 0,
+  },
+  scheduledSequences: [
+    { startFrame: 0, endFrame: 2, sequence: { $sequence: 'spawnAbilityEntity_1' } },
+  ],
+} as const;
 
 export const snowshineChr_0014_aurora_combo_skillActionGraph = {
   main: {
@@ -1289,7 +1364,11 @@ export const snowshineChr_0014_aurora_combo_skillActionGraph = {
       createSpatialPointTargets_3: {
         action: {
           kind: 'createSpatialPointTargets',
-          parameters: { saveToContextKey: 'TempPos', count: { kind: 'constant', value: 1 } },
+          parameters: {
+            saveToContextKey: 'TempPos',
+            count: { kind: 'constant', value: 1 },
+            origin: { kind: 'source' },
+          },
         },
         next: null,
       },
@@ -1307,58 +1386,15 @@ export const snowshineChr_0014_aurora_combo_skillActionGraph = {
         action: {
           kind: 'launchProjectile',
           parameters: {
+            schedule: { endFrame: 1, callbacks: [{ event: 'reach', triggerFrames: [1] }] },
             inheritActionBlackboard: true,
-            entityInitialValues: {},
-            finish: 'firstTickReach',
+            projectileId: 'projectile_chr_0014_aurora_combo_skill_bear_out',
             recycleDelaySeconds: 2,
+            targets: { kind: 'context', contextKey: 'BearPos' },
+            entityInitialValues: {},
           },
           callbacks: [
-            {
-              event: 'reach',
-              skill: {
-                skillId: 'chr_0014_aurora_combo_skill_bear_gene',
-                nativeSkillType: 'normalSkill',
-                naturalDurationFrames: 60,
-                castResource: {
-                  costFrame: 9,
-                  cooldownSeconds: 0,
-                  maxChargeTime: 1,
-                  cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-                },
-                blackboard: {
-                  duration: 0,
-                  heal_scale: 0,
-                  heal_scale_loop: 0,
-                  heal_static_value: 0,
-                  heal_static_value_loop: 0,
-                  interval: 0,
-                },
-                scheduledSequences: [
-                  { startFrame: 0, endFrame: 2, sequence: { $sequence: 'spawnAbilityEntity_1' } },
-                ],
-                actionGraph: {
-                  main: {
-                    nodes: {
-                      spawnAbilityEntity_1: {
-                        action: {
-                          kind: 'spawnAbilityEntity',
-                          parameters: {
-                            bornAt: { kind: 'fixed', target: 'enemy' },
-                            abilityEntityId: 'abilityentity_chr_0014_aurora_combo_skill',
-                            childSkillId: 'chr_0014_aurora_combo_skill_abilityrange',
-                            inheritActionBlackboard: true,
-                            dieWhenSourceDies: false,
-                            target: 'enemy',
-                          },
-                        },
-                        next: null,
-                      },
-                    },
-                  },
-                  macros: {},
-                },
-              },
-            },
+            { event: 'reach', skill: snowshineChr_0014_aurora_combo_skillActionGraphCallback1 },
           ],
         },
         next: null,
@@ -1370,12 +1406,33 @@ export const snowshineChr_0014_aurora_combo_skillActionGraph = {
         },
         next: 'launchProjectile_9',
       },
+      launchProjectile_7: {
+        action: {
+          kind: 'launchProjectile',
+          parameters: {
+            schedule: { endFrame: 9, callbacks: [{ event: 'reach', triggerFrames: [9] }] },
+            inheritActionBlackboard: true,
+            projectileId: 'projectile_chr_0014_aurora_combo_skill_bear_out',
+            recycleDelaySeconds: 2,
+            targets: { kind: 'context', contextKey: 'BearPos' },
+            entityInitialValues: {},
+          },
+          callbacks: [
+            { event: 'reach', skill: snowshineChr_0014_aurora_combo_skillActionGraphCallback1 },
+          ],
+        },
+        next: null,
+      },
       createSpatialPointTargets_8: {
         action: {
           kind: 'createSpatialPointTargets',
-          parameters: { saveToContextKey: 'BearPos', count: { kind: 'constant', value: 1 } },
+          parameters: {
+            saveToContextKey: 'BearPos',
+            count: { kind: 'constant', value: 1 },
+            origin: { kind: 'source' },
+          },
         },
-        next: 'launchProjectile_9',
+        next: 'launchProjectile_7',
       },
       ifElse_11: {
         action: {
@@ -1416,6 +1473,13 @@ export const snowshineChr_0014_aurora_combo_skillActionGraph = {
         },
         next: null,
       },
+      reachSkillOperableBoundary_14: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: { skillIds: ['chr_0014_aurora_normal_skill'] },
+        },
+        next: null,
+      },
     },
     dataNodes: {
       data_1: {
@@ -1433,6 +1497,7 @@ export const snowshineChr_0014_aurora_combo_skillActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const snowshineChr_0014_aurora_combo_skill: SkillDefinition = {
+  actionGraph: snowshineChr_0014_aurora_combo_skillActionGraph,
   key: 'chr_0014_aurora_combo_skill',
   element: 'cryo',
   blackboard: {
@@ -1451,24 +1516,19 @@ export const snowshineChr_0014_aurora_combo_skill: SkillDefinition = {
   exclusiveFrame: 45,
   offsetRecordFrame: 0,
   dontInterruptCombo: true,
-  inputWindows: {
-    allowedNextSkills: [
-      { startFrame: 15, endFrame: 60, skillIds: ['chr_0014_aurora_normal_skill'] },
-    ],
-  },
   costFrame: 0,
   scheduledSequences: [
     { startFrame: 0, endFrame: 3, sequence: { $sequence: 'findCharacterTeamTargets_1' } },
     { startFrame: 0, endFrame: 123, sequence: { $sequence: 'ifElse_5' } },
     { startFrame: 12, endFrame: 15, sequence: { $sequence: 'changeResource_12' } },
     { startFrame: 0, endFrame: 13, sequence: { $sequence: 'startTimeDilation_13' } },
+    { startFrame: 15, endFrame: 60, sequence: { $sequence: 'reachSkillOperableBoundary_14' } },
   ],
   defaultTarget: 'owner',
   cooldownFrames: [750, 750, 750, 750, 750, 750, 750, 750, 720, 720, 720, 690],
   skillType: 'comboSkill',
   levelSource: 'comboSkill',
   nativeSkillType: 'comboSkill',
-  actionGraph: snowshineChr_0014_aurora_combo_skillActionGraph,
 };
 
 export const snowshineChr_0014_aurora_ultimate_skillActionGraph = {
@@ -1489,10 +1549,19 @@ export const snowshineChr_0014_aurora_ultimate_skillActionGraph = {
         },
         next: null,
       },
+      mergeContextTargets_2: {
+        action: {
+          kind: 'mergeContextTargets',
+          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+        },
+        next: null,
+      },
       dealDamage_3: {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'context', key: 'tar' },
             damageType: 'cryo',
             attackScale: { kind: 'valueNode', nodeId: 'data_1' },
             tags: ['ultimateSkill'],
@@ -1519,6 +1588,7 @@ export const snowshineChr_0014_aurora_ultimate_skillActionGraph = {
             bornAt: { kind: 'context', key: 'ult_pos' },
             abilityEntityId: 'abilityentity_chr_0014_aurora_ultimate_skill',
             childSkillId: 'chr_0014_aurora_ultimate_skill_abilityrange',
+            source: { kind: 'source' },
             inheritActionBlackboard: true,
             dieWhenSourceDies: false,
           },
@@ -1532,6 +1602,7 @@ export const snowshineChr_0014_aurora_ultimate_skillActionGraph = {
             bornAt: { kind: 'context', key: 'ult_pos' },
             abilityEntityId: 'abilityentity_chr_0014_aurora_ultimate_skill',
             childSkillId: 'chr_0014_aurora_ultimate_skill_abilityrange_potential2',
+            source: { kind: 'source' },
             inheritActionBlackboard: true,
             dieWhenSourceDies: false,
           },
@@ -1551,7 +1622,11 @@ export const snowshineChr_0014_aurora_ultimate_skillActionGraph = {
       createSpatialPointTargets_9: {
         action: {
           kind: 'createSpatialPointTargets',
-          parameters: { saveToContextKey: 'ult_pos', count: { kind: 'constant', value: 1 } },
+          parameters: {
+            saveToContextKey: 'ult_pos',
+            count: { kind: 'constant', value: 1 },
+            origin: { kind: 'source' },
+          },
         },
         next: 'ifElse_8',
       },
@@ -1577,6 +1652,13 @@ export const snowshineChr_0014_aurora_ultimate_skillActionGraph = {
             inheritSourceSkillCastInfo: true,
             finishByAction: true,
           },
+        },
+        next: null,
+      },
+      reachSkillOperableBoundary_13: {
+        action: {
+          kind: 'reachSkillOperableBoundary',
+          parameters: { skillIds: ['chr_0014_aurora_normal_skill', 'chr_0014_aurora_combo_skill'] },
         },
         next: null,
       },
@@ -1607,6 +1689,7 @@ export const snowshineChr_0014_aurora_ultimate_skillActionGraph = {
 } as const satisfies ActionGraphResourceDefinition;
 
 export const snowshineChr_0014_aurora_ultimate_skill: SkillDefinition = {
+  actionGraph: snowshineChr_0014_aurora_ultimate_skillActionGraph,
   key: 'chr_0014_aurora_ultimate_skill',
   element: 'cryo',
   blackboard: {
@@ -1622,23 +1705,16 @@ export const snowshineChr_0014_aurora_ultimate_skill: SkillDefinition = {
   naturalDurationFrames: 142,
   exclusiveFrame: 90,
   offsetRecordFrame: 0,
-  inputWindows: {
-    allowedNextSkills: [
-      {
-        startFrame: 71,
-        endFrame: 90,
-        skillIds: ['chr_0014_aurora_normal_skill', 'chr_0014_aurora_combo_skill'],
-      },
-    ],
-  },
   costFrame: 0,
   scheduledSequences: [
     { startFrame: 0, endFrame: 3, sequence: { $sequence: 'startTimeDilation_1' } },
+    { startFrame: 62, endFrame: 65, sequence: { $sequence: 'mergeContextTargets_2' } },
     { startFrame: 62, endFrame: 65, sequence: { $sequence: 'ifElse_4' } },
     { startFrame: 62, endFrame: 65, sequence: { $sequence: 'createSpatialPointTargets_9' } },
     { startFrame: 0, endFrame: 60, sequence: { $sequence: 'hideUi_10' } },
     { startFrame: 0, endFrame: 60, sequence: { $sequence: 'startUltimateTimeDilation_11' } },
     { startFrame: 0, endFrame: 90, sequence: { $sequence: 'applyBuff_12' } },
+    { startFrame: 71, endFrame: 90, sequence: { $sequence: 'reachSkillOperableBoundary_13' } },
   ],
   defaultTarget: 'enemy',
   cooldownFrames: 600,
@@ -1646,7 +1722,6 @@ export const snowshineChr_0014_aurora_ultimate_skill: SkillDefinition = {
   skillType: 'ultimate',
   levelSource: 'ultimate',
   nativeSkillType: 'ultimateSkill',
-  actionGraph: snowshineChr_0014_aurora_ultimate_skillActionGraph,
 };
 
 export const snowshineCommon_character_perfect_dodgeActionGraph = {
@@ -1746,7 +1821,8 @@ const snowshineBuff1ActionGraph = {
         action: {
           kind: 'heal',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
+            healer: { kind: 'source' },
             alwaysNext: true,
             tags: ['Skill/Character/Common/Heal/ComboSkillHeal'],
             attribute: 'will',
@@ -1800,7 +1876,8 @@ const snowshineBuff2ActionGraph = {
         action: {
           kind: 'heal',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
+            healer: { kind: 'source' },
             alwaysNext: true,
             tags: ['Skill/Character/Common/Heal/ComboSkillHeal'],
             attribute: 'will',
@@ -2091,6 +2168,8 @@ const snowshineBuff8ActionGraph = {
         action: {
           kind: 'dealDamage',
           parameters: {
+            attacker: 'actionSource',
+            target: { kind: 'inputTarget' },
             damageType: 'cryo',
             attackScale: { kind: 'valueNode', nodeId: 'data_1' },
             tags: ['ultimateSkill'],
@@ -2429,28 +2508,6 @@ export const snowshine: OperatorDefinition = {
       lifetime: { kind: 'limited', durationSeconds: 3 },
       deathReleaseDelaySeconds: 0.1,
       childSkill: {
-        skillId: 'chr_0014_aurora_combo_skill_abilityrange',
-        nativeSkillType: 'normalSkill',
-        naturalDurationFrames: 3000,
-        castResource: {
-          costFrame: 0,
-          cooldownSeconds: 0,
-          maxChargeTime: 1,
-          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
-        },
-        blackboard: {
-          duration: 0,
-          heal_scale: 1,
-          heal_scale_loop: 1,
-          heal_static_value: 0,
-          heal_static_value_loop: 0,
-          interval: 0,
-        },
-        scheduledSequences: [
-          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'aura_1' } },
-          { startFrame: 0, endFrame: 900, sequence: { $sequence: 'aura_2' } },
-          { startFrame: 90, endFrame: 93, sequence: { $sequence: 'finishOwner_3' } },
-        ],
         actionGraph: {
           main: {
             nodes: {
@@ -2527,6 +2584,28 @@ export const snowshine: OperatorDefinition = {
           },
           macros: {},
         },
+        skillId: 'chr_0014_aurora_combo_skill_abilityrange',
+        nativeSkillType: 'normalSkill',
+        naturalDurationFrames: 3000,
+        castResource: {
+          costFrame: 0,
+          cooldownSeconds: 0,
+          maxChargeTime: 1,
+          cost: { resource: 'ultimateEnergy', value: 0, availabilityThreshold: 0 },
+        },
+        blackboard: {
+          duration: 0,
+          heal_scale: 1,
+          heal_scale_loop: 1,
+          heal_static_value: 0,
+          heal_static_value_loop: 0,
+          interval: 0,
+        },
+        scheduledSequences: [
+          { startFrame: 0, endFrame: 3, sequence: { $sequence: 'aura_1' } },
+          { startFrame: 0, endFrame: 900, sequence: { $sequence: 'aura_2' } },
+          { startFrame: 90, endFrame: 93, sequence: { $sequence: 'finishOwner_3' } },
+        ],
       },
     },
     abilityentity_chr_0014_aurora_ultimate_skill: {
@@ -2542,6 +2621,52 @@ export const snowshine: OperatorDefinition = {
       deathReleaseDelaySeconds: 0.1,
       childSkills: {
         chr_0014_aurora_ultimate_skill_abilityrange_potential2: {
+          actionGraph: {
+            main: {
+              nodes: {
+                aura_1: {
+                  action: {
+                    kind: 'aura',
+                    parameters: {
+                      targets: { kind: 'fixed', target: 'enemy' },
+                      source: { kind: 'source' },
+                      inheritSourceSkillCastInfo: true,
+                      buffs: [
+                        {
+                          buffId: 'buff_chr_0014_aurora_ultimate_skill_frost',
+                          blackboardAssignments: {
+                            extra_duration: { kind: 'valueNode', nodeId: 'data_1' },
+                          },
+                          stringBlackboardAssignments: {},
+                        },
+                        {
+                          buffId: 'buff_chr_0014_aurora_ultimate_skill_dmg',
+                          blackboardAssignments: {
+                            atk_scale_loop: { kind: 'valueNode', nodeId: 'data_2' },
+                          },
+                          stringBlackboardAssignments: {},
+                        },
+                      ],
+                    },
+                    onEnter: { $sequence: null },
+                    onExit: { $sequence: null },
+                  },
+                  next: null,
+                },
+              },
+              dataNodes: {
+                data_1: {
+                  type: 'number',
+                  expression: { kind: 'blackboard', key: 'extra_duration' },
+                },
+                data_2: {
+                  type: 'number',
+                  expression: { kind: 'blackboard', key: 'atk_scale_loop' },
+                },
+              },
+            },
+            macros: {},
+          },
           skillId: 'chr_0014_aurora_ultimate_skill_abilityrange_potential2',
           nativeSkillType: 'normalSkill',
           naturalDurationFrames: 300,
@@ -2553,6 +2678,8 @@ export const snowshine: OperatorDefinition = {
           },
           blackboard: { atk_scale_loop: 1, extra_duration: 0 },
           scheduledSequences: [{ startFrame: 4, endFrame: 156, sequence: { $sequence: 'aura_1' } }],
+        },
+        chr_0014_aurora_ultimate_skill_abilityrange: {
           actionGraph: {
             main: {
               nodes: {
@@ -2599,8 +2726,6 @@ export const snowshine: OperatorDefinition = {
             },
             macros: {},
           },
-        },
-        chr_0014_aurora_ultimate_skill_abilityrange: {
           skillId: 'chr_0014_aurora_ultimate_skill_abilityrange',
           nativeSkillType: 'normalSkill',
           naturalDurationFrames: 300,
@@ -2612,52 +2737,6 @@ export const snowshine: OperatorDefinition = {
           },
           blackboard: { atk_scale_loop: 1, extra_duration: 0 },
           scheduledSequences: [{ startFrame: 4, endFrame: 157, sequence: { $sequence: 'aura_1' } }],
-          actionGraph: {
-            main: {
-              nodes: {
-                aura_1: {
-                  action: {
-                    kind: 'aura',
-                    parameters: {
-                      targets: { kind: 'fixed', target: 'enemy' },
-                      source: { kind: 'source' },
-                      inheritSourceSkillCastInfo: true,
-                      buffs: [
-                        {
-                          buffId: 'buff_chr_0014_aurora_ultimate_skill_frost',
-                          blackboardAssignments: {
-                            extra_duration: { kind: 'valueNode', nodeId: 'data_1' },
-                          },
-                          stringBlackboardAssignments: {},
-                        },
-                        {
-                          buffId: 'buff_chr_0014_aurora_ultimate_skill_dmg',
-                          blackboardAssignments: {
-                            atk_scale_loop: { kind: 'valueNode', nodeId: 'data_2' },
-                          },
-                          stringBlackboardAssignments: {},
-                        },
-                      ],
-                    },
-                    onEnter: { $sequence: null },
-                    onExit: { $sequence: null },
-                  },
-                  next: null,
-                },
-              },
-              dataNodes: {
-                data_1: {
-                  type: 'number',
-                  expression: { kind: 'blackboard', key: 'extra_duration' },
-                },
-                data_2: {
-                  type: 'number',
-                  expression: { kind: 'blackboard', key: 'atk_scale_loop' },
-                },
-              },
-            },
-            macros: {},
-          },
         },
       },
     },

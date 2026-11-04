@@ -693,7 +693,7 @@ onBeforeUnmount(() => {
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="m12 3 9 5v8l-9 5-9-5V8z M3 8l9 5 9-5 M12 13v8" />
               </svg>
-              <span>{{ t('assetWorkspace.title') }}</span>
+              <span>{{ t('assetWorkspace.openWorkspace') }}</span>
             </EaButton>
           </section>
           <section class="header-more-section">
@@ -764,7 +764,7 @@ onBeforeUnmount(() => {
             <div v-if="randomMode === 'sampled'" class="header-more-pref-row">
               <span>{{ t('timeline.random.globalSeed') }}</span>
               <EaNumberInput
-                class="header-more-seed-input"
+                class="header-more-number-input"
                 :min="0"
                 :max="0xffffffff"
                 :step="1"
@@ -1114,7 +1114,7 @@ onBeforeUnmount(() => {
   gap: 6px;
 }
 
-.header-more-seed-input {
+.header-more-number-input {
   width: 126px;
 }
 

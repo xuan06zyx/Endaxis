@@ -223,7 +223,6 @@ export function assembleOperatorDefinition(input: OperatorDefinitionAssemblyInpu
       progression.talentPassiveSkillRequests,
       input.passiveSkills.definitions,
       input.gameplayTagRegistry,
-      input.loadBuff,
       input.predefinedTagQueries,
     );
   });
@@ -236,7 +235,6 @@ export function assembleOperatorDefinition(input: OperatorDefinitionAssemblyInpu
       progression.potentialPassiveSkillRequests,
       input.passiveSkills.definitions,
       input.gameplayTagRegistry,
-      input.loadBuff,
       input.predefinedTagQueries,
     );
   });
@@ -246,7 +244,6 @@ export function assembleOperatorDefinition(input: OperatorDefinitionAssemblyInpu
       [request],
       input.passiveSkills.definitions,
       input.gameplayTagRegistry,
-      input.loadBuff,
       input.predefinedTagQueries,
     ),
   );
@@ -259,14 +256,7 @@ export function assembleOperatorDefinition(input: OperatorDefinitionAssemblyInpu
     ...basePassivePlans.flatMap(plan => plan.definitions.map(definition => definition.key)),
     ...talentPassivePlans.flatMap(plan => plan.definitions.map(definition => definition.key)),
     ...potentialPassivePlans.flatMap(plan => plan.definitions.map(definition => definition.key)),
-    ...talentPassivePlans.flatMap(plan => plan.semanticPassiveKeys),
-    ...potentialPassivePlans.flatMap(plan => plan.semanticPassiveKeys),
   ]);
-  const reactionPassiveInputs = new Map(
-    [...talentPassivePlans, ...potentialPassivePlans, ...basePassivePlans].flatMap(plan => [
-      ...plan.reactionPassiveInputs,
-    ]),
-  );
   const runtimeReplacementSkillKeys = new Set(input.runtimeReplacementSkillKeys ?? []);
   const knownSkillKeys = new Set(skillLibrary.activeSkills.entries.map(skill => skill.key));
   for (const key of runtimeReplacementSkillKeys) {
@@ -284,16 +274,13 @@ export function assembleOperatorDefinition(input: OperatorDefinitionAssemblyInpu
     ),
     installedPassiveSkillSourcePaths,
     passiveSkillKeys,
-    reactionPassiveInputs,
   };
   const talents = input.talentBindings.map((binding, index) => {
     const definition = compileOperatorTalentDefinition(progression, binding, context);
     const plan = talentPassivePlans[index]!;
     const passiveSkills = plan.definitions;
-    const modifiers = [...(definition.modifiers ?? []), ...plan.modifiers];
     return {
       ...definition,
-      ...(modifiers.length ? { modifiers } : {}),
       ...(passiveSkills.length ? { passiveSkills } : {}),
     };
   });
@@ -301,10 +288,8 @@ export function assembleOperatorDefinition(input: OperatorDefinitionAssemblyInpu
     const definition = compileOperatorPotentialDefinition(progression, binding, context);
     const plan = potentialPassivePlans[index]!;
     const passiveSkills = plan.definitions;
-    const modifiers = [...(definition.modifiers ?? []), ...plan.modifiers];
     return {
       ...definition,
-      ...(modifiers.length ? { modifiers } : {}),
       ...(passiveSkills.length ? { passiveSkills } : {}),
     };
   });
@@ -1178,11 +1163,6 @@ export function selectBasicAttackTimelineBlockFrames(
   }[],
 ): void {
   const selectedFrames = new Map<string, number>();
-  const selectedTargets = new Map<string, string>();
-  const selectedWindows = new Map<
-    string,
-    readonly { readonly startFrame: number; readonly endFrame: number }[]
-  >();
   const selectRoute = (skillKeys: readonly string[]): void => {
     if (skillKeys.length < 2) return;
     for (let index = 0; index < skillKeys.length; index += 1) {
@@ -1213,28 +1193,6 @@ export function selectBasicAttackTimelineBlockFrames(
         );
       }
       selectedFrames.set(key, frame);
-      const previousTarget = selectedTargets.get(key);
-      if (previousTarget !== undefined && previousTarget !== nextDefinition.key) {
-        throw new Error(
-          `basic attack '${key}' has conflicting ordered continuations '${previousTarget}' and '${nextDefinition.key}'`,
-        );
-      }
-      selectedTargets.set(key, nextDefinition.key);
-      selectedWindows.set(
-        key,
-        candidates
-          .map(item => ({ startFrame: item.startFrame, endFrame: item.endFrame }))
-          .filter(
-            (item, itemIndex, items) =>
-              items.findIndex(
-                candidate =>
-                  candidate.startFrame === item.startFrame && candidate.endFrame === item.endFrame,
-              ) === itemIndex,
-          )
-          .sort(
-            (left, right) => left.startFrame - right.startFrame || left.endFrame - right.endFrame,
-          ),
-      );
     }
   };
   for (const group of groups) {
@@ -1244,29 +1202,9 @@ export function selectBasicAttackTimelineBlockFrames(
   }
   for (const [key, frame] of selectedFrames) {
     const definition = definitions.get(key)!;
-    const continuationSkillId = selectedTargets.get(key)!;
-    const recoveredAllowedNextSkills = (selectedWindows.get(key) ?? []).map(window => ({
-      ...window,
-      skillIds: [continuationSkillId],
-    }));
-    const existingAllowedNextSkills = definition.inputWindows?.allowedNextSkills ?? [];
     definitions.set(key, {
       ...definition,
       timelineBlockFrames: frame,
-      timelineContinuationSkillId: continuationSkillId,
-      inputWindows: {
-        ...definition.inputWindows,
-        allowedNextSkills: [...existingAllowedNextSkills, ...recoveredAllowedNextSkills].filter(
-          (window, windowIndex, windows) =>
-            windows.findIndex(
-              candidate =>
-                candidate.startFrame === window.startFrame &&
-                candidate.endFrame === window.endFrame &&
-                candidate.skillIds.length === window.skillIds.length &&
-                candidate.skillIds.every((id, idIndex) => id === window.skillIds[idIndex]),
-            ) === windowIndex,
-        ),
-      },
     });
   }
 }

@@ -75,6 +75,50 @@ import { compileActionNode } from '../../src/compiler/actions/combatActionLeafPr
 import { parseComboCacheActionSource } from '../../src/source/inputControlActions.ts';
 
 describe('公共 Buff 运行时投影', () => {
+  it('立即冷却修改保留运行时宿主身份，不要求把队伍子 Buff 宿主静态认作施法者', () => {
+    const source = parseKnownNativeActionSequenceSource(
+      {
+        actionData: [
+          {
+            $type: 'Beyond.Gameplay.Core.SetSkillCdAtOnce+Data, Gameplay.Beyond',
+            isEnable: true,
+            priorityLevel: 0,
+            priorityOffset: 0,
+            serverActionIndex: 0,
+            target: targetFixture('Owner'),
+            useSkillType: true,
+            skillTypeMask: 'NormalSkill',
+            skillId: '',
+            functionType: 'Set',
+            isPercentage: false,
+            value: { useBlackboardKey: true, blackboardKey: 'duration', value: 8 },
+          },
+        ],
+        onlyExecuteWhenSourceIsMainChar: false,
+        onlyExecuteWhenSourceIsGuard: false,
+      },
+      'BuffData.teamCooldown',
+      {},
+    );
+    expect(
+      projectSequence(source, {
+        actionOwnerTarget: 'buffOwner',
+        actionSourceTarget: 'buffSource',
+        actionTargetTarget: 'buffOwner',
+      }).steps,
+    ).toEqual([
+      {
+        kind: 'adjustSkillCooldown',
+        parameters: {
+          target: { kind: 'owner' },
+          skill: { kind: 'type', skillType: 'battleSkill' },
+          operation: 'set',
+          basis: 'absoluteSeconds',
+          value: { kind: 'blackboard', key: 'duration' },
+        },
+      },
+    ]);
+  });
   it('SaveDamageContext 保持一个动作并保留实际伤害读取类型', () => {
     const source = parseKnownNativeActionSequenceSource(
       {
@@ -390,7 +434,7 @@ describe('公共 Buff 运行时投影', () => {
         actionTargetTarget: 'enemy',
         graph: createActionGraphBuilder<CompiledBuffStepSource>(),
       }),
-    ).toThrow('unsupported Buff command mapping lifetime');
+    ).not.toThrow();
   });
   it.each(['spatialPoint', 'contextOperator', 'lowestHealthRatioOperatorExceptCaster'] as const)(
     'CreateBuff 不把未解析的目标组 %s 断言成可施加目标',
@@ -535,8 +579,14 @@ describe('公共 Buff 运行时投影', () => {
           graph: createActionGraphBuilder<CompiledBuffStepSource>(),
         },
       );
-    if (alwaysNext) expect(project()).toEqual([]);
-    else expect(project).toThrow('empty-target damage short-circuit');
+    const steps = project();
+    expect(steps).toHaveLength(1);
+    expect(steps[0]).toMatchObject({
+      kind: 'dealDamage',
+      parameters: { target: { kind: 'context', key: 'tar' } },
+    });
+    if (alwaysNext) expect(steps[0]).not.toHaveProperty('parameters.alwaysNext', false);
+    else expect(steps[0]).toHaveProperty('parameters.alwaysNext', false);
   });
 
   it.each([false, true])(
@@ -581,9 +631,7 @@ describe('公共 Buff 运行时投影', () => {
           kind: 'applyBuff',
           parameters: {
             targets: { kind: 'context', key: 'recipient' },
-            source: fixedSource
-              ? { kind: 'fixed', target: 'enemy' }
-              : { kind: 'context', key: 'source' },
+            source: { kind: 'context', key: 'source' },
           },
         },
       ]);
@@ -1190,7 +1238,7 @@ describe('公共 Buff 运行时投影', () => {
                 {
                   kind: 'adjustSkillCooldown',
                   parameters: {
-                    target: 'caster',
+                    target: { kind: 'owner' },
                     skill: { kind: 'id', skillId: 'skill.normal' },
                     operation: 'set',
                     basis: 'absoluteSeconds',
@@ -1372,7 +1420,13 @@ describe('公共 Buff 运行时投影', () => {
           actions: [
             leaf(
               'condition',
-              { kind: 'floatCompare', left: { blackboardKey: 'distance' } },
+              {
+                kind: 'floatCompare',
+                sourceType: 'CompareFloat',
+                comparison: 'GT',
+                left: { value: 0, blackboardKey: 'distance', levelValues: null },
+                right: { value: 0, blackboardKey: null, levelValues: null },
+              },
               'SkillData.spatial.compare',
             ),
           ],
@@ -1396,7 +1450,16 @@ describe('公共 Buff 运行时投影', () => {
             kind: 'ifElse' as const,
             condition: {
               ...flags,
-              actions: [leaf('condition', { kind: 'mainOperator' }, 'SkillData.spatial.owner')],
+              actions: [
+                leaf(
+                  'condition',
+                  {
+                    kind: 'mainOperator',
+                    target: parseTargetReferenceSource(targetFixture('Owner'), 'owner'),
+                  },
+                  'SkillData.spatial.owner',
+                ),
+              ],
             },
             whenTrue: {
               ...flags,
@@ -1405,8 +1468,11 @@ describe('公共 Buff 运行时投影', () => {
                   'spatialMeasurement',
                   {
                     kind: 'targetDistance',
-                    source: { targetSource: 'Context', targetGroupKey: 'presentation_only' },
-                    target: { targetSource: 'Source', targetGroupKey: '' },
+                    source: parseTargetReferenceSource(
+                      targetFixture('Context', undefined, 'presentation_only'),
+                      'source',
+                    ),
+                    target: parseTargetReferenceSource(targetFixture('Source'), 'target'),
                     outputKey: 'distance',
                   },
                   'SkillData.spatial.distance',
@@ -1420,14 +1486,6 @@ describe('公共 Buff 运行时投影', () => {
         },
       ],
     };
-    expect(() =>
-      projectSequence(source as never, {
-        gameplayTagRegistry: fixtureGameplayTagRegistry,
-        actionOwnerTarget: 'caster',
-        actionSourceTarget: 'caster',
-        actionTargetTarget: 'enemy',
-      }),
-    ).toThrow('unresolved target-distance endpoint');
     const context = {
       gameplayTagRegistry: fixtureGameplayTagRegistry,
       actionOwnerTarget: 'caster' as const,
@@ -1436,9 +1494,12 @@ describe('公共 Buff 运行时投影', () => {
       isBlackboardKeyUnusedByExternalResources: (key: string) => key === 'distance',
     };
     // 单个入口不能证明其他生命周期没有读取，即使已经排除外部资源。
-    expect(() => projectSequence(source as never, context)).toThrow(
-      'unresolved target-distance endpoint',
-    );
+    const unoptimized = projectSequence(source as never, context);
+    expect(
+      Object.values(unoptimized.graph.nodes).some(
+        node => node.action.kind === 'saveTargetDistance',
+      ),
+    ).toBe(true);
     const optimized = simplifyNativeSequences(
       { start: source },
       context.isBlackboardKeyUnusedByExternalResources,
@@ -1450,12 +1511,13 @@ describe('公共 Buff 运行时投影', () => {
       context.isBlackboardKeyUnusedByExternalResources,
       'resource',
     );
-    expect(() => projectSequence(withLaterReader.start as never, context)).toThrow(
-      'unresolved target-distance endpoint',
-    );
+    const retained = projectSequence(withLaterReader.start as never, context);
+    expect(
+      Object.values(retained.graph.nodes).some(node => node.action.kind === 'saveTargetDistance'),
+    ).toBe(true);
   });
 
-  it('角色外部受击事件只省略唯一敌人来源的精确对象类型守卫', () => {
+  it('角色受伤监听保留实际来源和持续伤害守卫，不能假定仅来自敌方直接攻击', () => {
     const source = sourceFixture();
     const sequence = source.graph.abilityEvents[0]!.actions[0]!;
     const apply = sequence.actions.find(
@@ -1516,7 +1578,20 @@ describe('公共 Buff 运行时投影', () => {
     expect(definition.abilityEventResponses?.[0]).toMatchObject({ event: 'takeDamage' });
     expect(
       readResourceActions(definition, definition.abilityEventResponses?.[0]?.sequence),
-    ).toMatchObject([{ kind: 'applyBuff' }]);
+    ).toMatchObject([
+      { kind: 'checkCondition', parameters: { condition: { kind: 'targetObjectTypeMatch' } } },
+      {
+        kind: 'checkCondition',
+        parameters: {
+          condition: {
+            kind: 'eventDamageFeaturesMatch',
+            match: 'exceptAny',
+            features: ['dot', 'remainArea'],
+          },
+        },
+      },
+      { kind: 'applyBuff' },
+    ]);
     expect(
       JSON.stringify(
         compileBuffRuntimeDefinitionSource(
@@ -1647,18 +1722,20 @@ describe('公共 Buff 运行时投影', () => {
       {
         kind: 'dealDamage',
         parameters: {
+          attacker: 'actionSource',
           damageType: 'physical',
           attackScale: { kind: 'blackboard', key: 'atk_scale' },
           tags: [],
           features: ['knockDown', 'physicalInfliction'],
+          target: { kind: 'owner' },
           stagger: { kind: 'blackboard', key: 'poise' },
         },
       },
     ]);
-    expect(() => project(knockdown)).toThrow('unsupported damage source or target binding');
-    expect(() => project(knockdown, 'caster')).toThrow(
-      'unsupported damage source or target binding',
-    );
+    for (const owner of [undefined, 'caster'] as const)
+      expect(lifecycleSteps(project(knockdown, owner), 'start')).toMatchObject([
+        { kind: 'dealDamage', parameters: { target: { kind: 'owner' } } },
+      ]);
     expect(() => project({ ...knockdown, attacker: 'ActionOwner' }, 'enemy')).toThrow(
       'enemy Buff Owner',
     );
@@ -1666,7 +1743,11 @@ describe('公共 Buff 运行时投影', () => {
     expect(lifecycleSteps(project(poiseOnly, 'enemy'), 'start')).toEqual([
       {
         kind: 'dealStagger',
-        parameters: { value: { kind: 'blackboard', key: 'poise' } },
+        parameters: {
+          attacker: 'actionSource',
+          target: { kind: 'owner' },
+          value: { kind: 'blackboard', key: 'poise' },
+        },
       },
     ]);
     const weaknessPoiseOnly = {
@@ -1682,6 +1763,8 @@ describe('公共 Buff 运行时投影', () => {
       {
         kind: 'dealStagger',
         parameters: {
+          attacker: 'actionSource',
+          target: { kind: 'owner' },
           value: { kind: 'blackboard', key: 'poise' },
           features: ['canBreakWeakness'],
         },
@@ -1933,7 +2016,7 @@ describe('公共 Buff 运行时投影', () => {
         kind: 'applyBuff',
         parameters: {
           buffs: [{ buffId: 'buff_common_pulse_pulse_conduct_triggered_do' }],
-          targets: { kind: 'fixed', target: 'enemy' },
+          targets: { kind: 'inputTarget' },
         },
       },
     ]);
@@ -1982,7 +2065,7 @@ describe('公共 Buff 运行时投影', () => {
 
     expect(projected.steps[0]).toMatchObject({
       kind: 'applyBuff',
-      parameters: { targets: { kind: 'fixed', target: 'enemy' }, source: { kind: 'source' } },
+      parameters: { targets: { kind: 'inputTarget' }, source: { kind: 'source' } },
     });
   });
   it.each([
@@ -2141,8 +2224,7 @@ describe('公共 Buff 运行时投影', () => {
       expect(projected.steps[0]).toMatchObject({
         kind: 'applyBuff',
         parameters: {
-          targets:
-            targetSource === 'Target' ? { kind: 'fixed', target: 'enemy' } : { kind: 'source' },
+          targets: targetSource === 'Target' ? { kind: 'inputTarget' } : { kind: 'source' },
         },
       });
       expect(
@@ -2640,7 +2722,7 @@ describe('公共 Buff 运行时投影', () => {
                             settings: {
                               checkType: 'Id',
                               buffIds: ['buff.weapon.exist'],
-                              tagQuery: { queryType: 'hasAny', tagIds: [] },
+                              tagQuery: { queryType: 'hasAny', tagIds: [123456789] },
                             },
                             finishAll: true,
                             finishLayerCount: { value: 1, blackboardKey: null, levelValues: null },
@@ -2736,6 +2818,74 @@ describe('公共 Buff 运行时投影', () => {
       },
     ]);
   });
+
+  it.each(['OnPoiseZero', 'OnPoiseKnotBreak', 'OnSkillInterrupted', 'OnAddedBuff', undefined])(
+    'FinishBuffAdvanced Context 只在已证明无Buff的事件 %s 中省略',
+    event => {
+      const source = sourceFixture();
+      const base = source.graph.abilityEvents[0]!.actions[0]!;
+      const compile = () =>
+        projectSequence(
+          {
+            ...base,
+            actions: [
+              {
+                sourcePath: 'BuffData.fixture.finishEventBuff',
+                metadata: base.actions[0]!.metadata,
+                body: {
+                  kind: 'leaf',
+                  value: {
+                    family: 'buffFinish',
+                    action: {
+                      kind: 'buffFinishByQuery',
+                      owner: fixedTarget('Owner'),
+                      settings: {
+                        checkType: 'Context',
+                        buffIds: ['ignored'],
+                        tagQuery: { queryType: 'hasAny', tagIds: [] },
+                      },
+                      finishAll: true,
+                      finishLayerCount: { value: 1, blackboardKey: null, levelValues: null },
+                      limitSource: false,
+                      buffSource: fixedTarget('Source'),
+                      isFinishedEarly: false,
+                      isAbsorbed: false,
+                      finishSource: fixedTarget('Source'),
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            actionOwnerTarget: 'buffOwner',
+            actionSourceTarget: 'buffSource',
+            actionTargetTarget: 'eventSource',
+            nativeAbilityEvent: event,
+          },
+        );
+      if (event === undefined || event === 'OnAddedBuff')
+        expect(compile).toThrow('unsupported Buff finish query');
+      else {
+        const result = compile();
+        expect(result).toMatchObject({ entry: { $sequence: null } });
+        const runtime = new CombatActionSequenceRuntime(
+          {
+            execute: () => {
+              throw new Error('no Buff must be finished');
+            },
+            evaluate: () => {
+              throw new Error('no event query must be invented');
+            },
+          },
+          { blackboard: new ActionBlackboard() },
+        );
+        expect(
+          runtime.createSequence(compileGraphSequence(result.entry, result.graph)).tryExecute({}),
+        ).toBe(true);
+      }
+    },
+  );
 
   it('FinishBuffAdvanced 的空 Id 列表严格投影为无操作而非结束全部 Buff', () => {
     const source = sourceFixture();
@@ -2894,7 +3044,7 @@ describe('公共 Buff 运行时投影', () => {
       {
         kind: 'finishBuffsByTag',
         parameters: {
-          targets: { kind: 'fixed', target: 'enemy' },
+          targets: { kind: 'context', key: 'smart_target' },
           finishSource: { kind: 'source' },
           tagQueryType: 'hasAny',
           buffTags: ['Skill/Character/Common/SpellStatus/Conduct'],
@@ -2952,7 +3102,7 @@ describe('公共 Buff 运行时投影', () => {
       {
         kind: 'finishBuffsByTag',
         parameters: {
-          targets: { kind: 'fixed', target: 'enemy' },
+          targets: { kind: 'inputTarget' },
           finishSource: { kind: 'owner' },
           tagQueryType: 'hasAny',
           buffTags: ['Skill/Character/Common/SpellInflict/FireInflict'],
@@ -3212,7 +3362,7 @@ describe('公共 Buff 运行时投影', () => {
             kind: 'modifyPoiseScalar',
             timing: 'beforeCalculation',
             side: 'attacker',
-            addition: { blackboardKey: 'poise_up' },
+            values: { slot: 'baseAddition', value: { blackboardKey: 'poise_up' } },
           },
         ],
       },
@@ -3669,7 +3819,6 @@ describe('公共 Buff 运行时投影', () => {
             return true;
           },
         },
-        undefined,
         {
           listOperatorIds: () => members,
           isOperatorControlled: () => false,
@@ -3950,6 +4099,35 @@ describe('公共 Buff 运行时投影', () => {
     if (child?.kind !== 'applyBuff') throw new Error('expected child Buff application');
     expect(child.parameters).not.toHaveProperty('blackboardAssignments');
   });
+
+  it.each(['enemy', 'caster', undefined] as const)(
+    '只裁剪已确认敌人的攻击力修正，保留其他属性及行为（%s）',
+    owner => {
+      const source = sourceFixture();
+      const attack = source.attributeModifiers.modifiers[0]!;
+      const compile = (fixedBuffOwnerTarget: typeof owner) =>
+        compileBuffRuntimeDefinitionSource(
+          {
+            ...source,
+            attributeModifiers: {
+              ...source.attributeModifiers,
+              modifiers: [attack, { ...attack, attributeType: 'Def' }],
+            },
+          },
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          { gameplayTagRegistry: fixtureGameplayTagRegistry, fixedBuffOwnerTarget },
+        );
+      const definition = compile(owner);
+      expect(definition.attributeModifiers.map(modifier => modifier.attribute)).toEqual(
+        owner === 'enemy' ? ['Def'] : ['Atk', 'Def'],
+      );
+      expect(definition.abilityEventResponses).toEqual(compile(undefined).abilityEventResponses);
+      expect(definition.applyTags).toEqual(compile(undefined).applyTags);
+    },
+  );
 
   it('把原生 Main 属性修正保留为运行时主属性选择器', () => {
     const fixture = sourceFixture();
@@ -4318,7 +4496,10 @@ describe('公共 Buff 运行时投影', () => {
       parameters: {
         condition: {
           kind: 'buffStackCompare',
-          target: { kind: 'fixed', target: 'enemy' },
+          target:
+            targetSource === 'Context'
+              ? { kind: 'context', key: 'smart_target' }
+              : { kind: 'inputTarget' },
           tagQueryType: 'hasAny',
           buffTags: ['Skill/Character/Common/NoGuard'],
           operator: 'greaterOrEqual',
@@ -4753,6 +4934,8 @@ describe('公共 Buff 运行时投影', () => {
       {
         kind: 'dealDamage',
         parameters: {
+          attacker: 'actionOwner',
+          target: { kind: 'inputTarget' },
           damageType: 'physical',
           attackScale: { kind: 'blackboard', key: 'atk_scale' },
           tags: [],
@@ -4762,7 +4945,7 @@ describe('公共 Buff 运行时投影', () => {
       {
         kind: 'setGlobalCooldown',
         parameters: {
-          target: 'caster',
+          target: { kind: 'source' },
           markerId: 'buff_equipsuit_physuit_01',
           durationSeconds: { kind: 'blackboard', key: 'duration' },
         },
@@ -5285,3 +5468,114 @@ function sourceFixture(): BuffRuntimeSource {
     unsupportedPayloads: [],
   };
 }
+
+it('Buff 的随机点查询保留空间点数量，不冒充敌人目标', () => {
+  const sequence = parseKnownNativeActionSequenceSource(
+    {
+      actionData: [
+        {
+          $type: 'Beyond.Gameplay.Core.FindTargetAction+FindTargetActionData, Gameplay.Beyond',
+          isEnable: true,
+          priorityLevel: 'Default',
+          priorityOffset: 0,
+          serverActionIndex: 0,
+          targetGroupKey: 'randomPos',
+          center: 'ActionOwner',
+          centerContextKey: '',
+          useCenterEntityMountPoint: false,
+          centerMountPoint: 'None',
+          centerToGround: true,
+          selectorOwner: 'ActionOwner',
+          selectorOwnerContextKey: '',
+          selectorData: {
+            finderData: {
+              $type: 'Beyond.Gameplay.Core.Selector+RandomPointFinder+Data, Gameplay.Beyond',
+              pointNum: { useBlackboardKey: false, value: 1.0, blackboardKey: '' },
+              shape: 'Circle',
+              localPlaneRotationEulers: {
+                x: { useBlackboardKey: false, value: 0.0, blackboardKey: '' },
+                y: { useBlackboardKey: false, value: 0.0, blackboardKey: '' },
+                z: { useBlackboardKey: false, value: 0.0, blackboardKey: '' },
+              },
+              radius: { useBlackboardKey: true, value: 0.0, blackboardKey: 'radius' },
+              minRadius: { useBlackboardKey: true, value: 0.0, blackboardKey: 'radius_min' },
+              angle: { useBlackboardKey: false, value: 0.0, blackboardKey: '' },
+              extent2D: {
+                x: { useBlackboardKey: false, value: 0.0, blackboardKey: '' },
+                y: { useBlackboardKey: false, value: 0.0, blackboardKey: '' },
+              },
+              useExtraJitter: false,
+              snapToNavMesh: true,
+            },
+            validatorData: [],
+            postProcessorData: [],
+          },
+          selectorDirection: 'SourceForward',
+          target: 'ActionSource',
+          contextKey: '',
+          useAdvancedDirectionSetting: false,
+          advancedSelectorDirection: {
+            directionType: 'SourceForward',
+            sourceMountPoint: 'None',
+            targetMountPoint: 'None',
+            customSourceAndTarget: false,
+            clampToXZ: true,
+            invertDirection: false,
+          },
+        },
+      ],
+      onlyExecuteWhenSourceIsMainChar: false,
+      onlyExecuteWhenSourceIsGuard: false,
+    },
+    'BuffData.random-points',
+    {},
+  );
+  const source = sourceFixture();
+  const count = parseKnownNativeActionSequenceSource(
+    {
+      onlyExecuteWhenSourceIsMainChar: false,
+      onlyExecuteWhenSourceIsGuard: false,
+      actionData: [
+        {
+          $type: 'Beyond.Gameplay.Core.Conditions.CheckEntityNum+Data, Gameplay.Beyond',
+          isEnable: true,
+          priorityLevel: 'Default',
+          priorityOffset: 0,
+          serverActionIndex: 2,
+          checkTarget: targetFixture('Context', undefined, 'randomPos'),
+          minNum: 2,
+          containsHittableTarget: false,
+          compareType: 'GE',
+          excludeDeadEntity: false,
+          storeKey: '',
+        },
+      ],
+    },
+    'BuffData.random-points.count',
+    {},
+  );
+  const observedSequence = {
+    ...sequence,
+    actions: [
+      ...sequence.actions,
+      ...count.actions,
+      source.graph.abilityEvents[0]!.actions[0]!.actions[1]!,
+    ],
+  };
+  const definition = compileBuffRuntimeDefinitionSource({
+    ...source,
+    graph: {
+      ...source.graph,
+      abilityEvents: [],
+      buffEvents: [{ event: 'OnBuffEnable', actions: [observedSequence] }],
+    },
+  });
+  expect(lifecycleSteps(definition, 'enable')).toContainEqual({
+    kind: 'createSpatialPointTargets',
+    parameters: {
+      saveToContextKey: 'randomPos',
+      count: { kind: 'constant', value: 1 },
+      origin: { kind: 'owner' },
+    },
+  });
+});
