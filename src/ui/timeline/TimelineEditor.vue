@@ -9,7 +9,14 @@ import TimelineEnemyEffectMarkers from './results/TimelineEnemyEffectMarkers.vue
 import TimelineDamageHit from './results/TimelineDamageHit.vue';
 import { firstScenarioEnemy, levelEnemies, mapLevelEnemies } from '../../core/project/level';
 import { roundHitDamage } from './results/hitDamageDisplay';
-import { EaButton, EaDialog, EaNumberInput, EaSelect, type EaSelectValue } from '@/design-system';
+import {
+  EaButton,
+  EaChevronIcon,
+  EaDialog,
+  EaNumberInput,
+  EaSelect,
+  type EaSelectValue,
+} from '@/design-system';
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus';
 import {
   computed,
@@ -761,6 +768,7 @@ const onlySkillsSelected = computed(
 const selectedCastId = computed(() => actionSelection.value.primaryId);
 const showDamageAnalysis = ref(false);
 const showExportDialog = ref(false);
+const renderAllTimelineEffects = ref(false);
 const showReceiveDialog = ref(false);
 const receivingProjectCode = ref(false);
 const showSmallImageExport = ref(false);
@@ -789,9 +797,24 @@ const timelineScroll = ref<HTMLElement | null>(null);
 const timelineHorizontalScrollbar = ref<HTMLElement | null>(null);
 const timelineVerticalScrollbar = ref<HTMLElement | null>(null);
 const timelineScrollLeft = ref(0);
+// 把逐像素滚动更新留给小组件；父模板只依赖分桶后的可见窗口。
+const timelineScrollState = { left: timelineScrollLeft };
 const timelineScrollTop = ref(0);
 const timelineViewportWidth = ref(1200);
 const timelineViewportHeight = ref(0);
+const EFFECT_WINDOW_STEP_PX = 256;
+const effectViewportBucketPx = computed(
+  () =>
+    Math.floor(
+      Math.max(0, timelineScrollLeft.value - TIMELINE_TRACK_HEADER_WIDTH) / EFFECT_WINDOW_STEP_PX,
+    ) * EFFECT_WINDOW_STEP_PX,
+);
+const visibleEffectLeftPx = computed(() =>
+  Math.max(0, effectViewportBucketPx.value - EFFECT_WINDOW_STEP_PX),
+);
+const visibleEffectRightPx = computed(
+  () => effectViewportBucketPx.value + timelineViewportWidth.value + EFFECT_WINDOW_STEP_PX * 2,
+);
 const displayedCompactTrackHeights = computed(() =>
   resolveCompactTrackHeights(
     compactTrackHeights.value,
@@ -1081,11 +1104,7 @@ async function receiveProjectCode(code: string): Promise<void> {
   }
 }
 
-async function handleProjectFileChange(event: Event): Promise<void> {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = '';
-  if (file === undefined) return;
+async function openProjectFile(file: File): Promise<void> {
   try {
     const content =
       /\.png$/i.test(file.name) || file.type === 'image/png'
@@ -1096,6 +1115,45 @@ async function handleProjectFileChange(event: Event): Promise<void> {
     ElMessage.error(error instanceof Error ? error.message : '打开项目失败');
   }
 }
+
+async function handleProjectFileChange(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (file !== undefined) await openProjectFile(file);
+}
+
+function isExternalFileDrag(event: DragEvent): boolean {
+  return event.dataTransfer?.types.includes('Files') ?? false;
+}
+
+function handleExternalProjectDragOver(event: DragEvent): void {
+  if (!isExternalFileDrag(event)) return;
+  event.preventDefault();
+  if (event.dataTransfer !== null) event.dataTransfer.dropEffect = 'copy';
+}
+
+function handleExternalProjectDrop(event: DragEvent): void {
+  if (!isExternalFileDrag(event)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const file = event.dataTransfer?.files[0];
+  if (file === undefined) return;
+  if (!/\.(json|png)$/i.test(file.name) && !['application/json', 'image/png'].includes(file.type)) {
+    ElMessage.warning('仅支持 JSON 项目文件或带项目数据的 PNG 图片');
+    return;
+  }
+  void openProjectFile(file);
+}
+
+onMounted(() => {
+  window.addEventListener('dragover', handleExternalProjectDragOver, true);
+  window.addEventListener('drop', handleExternalProjectDrop, true);
+});
+onScopeDispose(() => {
+  window.removeEventListener('dragover', handleExternalProjectDragOver, true);
+  window.removeEventListener('drop', handleExternalProjectDrop, true);
+});
 
 const legacyConversionConfirmation = shallowRef<{
   content: string;
@@ -1352,6 +1410,7 @@ async function exportTimelineLongImage(options: {
     background: 'rgba(0, 0, 0, 0.9)',
   });
   try {
+    renderAllTimelineEffects.value = true;
     await nextTick();
     const timelineMain = document.querySelector<HTMLElement>('.timeline-main');
     if (timelineMain === null) throw new Error('timeline workspace missing');
@@ -1373,6 +1432,7 @@ async function exportTimelineLongImage(options: {
       }),
     );
   } finally {
+    renderAllTimelineEffects.value = false;
     loading.close();
   }
 }
@@ -3511,6 +3571,23 @@ const positionedBuffsByTarget = computed(() => {
   return positioned;
 });
 
+const emptyPositionedBuffSegments: readonly PositionedDisplayBuffTimelineSegment[] = Object.freeze(
+  [],
+);
+const positionedBuffsByTargetAndPlacement = computed(() => {
+  const partitions = new Map<
+    string,
+    Record<BuffTimelineSegment['placement'], readonly PositionedDisplayBuffTimelineSegment[]>
+  >();
+  for (const [targetId, segments] of positionedBuffsByTarget.value) {
+    const upper: PositionedDisplayBuffTimelineSegment[] = [];
+    const lower: PositionedDisplayBuffTimelineSegment[] = [];
+    for (const segment of segments) (segment.placement === 'upper' ? upper : lower).push(segment);
+    partitions.set(targetId, { upper, lower });
+  }
+  return partitions;
+});
+
 const enemyOverviewEffects = computed(
   () =>
     new Map(
@@ -3607,11 +3684,11 @@ function buffSegmentsForTarget(
   targetId: string | null,
   placement?: BuffTimelineSegment['placement'],
 ): readonly PositionedDisplayBuffTimelineSegment[] {
-  if (targetId === null) return [];
-  const segments = positionedBuffsByTarget.value.get(targetId) ?? [];
+  if (targetId === null) return emptyPositionedBuffSegments;
   return placement === undefined
-    ? segments
-    : segments.filter(segment => segment.placement === placement);
+    ? (positionedBuffsByTarget.value.get(targetId) ?? emptyPositionedBuffSegments)
+    : (positionedBuffsByTargetAndPlacement.value.get(targetId)?.[placement] ??
+        emptyPositionedBuffSegments);
 }
 
 function operatorPassiveUiSegmentsForTarget(
@@ -7303,6 +7380,7 @@ function setMobileGuideFrame(frame: number | null): void {
             comboWindows: t('timeline.header.viewLayers.comboWindows'),
             switchMarkers: t('timeline.header.viewLayers.switchMarkers'),
             effectLinks: t('timeline.header.viewLayers.effectLinks'),
+            dodgeMarkers: t('timeline.header.viewLayers.dodgeMarkers'),
           },
           viewOperators: t('timeline.header.sectionViewOperators'),
           viewOperatorsEmpty: t('timeline.header.hideEffectsEmpty'),
@@ -7405,7 +7483,7 @@ function setMobileGuideFrame(frame: number | null): void {
             :snap-frames="snapFrames"
             :operations="rulerOperations"
             :keycap-mode="keycapMode"
-            :visible-left-px="Math.max(0, timelineScrollLeft - TIMELINE_TRACK_HEADER_WIDTH)"
+            :visible-left-px="effectViewportBucketPx"
             :visible-width-px="timelineViewportWidth"
             @seek="seekTimeline"
             @prep-info="openInheritanceInfo"
@@ -7448,7 +7526,7 @@ function setMobileGuideFrame(frame: number | null): void {
               :title="t('timelineGrid.prep.expand')"
               @click.stop="setPrepExpanded(true)"
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="8 6 16 12 8 18" /></svg>
+              <EaChevronIcon :size="16" :stroke-width="3" />
             </EaButton>
             <span>{{ t('timelineGrid.prep.expand') }}</span>
           </div>
@@ -7473,9 +7551,7 @@ function setMobileGuideFrame(frame: number | null): void {
               "
               @click.stop="setPrepExpanded(false)"
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <polyline points="16 6 8 12 16 18" />
-              </svg>
+              <EaChevronIcon direction="left" :size="16" :stroke-width="3" />
             </EaButton>
           </div>
           <TimelineConnectionLayer
@@ -7837,6 +7913,8 @@ function setMobileGuideFrame(frame: number | null): void {
                     timelineViewLayers.upperEffects && isOperatorEffectsVisible(track.trackIndex)
                   "
                   :segments="buffSegmentsForTarget(track.operatorInstanceId, 'upper')"
+                  :visible-left-px="renderAllTimelineEffects ? undefined : visibleEffectLeftPx"
+                  :visible-right-px="renderAllTimelineEffects ? undefined : visibleEffectRightPx"
                   :source-name="buffSourceName"
                   :display-name="buffDisplayName"
                   :operator-buff-name-keys="operatorBuffDisplayNameKeys"
@@ -7867,6 +7945,8 @@ function setMobileGuideFrame(frame: number | null): void {
                     timelineViewLayers.upperEffects && isOperatorEffectsVisible(track.trackIndex)
                   "
                   :segments="operatorPassiveUiSegmentsForTarget(track.operatorInstanceId)"
+                  :visible-left-px="renderAllTimelineEffects ? undefined : visibleEffectLeftPx"
+                  :visible-right-px="renderAllTimelineEffects ? undefined : visibleEffectRightPx"
                   :prep-frames="scenario.battle.prepFrames"
                   :prep-expanded="scenario.editor.prepExpanded"
                   :prep-end-frame="scenario.inheritance?.frame ?? 0"
@@ -7890,6 +7970,8 @@ function setMobileGuideFrame(frame: number | null): void {
                 <TimelineBuffBands
                   v-if="timelineViewLayers.lowerBuffs && isOperatorEffectsVisible(track.trackIndex)"
                   :segments="buffSegmentsForTarget(track.operatorInstanceId, 'lower')"
+                  :visible-left-px="renderAllTimelineEffects ? undefined : visibleEffectLeftPx"
+                  :visible-right-px="renderAllTimelineEffects ? undefined : visibleEffectRightPx"
                   :source-name="buffSourceName"
                   :display-name="buffDisplayName"
                   :operator-buff-name-keys="operatorBuffDisplayNameKeys"
@@ -8037,6 +8119,7 @@ function setMobileGuideFrame(frame: number | null): void {
                   <i class="track-switch-marker__pointer"></i>
                 </div>
                 <div
+                  v-if="timelineViewLayers.dodgeMarkers"
                   v-for="marker in (scenario.battle.dodgeMarkers ?? []).filter(
                     item => item.trackIndex === track.trackIndex,
                   )"
@@ -8309,7 +8392,7 @@ function setMobileGuideFrame(frame: number | null): void {
                     scenario.battle.simulationRange?.endFrame ?? scenario.battle.durationFrames
                   "
                   :frame-px="timelineFramePx"
-                  :scroll-left="timelineScrollLeft"
+                  :scroll-state="timelineScrollState"
                   :header-width="TIMELINE_TRACK_HEADER_WIDTH"
                   :read-only="configurationReadOnly"
                   :initial-frame="-scenario.battle.prepFrames"
@@ -8367,6 +8450,10 @@ function setMobileGuideFrame(frame: number | null): void {
                     <TimelineBuffBands
                       :row-size="iconSize"
                       :segments="enemyOverviewStatuses.get(id)?.segments ?? []"
+                      :visible-left-px="renderAllTimelineEffects ? undefined : visibleEffectLeftPx"
+                      :visible-right-px="
+                        renderAllTimelineEffects ? undefined : visibleEffectRightPx
+                      "
                       color-surface="enemy"
                       :attachment-conversions="enemyOverviewEffects.get(id)?.attachmentConversions"
                       :hidden-icons="enemyOverviewStatuses.get(id)?.hiddenIcons"
@@ -8430,7 +8517,7 @@ function setMobileGuideFrame(frame: number | null): void {
                   :prep-end-frame="scenario.inheritance?.frame ?? 0"
                   :px-per-frame="pxPerFrame"
                   :track-header-width="TIMELINE_TRACK_HEADER_WIDTH"
-                  :scroll-left="timelineScrollLeft"
+                  :scroll-state="timelineScrollState"
                   :snapshot-frame="enemyLastDamageFrame"
                   :hud-snapshot="combatHudSnapshot.enemy"
                   :enemy-name="monitoredEnemyName"
@@ -8481,7 +8568,7 @@ function setMobileGuideFrame(frame: number | null): void {
                 :prep-end-frame="scenario.inheritance?.frame ?? 0"
                 :px-per-frame="pxPerFrame"
                 :track-header-width="TIMELINE_TRACK_HEADER_WIDTH"
-                :scroll-left="timelineScrollLeft"
+                :scroll-state="timelineScrollState"
               />
             </template>
             <template #sp="{ compact }">
@@ -8498,7 +8585,7 @@ function setMobileGuideFrame(frame: number | null): void {
                 :prep-end-frame="scenario.inheritance?.frame ?? 0"
                 :px-per-frame="pxPerFrame"
                 :track-header-width="TIMELINE_TRACK_HEADER_WIDTH"
-                :scroll-left="timelineScrollLeft"
+                :scroll-state="timelineScrollState"
                 :sp-label="t('resourceMonitor.modules.sp')"
                 :initial-sp="scenario.battle.resourceRules.initialSp"
                 :max-sp="scenario.battle.resourceRules.maxSp"
