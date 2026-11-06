@@ -1,12 +1,15 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { resolve, join, dirname } from 'node:path';
+import { projectEnemyBirthBuffOption } from '../src/domains/enemy/birthBuffOptions.ts';
+import { mkdir, readFile, writeFile, readdir, unlink } from 'node:fs/promises';
+import { resolve, join, dirname, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { formatGeneratedSource } from '../src/compiler/publication/formatGeneratedSource.ts';
 import { createHash } from 'node:crypto';
+import { enemyStageNameTextIds } from '../config/enemyStageNames.ts';
 import {
+  collectSpawnerEnemies,
   findSpawnerBuffs,
+  findSpawnerCount,
   loadSceneSpawners,
-  type StageEnemyAttributes,
 } from '../src/domains/enemy/spawnerAttributes.ts';
 
 interface TextReference {
@@ -33,8 +36,9 @@ interface EnemySource {
 export async function generateEnemyStageCatalog(args: {
   tablesDirectory: string;
   outputDirectory: string;
-  localeDirectory?: string;
+  localeDirectory: string;
   spawnerDirectory?: string;
+  buffDirectory?: string;
   check: boolean;
 }) {
   const directory = args.tablesDirectory;
@@ -92,7 +96,7 @@ export async function generateEnemyStageCatalog(args: {
       `group_${key}`,
       stage.dungeonCategory === 'dungeon_resource' || stage.dungeonCategory === 'dungeon_bossrush'
         ? seriesName
-        : groupBase.get(key)?.dungeonName,
+        : stageName(id, groupBase.get(key) ?? stage),
       id,
     );
     if (stage.dungeonCategory === 'dungeon_seasontower') {
@@ -117,6 +121,10 @@ export async function generateEnemyStageCatalog(args: {
     }
     return nameKey;
   }
+  function stageName(id: string, stage: StageSource): TextReference {
+    const textId = enemyStageNameTextIds[id];
+    return textId ? { id: textId } : stage.dungeonName;
+  }
   const sceneSpawners = new Map(
     await Promise.all(
       [
@@ -134,7 +142,32 @@ export async function generateEnemyStageCatalog(args: {
       ),
     ),
   );
-  const stageAttributes: StageEnemyAttributes[] = [];
+  // 合约展示表省略了部分实际刷怪种类；补齐后沿用统一的属性与数量解析。
+  for (const stage of Object.values(dungeons)) {
+    if (stage.dungeonCategory !== 'dungeon_contract') continue;
+    const roster = collectSpawnerEnemies(sceneSpawners.get(stage.sceneId ?? '') ?? []);
+    if (roster.length) {
+      stage.enemyIds = roster.map(entry => entry.enemyId);
+      stage.enemyLevels = roster.map(entry => entry.level);
+    }
+  }
+  const buffSources = new Map<string, Record<string, unknown>>();
+  if (args.buffDirectory) {
+    const ids = new Set(
+      [...sceneSpawners.values()].flatMap(spawners =>
+        spawners.flatMap(spawner =>
+          spawner.enemyLibrary.flatMap(entry =>
+            (entry.bornBuffList ?? []).map(buff => buff.buffId),
+          ),
+        ),
+      ),
+    );
+    for (const id of ids)
+      buffSources.set(
+        id,
+        JSON.parse(await readFile(join(args.buffDirectory, `${id}.json`), 'utf8')),
+      );
+  }
   const stages = Object.entries(dungeons)
     .flatMap(([id, stage]) => {
       if (
@@ -145,6 +178,7 @@ export async function generateEnemyStageCatalog(args: {
           'dungeon_resource',
           'dungeon_ss',
           'dungeon_bossrush',
+          'dungeon_contract',
         ].includes(stage.dungeonCategory)
       )
         return [];
@@ -156,11 +190,11 @@ export async function generateEnemyStageCatalog(args: {
           difficultyOrder: towerDifficulty.get(id) ?? stage.sortId,
           groupNameKey: groupName(id, stage, group?.name),
           seriesId: stage.dungeonSeriesId,
-          nameKey: name(`stage_${id}`, stage.dungeonName, id),
+          nameKey: name(`stage_${id}`, stageName(id, stage), id),
           difficultyNameKey: name(`difficulty_${id}`, stage.dungeonLevelDesc, ''),
           seriesNameKey: name(
             `series_${stage.dungeonSeriesId}`,
-            group?.name,
+            group?.name?.id || group?.name?.text ? group.name : stage.dungeonName,
             stage.dungeonSeriesId,
           ),
           sort: stage.sortId,
@@ -169,13 +203,6 @@ export async function generateEnemyStageCatalog(args: {
             if (!enemy) throw new Error(`${id}: missing enemy ${enemyId}`);
             const base = enemies[enemy.templateId];
             if (!base) throw new Error(`${id}: missing base enemy ${enemy.templateId}`);
-            const differences = {
-              attributeTemplate: enemy.attrTemplateId !== base.attrTemplateId,
-              attributeModifiers:
-                JSON.stringify(enemy.attrModifiers) !== JSON.stringify(base.attrModifiers),
-              bornBuffs: JSON.stringify(enemy.bornBuffs) !== JSON.stringify(base.bornBuffs),
-            };
-            const equivalent = !Object.values(differences).some(Boolean);
             const variants = findSpawnerBuffs(
               sceneSpawners.get(stage.sceneId ?? '') ?? [],
               stage.enemyIds,
@@ -187,24 +214,44 @@ export async function generateEnemyStageCatalog(args: {
                 .update(JSON.stringify(buffs))
                 .digest('hex')
                 .slice(0, 12);
-              const scopedId = buffs.length ? `${enemyId}__${id}__${signature}` : undefined;
-              if (scopedId) stageAttributes.push({ id: scopedId, enemyId, buffs });
+              const spawnId = `${enemyId}:${stage.enemyLevels[index] ?? 'unknown'}:${signature}`;
+              const birthBuffs = buffs.flatMap((buff, buffIndex) => {
+                const source = buffSources.get(buff.buffId);
+                if (!source) return [];
+                const option = projectEnemyBirthBuffOption(
+                  source,
+                  buff.buffId,
+                  'stage',
+                  buffIndex,
+                  Object.fromEntries(
+                    buff.blackboard
+                      .filter(value => !value.useString)
+                      .map(value => [value.key, value.valueFloat]),
+                  ),
+                  args.buffDirectory,
+                );
+                return option ? [option] : [];
+              });
               return {
+                id: spawnId,
+                ...(birthBuffs.length ? { birthBuffs } : {}),
                 source: {
                   stageId: id,
+                  spawnId,
                   enemyId,
                   templateId: enemy.templateId.replaceAll('_', '-'),
                 },
                 level: stage.enemyLevels[index] ?? null,
+                count: findSpawnerCount(
+                  sceneSpawners.get(stage.sceneId ?? '') ?? [],
+                  stage.enemyIds,
+                  stage.enemyLevels,
+                  enemyId,
+                  stage.enemyLevels[index] ?? 0,
+                  buffs,
+                ),
                 nameKey: name(`enemy_${enemyId}`, displays[enemyId]?.name, ''),
-                // 保留变体身份；第一阶段仅模拟其属性差异，不执行出生 Buff 的机制。
-                usesBaseDefinition: equivalent && !scopedId,
-                definitionId: scopedId
-                  ? scopedId.replaceAll('_', '-')
-                  : equivalent
-                    ? enemy.templateId.replaceAll('_', '-')
-                    : enemyId.replaceAll('_', '-'),
-                differences,
+                definitionId: enemyId.replaceAll('_', '-'),
               };
             });
           }),
@@ -215,10 +262,6 @@ export async function generateEnemyStageCatalog(args: {
       (a, b) => a.seriesId.localeCompare(b.seriesId) || a.sort - b.sort || a.id.localeCompare(b.id),
     );
   const output = join(args.outputDirectory, 'stages.generated.ts');
-  const content = await formatGeneratedSource(
-    `// Generated by generateEnemyStageCatalog.ts.\nexport const generatedEnemyStages = ${JSON.stringify(stages)};\n`,
-    output,
-  );
   async function publish(output: string, content: string) {
     if (args.check) {
       if ((await readFile(output, 'utf8')) !== content) {
@@ -229,9 +272,45 @@ export async function generateEnemyStageCatalog(args: {
       await writeFile(output, content, 'utf8');
     }
   }
-  await publish(output, content);
-  const localeDirectory =
-    args.localeDirectory ?? resolve(args.outputDirectory, '../../../i18n/game-locales');
+  const groups = new Map<string, typeof stages>();
+  for (const stage of stages) {
+    const file = stageFileKey(stage.id, dungeons[stage.id]!);
+    const entries = groups.get(file) ?? [];
+    entries.push(stage);
+    groups.set(file, entries);
+  }
+  const imports: string[] = [];
+  const spreads: string[] = [];
+  const files: string[] = [];
+  for (const [index, [key, entries]] of [...groups]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .entries()) {
+    const file = join(args.outputDirectory, `stages.${key}.generated.ts`);
+    await publish(
+      file,
+      await formatGeneratedSource(
+        `// Generated by generateEnemyStageCatalog.ts.\nimport type { EnemyStageDefinition } from '../../../../packages/game-data-contract/src/enemies';\nexport const stages: readonly EnemyStageDefinition[] = ${JSON.stringify(entries)};\n`,
+        file,
+      ),
+    );
+    files.push(file);
+    imports.push(`import { stages as group${index} } from './stages.${key}.generated';`);
+    spreads.push(`...group${index}`);
+  }
+  await publish(
+    output,
+    await formatGeneratedSource(
+      `// Generated by generateEnemyStageCatalog.ts.\nimport type { EnemyStageDefinition } from '../../../../packages/game-data-contract/src/enemies';\n${imports.join('\n')}\nconst stages: EnemyStageDefinition[] = [${spreads.join(',')}];\nexport const generatedEnemyStages: readonly EnemyStageDefinition[] = stages.sort((a, b) => a.seriesId.localeCompare(b.seriesId) || a.sort - b.sort || a.id.localeCompare(b.id));\n`,
+      output,
+    ),
+  );
+  const expectedFiles = new Set(files.map(file => basename(file)));
+  for (const file of await readdir(args.outputDirectory)) {
+    if (!/^stages\.[\w-]+\.generated\.ts$/.test(file) || expectedFiles.has(file)) continue;
+    if (args.check) throw new Error(`${file}: obsolete enemy stage group`);
+    await unlink(join(args.outputDirectory, file));
+  }
+  const localeDirectory = args.localeDirectory;
   for (const [locale, entries] of Object.entries(messages)) {
     const localeOutput = join(localeDirectory, locale === 'zh-CN' ? 'zh' : locale, 'stages.json');
     // 文本在遍历来源表时收集，落盘顺序不应随来源表的键顺序改变。
@@ -244,10 +323,31 @@ export async function generateEnemyStageCatalog(args: {
   }
   return {
     stageCount: stages.length,
+    files,
     output,
     stages,
-    stageAttributes,
   };
+}
+
+/** 分类来自原生关卡类别；丰碑按系列、合约按关卡身份分别发布。 */
+function stageFileKey(id: string, stage: StageSource): string {
+  switch (stage.dungeonCategory) {
+    case 'dungeon_resource':
+    case 'dungeon_ss':
+      return 'protocol-spaces';
+    case 'dungeon_bossrush':
+      return stage.dungeonSeriesId.includes('_minibossrush')
+        ? 'danger-fragments'
+        : 'danger-recurrence';
+    case 'dungeon_highdifficulty':
+      return `monument-${stage.dungeonSeriesId}`;
+    case 'dungeon_contract':
+      return `contract-${id}`;
+    case 'dungeon_seasontower':
+      return 'war-echoes';
+    default:
+      throw new Error(`unsupported stage category '${stage.dungeonCategory}'`);
+  }
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
@@ -257,6 +357,7 @@ if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.m
     await generateEnemyStageCatalog({
       tablesDirectory: resolve(process.argv[2]),
       outputDirectory: resolve('src/data/enemies/generated'),
+      localeDirectory: resolve('src/i18n/game-locales'),
       check: process.argv.includes('--check'),
     }),
   );

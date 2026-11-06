@@ -142,6 +142,10 @@ import {
   parseFinishGlobalBuffActionSource,
   type GlobalBuffActionSource,
 } from './globalBuffActions.ts';
+import {
+  parseRecoverPoiseActionSource,
+  type RecoverPoiseActionSource,
+} from './recoverPoiseActions.ts';
 import { parseHealActionSource, type HealActionSource } from './healActions.ts';
 import {
   parseAddEntityControlTagsActionSource,
@@ -242,6 +246,7 @@ import {
   parseUltimateShowActionSource,
   parseVoiceInterruptActionSource,
   parseVoiceTriggerActionSource,
+  parseVoicePlaybackActionSource,
   parseWeaponAnimationActionSource,
   parseWeaponVisibilityActionSource,
   type CameraPresentationActionSource,
@@ -352,6 +357,7 @@ import {
   parseTakeDownActionSource,
   parseTargetHitStopActionSource,
   type StumpControlActionSource,
+  parseBreakoutActionSource,
 } from './stumpControlActions.ts';
 import { parseTagQuerySource, type TagQuerySource } from './tagQuery.ts';
 import { parseTargetReferenceSource, type TargetReferenceSource } from './target.ts';
@@ -398,6 +404,7 @@ const CONDITION_ACTION_NAMES = new Set([
   'Probablity',
   'CheckSkillType',
   'CheckSkillDamageType',
+  'CheckSkillGameplayTag',
   'CheckSkillId',
   'CheckSkillInterruptReason',
   'CheckOriginSkillType',
@@ -447,6 +454,7 @@ const CONDITION_ACTION_NAMES = new Set([
 
 /** 引用闭包需要严格读取的动作身份；集合与分派实现同属公共来源层，调用方不再复制 switch。 */
 const REFERENCE_CLOSURE_ACTION_NAMES = new Set([
+  'TyphoeaArcheryTargetSelect',
   'VulnerableAction',
   'WeakAction',
   'EnhancedAction',
@@ -655,6 +663,7 @@ export type KnownNativeActionLeafSource =
       readonly action: { readonly kind: 'buffModifierRefresh' };
     }
   | { readonly family: 'heal'; readonly action: HealActionSource }
+  | { readonly family: 'recoverPoise'; readonly action: RecoverPoiseActionSource }
   | { readonly family: 'environment'; readonly action: BreakInteractiveActionSource }
   | { readonly family: 'elementalInfliction'; readonly action: ElementalInflictionActionSource }
   | {
@@ -1261,10 +1270,18 @@ export function tryParseKnownNativeActionLeafSource(
         family: 'presentation',
         action: parseModifyWeaponMountPointActionSource(value, path),
       };
+    case 'BreakoutAction':
+      return { family: 'stumpControl', action: parseBreakoutActionSource(value, path) };
     case 'VoiceTriggerAction':
       return {
         family: 'presentation',
         action: parseVoiceTriggerActionSource(value, path),
+      };
+    case 'VoiceTriggerPauseAction':
+    case 'VoiceTriggerResumeAction':
+      return {
+        family: 'presentation',
+        action: parseVoicePlaybackActionSource(value, path, name === 'VoiceTriggerResumeAction'),
       };
     case 'VoiceInterruptAction':
       return {
@@ -1858,6 +1875,11 @@ export function tryParseKnownNativeActionLeafSource(
         family: 'buffTimePause',
         action: parseBuffTimePauseActionSource(value, path),
       };
+    case 'RecoverPoiseAction':
+      return {
+        family: 'recoverPoise',
+        action: parseRecoverPoiseActionSource(value, path, inheritedBlackboard),
+      };
     case 'HealAction':
       return { family: 'heal', action: parseHealActionSource(value, path, inheritedBlackboard) };
     case 'FinishOwnerAction':
@@ -1951,7 +1973,10 @@ export function tryParseKnownNativeActionLeafSource(
     case 'InterruptAction':
       return { family: 'interrupt', action: parseInterruptActionSource(value, path) };
     case 'EnemyHurtAnimAction':
-      return { family: 'stumpControl', action: parseEnemyHurtAnimationActionSource(value, path) };
+      return {
+        family: 'stumpControl',
+        action: parseEnemyHurtAnimationActionSource(value, path),
+      };
     case 'PullAction':
       return { family: 'stumpControl', action: parsePullActionSource(value, path) };
     case 'HitStopAction':

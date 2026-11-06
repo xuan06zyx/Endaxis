@@ -1,4 +1,5 @@
 import type { ProjectileHitParameters } from '../../../../packages/game-data-contract/src/actions';
+import type { CombatFaction } from '../../../../packages/game-data-contract/src/primitives';
 /**
  * 战斗中动态创建的实例数据。
  *
@@ -129,6 +130,9 @@ export function createGlobalBuffState(): GlobalBuffState {
 
 /** Soul 的主体绑定与独立生命账本；主体不是施法来源，也不随控制器重设目标改变。 */
 export interface AbilityEntitySoulState {
+  readonly canBeHitIndividually: boolean;
+  readonly onlyHitByNormalAttack: boolean;
+  readonly halfBlockAngle: number;
   readonly canBeDirectlyBuffed: boolean;
   readonly damageTransferType: 'sharedDamage';
   readonly useMainBodyPoise: boolean;
@@ -161,7 +165,11 @@ export interface LogicalAbilityEntityState {
   readonly source: RuntimeTargetRef;
   readonly sourceSkillCastId?: number;
   target?: RuntimeTargetRef;
+  targets?: readonly RuntimeTargetRef[];
+  allowMultiInputTarget?: boolean;
   readonly dieWhenSourceDies: boolean;
+  /** 出生时登记死亡监听的首个目标，独立于之后可变的 target/targets。 */
+  readonly deathBoundTarget?: RuntimeTargetRef;
   readonly blackboard: ActionBlackboardState;
   /** 出生时实际采用的计时器周期，包含时长覆盖；null 表示无限寿命。赋值不改变周期。 */
   readonly durationPeriodSeconds: number | null;
@@ -203,6 +211,7 @@ export interface ProjectileHitTargets {
 }
 
 export interface ProjectileLifetimeState {
+  readonly faction?: CombatFaction;
   readonly schedule: ProjectileScheduleState;
   /** 回调和时延覆盖沿用发射动作的施法身份。 */
   readonly originCastId?: string;

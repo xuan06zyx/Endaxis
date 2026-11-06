@@ -1,9 +1,12 @@
 import type { CompiledCondition } from '../../compiler/compiledGraphData.ts';
-import { runtimeTargetEntityId } from '../../game-data/logicalAbilityEntity';
+import {
+  firstRuntimeEntityTarget,
+  runtimeTargetEntityId,
+} from '../../game-data/logicalAbilityEntity';
 
 import type { ResolvedCombatStepForKind } from '../../compiler/combatProgram';
 import type { ResolvedCombatOperationStep } from '../../compiler/combatProgram';
-import type { HealCalculationAttribute } from '../../game-data/operatorDefinition';
+import type { MultiplyAttributeCalculationAttribute } from '../../game-data/operatorDefinition';
 import type { CombatReceiptSink } from '../receipt/combatReceipt';
 import { resolveActionValueOperand } from '../actions/actionBlackboard';
 import type { CombatClock } from '../time/combatClock';
@@ -28,13 +31,15 @@ export interface HealOperationDependencies {
   readonly receipt: CombatReceiptSink;
   readonly resolveSourceAttribute: (
     healerId: string,
-    attribute: HealCalculationAttribute,
+    attribute: MultiplyAttributeCalculationAttribute,
   ) => number;
   readonly resolveTargetAttribute?: (
     targetId: string,
-    attribute: HealCalculationAttribute,
+    attribute: MultiplyAttributeCalculationAttribute,
   ) => number;
   readonly queryTargets: NonNullable<CombatOperationExecutor['queryTargets']>;
+  /** 原生 HealAction 检查 alive（死亡标记），不是 HP > 0 或是否在场。 */
+  readonly isTargetAlive: (entityId: string) => boolean;
   /** 只按实例身份取得账本，不在此处重新选择目标。 */
   readonly resolveEntity: (entityId: string) => ResolvedHealTarget;
   readonly applyHealModifiers?: (
@@ -63,10 +68,13 @@ export class HealOperationExecutor implements CombatOperationExecutor {
     for (const receiver of this.dependencies.queryTargets(step.parameters.target, context)) {
       const targetId = runtimeTargetEntityId(receiver);
       if (targetId === undefined) continue;
+      if (!this.dependencies.isTargetAlive(targetId)) continue;
       const healer =
         step.parameters.healer.kind === 'currentTarget'
           ? receiver
-          : this.dependencies.queryTargets(step.parameters.healer, context)[0];
+          : firstRuntimeEntityTarget(
+              this.dependencies.queryTargets(step.parameters.healer, context),
+            );
       const sourceId = healer === undefined ? undefined : runtimeTargetEntityId(healer);
       if (sourceId === undefined) continue;
       this.#heal(step, context, sourceId, this.dependencies.resolveEntity(targetId));
@@ -116,25 +124,26 @@ export class HealOperationExecutor implements CombatOperationExecutor {
     // 乘创建 HealPack 时双方属性快照的 1 + output + taken。
     calculation.value *= 1 + calculation.healerOutputIncrease + calculation.receiverTakenIncrease;
     const requested = Math.max(0, calculation.value);
-    const result = target.vitals.heal(requested);
-    this.dependencies.receipt.record({
-      frame: this.dependencies.clock.frame,
-      time: this.dependencies.clock.time,
-      event: 'HealingApplied',
-      sourceId: healerId,
-      targetId: target.entityId,
-      data: {
-        attribute: attribute ?? 'definite',
-        attributeValue,
-        multiplier,
-        addition,
-        tags: JSON.stringify(step.parameters.tags),
-        requestedHealing: result.requestedHealing,
-        actualHealing: result.actualHealing,
-        overhealing: result.overhealing,
-        previousHealth: result.previousHealth,
-        currentHealth: result.currentHealth,
-      },
+    const result = target.vitals.heal(requested, result => {
+      this.dependencies.receipt.record({
+        frame: this.dependencies.clock.frame,
+        time: this.dependencies.clock.time,
+        event: 'HealingApplied',
+        sourceId: healerId,
+        targetId: target.entityId,
+        data: {
+          attribute: attribute ?? 'definite',
+          attributeValue,
+          multiplier,
+          addition,
+          tags: JSON.stringify(step.parameters.tags),
+          requestedHealing: result.requestedHealing,
+          actualHealing: result.actualHealing,
+          overhealing: result.overhealing,
+          previousHealth: result.previousHealth,
+          currentHealth: result.currentHealth,
+        },
+      });
     });
     const eventBase = {
       sourceId: healerId,
@@ -169,7 +178,10 @@ export class HealOperationExecutor implements CombatOperationExecutor {
     return resolveActionValueOperand(value, context.blackboard);
   }
 
-  #resolveTargetAttribute(targetId: string, attribute: HealCalculationAttribute): number {
+  #resolveTargetAttribute(
+    targetId: string,
+    attribute: MultiplyAttributeCalculationAttribute,
+  ): number {
     const resolve = this.dependencies.resolveTargetAttribute;
     if (resolve === undefined) {
       throw new Error(`heal target attribute '${attribute}' resolver is not configured`);

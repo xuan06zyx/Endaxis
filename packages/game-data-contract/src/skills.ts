@@ -44,6 +44,8 @@ export type AbilityEntityTargetQuery =
 
 /** 各技能宿主共用的动作数据；不包含玩家操作、费用或宿主生命周期。 */
 export interface SkillActionProgramDefinition {
+  /** 技能定义自身的标签，用于当前事件关联技能的精确标签判断。 */
+  skillTags?: readonly GameplayTag[];
   /** 创建时按技能等级解析的动作黑板默认值。 */
   blackboard?: Readonly<Record<string, LevelValues>>;
   /** 按技能局部帧安排的动作序列。 */
@@ -112,6 +114,8 @@ export interface AbilityEntityDefinition {
     readonly useMainBodyHp: boolean;
     readonly useMainBodyPoise: boolean;
     readonly canBeHitIndividually: boolean;
+    /** 部位阻挡半角（度），缺省为 0；木桩投影的方向夹角为 0。 */
+    readonly halfBlockAngle?: number;
     readonly onlyHitByNormalAttack: boolean;
     readonly canBeDirectlyBuffed: boolean;
     /** 排除目标时保留部位自身身份；缺省为原生 false。 */

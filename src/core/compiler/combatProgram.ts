@@ -28,7 +28,7 @@ import type {
   DamageTag,
   DamageType,
   ElementalReaction,
-  HealCalculationAttribute,
+  MultiplyAttributeCalculationAttribute,
   OperatorAttribute,
   SkillBuffAbilityEventResponse,
   SkillBuffDefinition,
@@ -106,6 +106,7 @@ export type ResolvedSkillBuffDefinition = Omit<
 
 /** 各宿主共用、等级已经展开的动作数据，不附带施法或对象身份。 */
 export interface CompiledSkillActionProgram {
+  readonly skillTags?: SkillDefinition['skillTags'];
   readonly element?: DamageElement;
   readonly initialBlackboard: Readonly<Record<string, number>>;
   readonly timelineActions: readonly CompiledTimelineAction[];
@@ -147,12 +148,18 @@ export interface ResolvedCombatStepParameters {
   findTargets: CompiledStepParameters['findTargets'];
   mergeContextTargets: CompiledStepParameters['mergeContextTargets'];
   findCharacterTeamTargets: CompiledStepParameters['findCharacterTeamTargets'];
+  blowOffEnemy: CompiledStepParameters['blowOffEnemy'];
+  exitControlledState: CompiledStepParameters['exitControlledState'];
+  pushBack: CompiledStepParameters['pushBack'];
+  pull: CompiledStepParameters['pull'];
+  saveTargetDistance: CompiledStepParameters['saveTargetDistance'];
   createSpatialPointTargets: CompiledStepParameters['createSpatialPointTargets'];
   findOwnerSpawnedAbilityEntities: CompiledStepParameters['findOwnerSpawnedAbilityEntities'];
   pickContextTarget: CompiledStepParameters['pickContextTarget'];
   saveTransferredSource: CompiledStepParameters['saveTransferredSource'];
   forEachContextTarget: CompiledStepParameters['forEachContextTarget'];
   setAbilityEntityRemainingDuration: CompiledStepParameters['setAbilityEntityRemainingDuration'];
+  setAbilityEntityTarget: CompiledStepParameters['setAbilityEntityTarget'];
   finishOwner: CompiledStepParameters['finishOwner'];
   interruptCurrentSkill: CompiledStepParameters['interruptCurrentSkill'];
   startCurrentAbilityEntityChildSkillById: CompiledStepParameters['startCurrentAbilityEntityChildSkillById'];
@@ -204,7 +211,27 @@ export interface ResolvedCombatStepParameters {
     tags: readonly GameplayTag[];
   } & (
     | {
-        attribute: HealCalculationAttribute;
+        attribute: CompiledStepParameters['heal']['attribute'] & string;
+        attributeSource?: 'target';
+        multiplier: number | CompiledValueInput;
+        addition: number | CompiledValueInput;
+        amount?: never;
+      }
+    | {
+        amount: number | CompiledValueInput;
+        attribute?: never;
+        multiplier?: never;
+        addition?: never;
+      }
+  );
+  /** 原生 RecoverPoiseAction：恢复失衡值，不执行生命治疗修正与事件。 */
+  recoverPoise: {
+    target: CompiledStepParameters['recoverPoise']['target'];
+    healer: CompiledStepParameters['recoverPoise']['healer'];
+    alwaysNext?: boolean;
+  } & (
+    | {
+        attribute: MultiplyAttributeCalculationAttribute;
         attributeSource?: 'target';
         multiplier: number | CompiledValueInput;
         addition: number | CompiledValueInput;
@@ -290,6 +317,7 @@ export interface ResolvedCombatStepParameters {
   gainSquadUltimateEnergyFromSkillCost: { coefficient: number };
   gainFinisherSp: CompiledStepParameters['gainFinisherSp'];
   disableNormalSkill: CompiledStepParameters['disableNormalSkill'];
+  boneAttach: CompiledStepParameters['boneAttach'];
   limitMovementGait: CompiledStepParameters['limitMovementGait'];
   queueComboLock: CompiledStepParameters['queueComboLock'];
   restrictUltimateEnergyRecovery: Omit<
@@ -322,8 +350,10 @@ export interface ResolvedCombatStepParameters {
   overrideMultiDashLimit: CompiledStepParameters['overrideMultiDashLimit'];
   changePlayerActionMode: CompiledStepParameters['changePlayerActionMode'];
   changeNativeSkillType: CompiledStepParameters['changeNativeSkillType'];
+  setCountShieldUi: CompiledStepParameters['setCountShieldUi'];
   setCharacterPassiveUiValue: CompiledStepParameters['setCharacterPassiveUiValue'];
   inheritSkillCastInfoForBasicAttack: CompiledStepParameters['inheritSkillCastInfoForBasicAttack'];
+  startTyphoeaArchery: CompiledStepParameters['startTyphoeaArchery'];
   castSkillDuringAction: CompiledStepParameters['castSkillDuringAction'];
   listenForCombatEvents: {
     responses: readonly {
@@ -410,12 +440,18 @@ export const COMBAT_STEP_EXECUTION_ROUTES = {
   findTargets: 'operation',
   mergeContextTargets: 'operation',
   findCharacterTeamTargets: 'operation',
+  blowOffEnemy: 'operation',
+  exitControlledState: 'operation',
+  pushBack: 'operation',
+  pull: 'operation',
+  saveTargetDistance: 'operation',
   createSpatialPointTargets: 'operation',
   findOwnerSpawnedAbilityEntities: 'operation',
   pickContextTarget: 'operation',
   saveTransferredSource: 'operation',
   forEachContextTarget: 'sequence',
   setAbilityEntityRemainingDuration: 'operation',
+  setAbilityEntityTarget: 'operation',
   finishOwner: 'operation',
   interruptCurrentSkill: 'operation',
   startCurrentAbilityEntityChildSkillById: 'operation',
@@ -431,6 +467,7 @@ export const COMBAT_STEP_EXECUTION_ROUTES = {
   dealDamage: 'operation',
   dealStagger: 'operation',
   heal: 'operation',
+  recoverPoise: 'operation',
   aura: 'sequence',
   applyBuff: 'operation',
   createGlobalBuff: 'operation',
@@ -456,6 +493,7 @@ export const COMBAT_STEP_EXECUTION_ROUTES = {
   holdBuffsById: 'operation',
   inheritBuffById: 'operation',
   disableNormalSkill: 'operation',
+  boneAttach: 'operation',
   limitMovementGait: 'operation',
   queueComboLock: 'operation',
   restrictUltimateEnergyRecovery: 'operation',
@@ -514,8 +552,10 @@ export const COMBAT_STEP_EXECUTION_ROUTES = {
   overrideMultiDashLimit: 'operation',
   changePlayerActionMode: 'operation',
   changeNativeSkillType: 'operation',
+  setCountShieldUi: 'operation',
   setCharacterPassiveUiValue: 'operation',
   inheritSkillCastInfoForBasicAttack: 'operation',
+  startTyphoeaArchery: 'operation',
   listenForCombatEvents: 'sequence',
   listenForTagQuery: 'sequence',
 } as const satisfies Record<CombatStepKind, 'sequence' | 'operation'>;
@@ -559,6 +599,7 @@ export interface CompiledOperatorPassiveProgram {
 
 /** 构筑启用的养成初始化程序；由战斗装配层执行一次，不伪装成被动技能。 */
 export interface CompiledOperatorInitializationProgram {
+  readonly sourceKind?: 'scenarioMechanic';
   readonly key: string;
   /** 本干员 equipmentContributions 内的实例索引（同定义装备也隔离）；直接养成初始化无此所有者。 */
   readonly equipmentContributionIndex?: number;

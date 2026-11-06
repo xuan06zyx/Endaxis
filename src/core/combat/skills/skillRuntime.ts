@@ -1,3 +1,4 @@
+import type { BuffFinishContext } from '../buffs/combatBuffs';
 import type { ProjectileLaunchSchedule } from '../../../../packages/game-data-contract/src/projectileSchedule';
 import type { ResolvedCombatStepForKind } from '../../compiler/combatProgram';
 
@@ -18,7 +19,11 @@ import type { DamageModifierConditionInput } from '../damage/damageModifiers';
 import type { PoiseModifierConditionInput } from '../damage/poiseModifiers';
 import type { HealModifierConditionInput } from '../heal/healModifiers';
 import type { CombatObjectRef } from '../receipt/combatReceipt';
-import type { ActionBuffReferencesState, ActionRegistrationState } from '../state/actionState';
+import type {
+  BoneAttachState,
+  ActionBuffReferencesState,
+  ActionRegistrationState,
+} from '../state/actionState';
 import type { ActionBlackboardState } from '../state/foundationState';
 import type { TimelineActionProcessor } from '../timeline/timelineActionProcessor';
 import type { ComboWindowRuntime } from './comboWindowRuntime';
@@ -51,6 +56,7 @@ import {
 
 /** 发射动作只提交一次请求；回调技能及其宿主都归该投射物持有。 */
 export type LaunchProjectile = (request: {
+  readonly faction?: ResolvedCombatStepForKind<'launchProjectile'>['parameters']['faction'];
   readonly schedule: ProjectileLaunchSchedule;
 
   readonly entityBlackboard: ActionBlackboardState;
@@ -121,6 +127,8 @@ export interface RuntimeSkillTransition {
 
 /** 技能运行时把普通操作和条件判断委托给战斗装配层的端口。 */
 export interface CombatOperationContext {
+  /** 仅 Buff 结束动作及其同步子调用读取，不是能力事件。 */
+  readonly buffFinishContext?: BuffFinishContext;
   /** 当前 Buff 环境保存的部件转交信息；事件信息在求值时优先合并。 */
   readonly partTransferInfo?: EnemyPartTransferInfo;
   /** 执行动作的技能配置属性，不代表当前命中的属性。 */
@@ -130,6 +138,7 @@ export interface CombatOperationContext {
   /** 仅在执行持有登记的步骤时挂接，实际数据由动作树持有。 */
   actionRegistrationState?: ActionRegistrationState;
   actionBuffReferencesState?: ActionBuffReferencesState;
+  boneAttachState?: BoneAttachState;
   /** 三类结算互斥的临时上下文；不冒充能力事件，也不覆盖 Buff 的来源身份。 */
   readonly modifierContext?:
     | {
@@ -153,8 +162,8 @@ export interface CombatOperationContext {
   readonly damageCalculationSnapshots?: DamageCalculationSnapshots;
   /** 只有读取或写入原生 Context 目标组的步骤才要求存在。 */
   readonly targetContext?: RuntimeTargetContext;
-  /** 原生 InputTarget；技能保存施放目标，事件响应临时绑定事件目标，二者不能混用。 */
-  readonly actionInputTarget?: RuntimeTargetRef;
+  /** 原生 InputTarget 集合；技能保存施放目标，事件临时替换输入，首目标由集合读取。 */
+  readonly actionInputTargets?: readonly RuntimeTargetRef[];
   /** 当前动作的单个目标，由目标遍历或修正器条件调用绑定；退出调用后恢复。 */
   readonly currentTarget?: RuntimeTargetRef;
   /** 能力实体子技能的稳定 ActionOwner；内层 forEach 不得覆盖。 */
@@ -243,6 +252,8 @@ export interface CombatOperationContext {
 }
 
 export interface CombatOperationExecutor {
+  /** Channeling 的计数身份；执行子动作仍使用实际命中目标。 */
+  readonly channelingCountTarget?: (target: RuntimeTargetRef) => RuntimeTargetRef;
   readonly ownerTagQuery?: (context: CombatOperationContext) => {
     observe(changed: () => void): () => void;
     matches(
@@ -455,8 +466,8 @@ export class SkillRuntime {
         restored?.state.damageSnapshots,
       ),
       targetContext: this.#targetContext,
-      get actionInputTarget() {
-        return runtime.#execution.inputTarget ?? undefined;
+      get actionInputTargets() {
+        return runtime.#execution.inputTargets;
       },
       actionOwnerId: this.#hostIdentity.actionOwnerId,
       actionSourceId: this.#hostIdentity.actionSourceId,
@@ -713,6 +724,7 @@ export class SkillRuntime {
     return {
       skillCastId: this.#execution.skillCastId,
       originSkillId: origin?.originSkillId ?? this.#program.skillId,
+      originSkillTags: origin === undefined ? this.#program.skillTags : origin.originSkillTags,
       originSkillType: origin?.originSkillType ?? this.#program.skillType,
       ...(origin?.originCastId !== undefined
         ? { originCastId: origin.originCastId }
@@ -764,6 +776,8 @@ export class SkillRuntime {
   prepareCastInput(input: {
     readonly skipApplyCost: boolean;
     readonly inputTarget?: RuntimeTargetRef | null;
+    readonly inputTargets?: readonly RuntimeTargetRef[];
+    readonly allowMultiInputTarget?: boolean;
     readonly inheritedSkillCastInfo?: CombatSkillCastInfo;
     readonly producedBy?: CombatObjectRef;
   }): void {
@@ -779,8 +793,10 @@ export class SkillRuntime {
       this.#execution.preparedSkillCastId = inherited.skillCastId;
     }
     this.#execution.preparedSkipApplyCost = input.skipApplyCost;
-    this.#execution.preparedInputTarget =
-      input.inputTarget == null ? input.inputTarget : { ...input.inputTarget };
+    const targets = input.inputTargets ?? (input.inputTarget == null ? [] : [input.inputTarget]);
+    this.#execution.preparedInputTargets = (
+      input.allowMultiInputTarget ? targets : targets.slice(0, 1)
+    ).map(target => ({ ...target }));
     this.#execution.preparedProducer = input.producedBy;
   }
 
@@ -932,7 +948,7 @@ export class SkillRuntime {
     this.#execution.preparedStartBlackboard = {};
     this.runtimeState.timeline = this.#timeline.runtimeState;
     // Reset 也可能读取动作输入；旧技能已结束，此处才切换到新请求的目标。
-    this.#execution.inputTarget = this.#execution.preparedInputTarget;
+    this.#execution.inputTargets = this.#execution.preparedInputTargets;
     this.#operationContext.damageCalculationSnapshots!.clear();
     this.#timeline.reset(this.#context);
     beginSkillCast(this.#execution, this.#dependencies.clock.frame, () =>
@@ -1230,6 +1246,7 @@ export class SkillRuntime {
       sourceId: this.#hostIdentity.eventSourceId,
       targetId: this.#hostIdentity.eventSourceId,
       element: this.#program.element,
+      skillTags: this.#program.skillTags,
       skillType: this.#program.skillType,
       skillId: this.#program.executionSkillId ?? this.#program.skillId,
       skillCastId: this.#execution.skillCastId,

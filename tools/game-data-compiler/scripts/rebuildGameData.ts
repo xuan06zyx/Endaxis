@@ -31,6 +31,7 @@ import { generateSkillSettingCatalog } from './generateSkillSettingCatalog.ts';
 import { formatGeneratedCandidate } from '../src/compiler/publication/formatGeneratedSource.ts';
 import { generateGlobalBuffCatalog } from './generateGlobalBuffCatalog.ts';
 import { generateContingencyContractLocales } from './generateContingencyContractLocales.ts';
+import { generateContingencyContractShareLayouts } from './generateContingencyContractShareLayouts.ts';
 import { generateCombatDefinitionCandidates } from './generateCombatDefinitionCandidates.ts';
 import { requireArray, requireNonEmptyString, requireRecord } from '../src/source/primitives.ts';
 import { typeCheckCandidateOverlay } from '../src/compiler/publication/candidateTypeCheck.ts';
@@ -55,6 +56,7 @@ import {
 
 const PROJECT_ROOT = path.resolve(import.meta.dirname, '../../..');
 const CONTINGENCY_CONTRACT_OUTPUTS = [
+  'src/data/contingencyContract/shareLayouts.generated.ts',
   'src/data/contingencyContract/generated',
   'public/contingency_contract',
   ...['zh', 'en'].map(locale => `src/i18n/game-locales/${locale}/contingency-contracts.json`),
@@ -310,6 +312,7 @@ export async function rebuildGameData(args: RebuildArguments, projectRoot = PROJ
                 'tools/game-data-compiler/config/enemies/hidden-enemies.json',
               ),
               outputDirectory: path.join(candidateRoot, relativeOutput),
+              localeDirectory: path.join(candidateRoot, 'src/i18n/game-locales'),
               buffDirectory: path.join(sourceRoot, 'BuffData'),
               spawnerDirectory: path.join(sourceRoot, 'SpawnerConfig'),
               check: false,
@@ -577,6 +580,12 @@ export async function rebuildGameData(args: RebuildArguments, projectRoot = PROJ
             };
             const generated = await generateCombatDefinitionCandidates(input);
             await generateCombatDefinitionCandidates({ ...input, check: true });
+            if (!args.skipContingencyContract) {
+              await generateContingencyContractShareLayouts(
+                input.tableRoot,
+                path.join(candidateRoot, 'src/data/contingencyContract/shareLayouts.generated.ts'),
+              );
+            }
             return {
               ...generated,
               deterministicCheck: 'passed',

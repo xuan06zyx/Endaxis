@@ -34,6 +34,7 @@ import {
 } from './scalar.ts';
 import {
   parseTagIdsSource,
+  parseGameplayTagListSource,
   parseTagQuerySource,
   projectNativeTagQueryType,
   type TagQueryType,
@@ -257,6 +258,11 @@ export type NativeConditionSource =
       readonly kind: 'objectTypeMatch';
       readonly target: TargetReferenceSource;
       readonly objectTypeMask: string | number;
+    })
+  | (ConditionIdentity & {
+      readonly kind: 'skillGameplayTag';
+      readonly queryType: TagQueryType;
+      readonly tagIds: readonly number[];
     })
   | (ConditionIdentity & {
       readonly kind: 'skillDamageType';
@@ -823,7 +829,7 @@ export function parseConditionLeafSource(
       return parseTagBuffStack(condition, path, sourceType, inheritedBlackboard);
     case 'CheckTagMatch':
     // CheckPartTagMatch 直接检查句柄指向的实体；保留 sourceType，不能在来源层
-    // 将其改成主体查询。当前 entityTag 投影检查实际目标自身的标签。
+    // 将其改成主体查询；投影用 checkPartTags 区分普通标签查询的部位转发。
     case 'CheckPartTagMatch':
       return parseEntityTag(condition, path, sourceType);
     case 'CheckTimedMarkerCondition':
@@ -835,6 +841,26 @@ export function parseConditionLeafSource(
         kind: 'probability',
         sourceType,
         value: parseScalarSource(condition.prob, `${path}.prob`, inheritedBlackboard),
+      };
+    case 'CheckSkillGameplayTag':
+      requireExactFields(
+        condition,
+        new Set([
+          '$type',
+          'isEnable',
+          'priorityLevel',
+          'priorityOffset',
+          'serverActionIndex',
+          'checkType',
+          'gameplayTagList',
+        ]),
+        path,
+      );
+      return {
+        kind: 'skillGameplayTag',
+        sourceType,
+        queryType: projectNativeTagQueryType(condition.checkType, `${path}.checkType`),
+        tagIds: parseGameplayTagListSource(condition.gameplayTagList, `${path}.gameplayTagList`),
       };
     case 'CheckSkillDamageType':
       requireExactFields(

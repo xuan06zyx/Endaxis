@@ -1,3 +1,8 @@
+import { projectBuffIconTimelineMetadata } from '../../../core/projection/buffTimelineViz';
+import { projectBuffDamageDisplayOwners } from '../../../core/projection/enemyEffectViz';
+import { projectEnemyEffectViz } from '../../../core/projection/enemyEffectViz';
+import { layoutEnemyDamageHits } from '../../../ui/timeline/results/enemyDamageHitLayout';
+import { firstScenarioEnemy } from '../../../core/project/level';
 import { skillFixture, type SkillFixtureProperties } from '../../../test/skillFixture';
 import type { SkillDefinition } from '../../../../packages/game-data-contract/src/skills.ts';
 import { describe, expect, it } from 'vitest';
@@ -404,8 +409,8 @@ it('梨诺战技接连携保留演唱，转入终结技时结束演唱且导电�
 
 it('真实失衡资格优先选出处决，命中消费后仍失衡但可以普攻', async () => {
   const scenario = createEmptyScenario('finisher-selection', 'finisher');
-  scenario.enemy.editable.stagger.maximum = 1;
-  scenario.enemy.editable.stagger.brokenDurationFrames = 1200;
+  firstScenarioEnemy(scenario).enemy.editable.stagger.maximum = 1;
+  firstScenarioEnemy(scenario).enemy.editable.stagger.brokenDurationFrames = 1200;
   scenario.tracks[0] = {
     id: 'perlica',
     operator: {
@@ -500,6 +505,127 @@ function numberedPlacementIds(prefix: string) {
 }
 
 describe('registered generated operators', () => {
+  it('明河施加殷雷后，终结技猛击引爆并产生伤害', () => {
+    const operator = gameDataRepository.getOperator('minghe')!;
+    let scenario = createEmptyScenario('scenario:minghe-thunder', '明河殷雷');
+    scenario.battle.durationFrames = 900;
+    scenario.tracks[0] = {
+      id: 'track:minghe',
+      operator: createDefaultOperatorInstance(operator),
+      weapon: null,
+      gears: { armor: null, gloves: null, accessory1: null, accessory2: null },
+      initialState: { ultimateEnergy: 0 },
+      skillCasts: [],
+    };
+    const ids = numberedPlacementIds('minghe-thunder');
+    for (const [skillGroupKey, skillKey, startFrame] of [
+      ['battleSkill', 'chr_0037_minghe_normalskill_1', 1],
+      ['comboSkill', 'chr_0037_minghe_combo_skill', 120],
+      ['battleSkill', 'chr_0037_minghe_normalskill_2', 240],
+      ['ultimate', 'chr_0037_minghe_ultimate_skill', 450],
+    ] as const) {
+      scenario = placeSkillGroup({
+        scenario,
+        trackIndex: 0,
+        operator,
+        skillGroupKey,
+        skillKey,
+        startFrame,
+        ids,
+      }).scenario;
+    }
+    const session = createEditorSimulationService().createCombatSession(scenario);
+    session.advanceToFrame(400);
+    const restored = session.fork(session.runtime.save());
+    session.advanceToFrame(900);
+    restored.advanceToFrame(900);
+    const entries = session.collectResult().receiptEntries;
+    expect(
+      entries.filter(entry => entry.event === 'BuffApplied').map(entry => entry.data?.buffId),
+    ).toContain('buff_chr_0037_minghe_thundertrigger');
+    const explosions = entries.filter(
+      entry =>
+        entry.event === 'DamageApplied' &&
+        String(entry.data?.stepKey).includes('chr_0037_minghe_specialfracture_thunderskill'),
+    );
+    expect(explosions).toHaveLength(1);
+    expect(explosions[0]!.data?.value).toBeGreaterThan(0);
+    const segments = projectBuffIconTimelineMetadata(entries, 900);
+    const owners = projectBuffDamageDisplayOwners(entries, segments);
+    const owner = owners[explosions[0]!.sequence];
+    expect(owner?.buffId).toBe('buff_chr_0037_minghe_thundertrigger');
+    expect(owner!.endFrame).toBeLessThan(explosions[0]!.frame);
+    expect(projectTimelineHitOccurrences(entries).has('upgrade-initialization:talent:0')).toBe(
+      false,
+    );
+    expect(projectEnemyEffectViz(entries, 900).damageHits).toContain(explosions[0]);
+    const marker = layoutEnemyDamageHits(entries, segments, [], new Set(), segments, owners).find(
+      marker => marker.group.includes(explosions[0]!),
+    );
+    expect(marker).toBeDefined();
+    expect(marker!.standalone).toBe(false);
+    const restoredExplosions = restored
+      .collectResult()
+      .receiptEntries.filter(
+        entry =>
+          entry.event === 'DamageApplied' &&
+          String(entry.data?.stepKey).includes('chr_0037_minghe_specialfracture_thunderskill'),
+      );
+    expect(
+      restoredExplosions.map(entry => ({
+        frame: entry.frame,
+        targetId: entry.targetId,
+        data: entry.data,
+      })),
+    ).toEqual(
+      explosions.map(entry => ({ frame: entry.frame, targetId: entry.targetId, data: entry.data })),
+    );
+  });
+
+  it.each(['basicAttack', 'battleSkill', 'comboSkill', 'ultimate'] as const)(
+    '明河 %s 产生伤害且切面恢复不改变结果',
+    skillGroupKey => {
+      const operator = gameDataRepository.getOperator('minghe')!;
+      const scenario = createEmptyScenario('scenario:minghe', '明河');
+      scenario.battle.durationFrames = 600;
+      scenario.tracks[0] = {
+        id: 'track:minghe',
+        operator: createDefaultOperatorInstance(operator),
+        weapon: null,
+        gears: { armor: null, gloves: null, accessory1: null, accessory2: null },
+        initialState: { ultimateEnergy: 0 },
+        skillCasts: [],
+      };
+      const placed = placeSkillGroup({
+        scenario,
+        trackIndex: 0,
+        operator,
+        skillGroupKey,
+        startFrame: 1,
+        ids: numberedPlacementIds('minghe'),
+      }).scenario;
+      const session = createEditorSimulationService().createCombatSession(placed);
+      session.advanceToFrame(70);
+      const restored = session.fork(session.runtime.save());
+      session.advanceToFrame(600);
+      restored.advanceToFrame(600);
+      const result = session.collectResult();
+      expect(restored.collectResult()).toEqual(result);
+      expect(
+        result.receiptEntries.some(
+          entry => entry.event === 'DamageApplied' && entry.sourceId === 'track:minghe',
+        ),
+      ).toBe(true);
+      if (skillGroupKey === 'battleSkill') {
+        const started = result.receiptEntries
+          .filter(entry => entry.event === 'SkillStarted')
+          .map(entry => entry.data?.skillId);
+        expect(started).toContain('chr_0037_minghe_normalskill_1');
+        expect(started).toContain('chr_0037_minghe_normalskill_2');
+      }
+    },
+  );
+
   it.each(['battleSkill', 'comboSkill', 'ultimate'] as const)(
     '噗切娜 %s 的专属行为可经页面模拟入口执行',
     async skillGroupKey => {
@@ -792,7 +918,7 @@ describe('registered generated operators', () => {
   it('runs Liino combo end custom event through the native deferred-cast slot', () => {
     const scenario = createEmptyScenario('scenario:liino:deferred-combo', '梨诺连携延迟施法回归');
     scenario.battle.durationFrames = 120;
-    scenario.enemy.editable.hp = 10_000_000;
+    firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
     scenario.tracks[0] = {
       id: 'track:liino',
       operator: {
@@ -865,7 +991,7 @@ describe('registered generated operators', () => {
       // CreateBuff must not recursively restart the completed native guard.
       const scenario = createEmptyScenario('scenario:liino:ultimate', '梨诺终结技生产回归');
       scenario.battle.durationFrames = 650;
-      scenario.enemy.editable.hp = 10_000_000;
+      firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
       scenario.tracks[0] = {
         id: 'track:liino',
         operator: {
@@ -977,7 +1103,7 @@ describe('registered generated operators', () => {
         'Ardelia 潜能一生产回归',
       );
       scenario.battle.durationFrames = 80;
-      scenario.enemy.editable.hp = 10_000_000;
+      firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
       scenario.tracks[0] = {
         id: 'track:ardelia',
         operator: {
@@ -1060,7 +1186,7 @@ describe('registered generated operators', () => {
         'Catcher 潜能一生产回归',
       );
       scenario.battle.durationFrames = 150;
-      scenario.enemy.editable.hp = 10_000_000;
+      firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
       scenario.tracks[0] = {
         id: 'track:catcher',
         operator: {
@@ -1130,7 +1256,7 @@ describe('registered generated operators', () => {
   it('runs Avywenna ultimate block callback, lance spawn, and direct hit through production', () => {
     const scenario = createEmptyScenario('scenario:avywenna:ultimate', 'Avywenna 终结技生产回归');
     scenario.battle.durationFrames = 90;
-    scenario.enemy.editable.hp = 10_000_000;
+    firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
     scenario.tracks[0] = {
       id: 'track:avywenna:ultimate',
       operator: {
@@ -1208,7 +1334,7 @@ describe('registered generated operators', () => {
   it('runs Avywenna combo-lance return callbacks through the compiled production skill', () => {
     let scenario = createEmptyScenario('scenario:avywenna:return', 'Avywenna 回枪生产回归');
     scenario.battle.durationFrames = 120;
-    scenario.enemy.editable.hp = 10_000_000;
+    firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
     scenario.tracks[0] = {
       id: 'track:avywenna:return',
       operator: {
@@ -1338,7 +1464,7 @@ describe('registered generated operators', () => {
     const run = (withUltimate: boolean) => {
       const scenario = createEmptyScenario(`scenario:xaihi:${withUltimate}`, '熙海终结技增幅回归');
       scenario.battle.durationFrames = 180;
-      scenario.enemy.editable.hp = 10_000_000;
+      firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
       scenario.tracks[0] = {
         id: 'track:xaihi',
         operator: {
@@ -1421,7 +1547,7 @@ describe('registered generated operators', () => {
       '赛希支援晶体连携窗口回归',
     );
     scenario.battle.durationFrames = 180;
-    scenario.enemy.editable.hp = 10_000_000;
+    firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
     scenario.tracks[0] = {
       id: 'track:xaihi:crystal-combo-window',
       operator: {
@@ -1512,7 +1638,7 @@ describe('registered generated operators', () => {
     const run = (talentLevel: number) => {
       const scenario = createEmptyScenario(`scenario:dapan:${talentLevel}`, '大潘压制天赋回归');
       scenario.battle.durationFrames = 660;
-      scenario.enemy.editable.hp = 10_000_000;
+      firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
       scenario.tracks[0] = {
         id: 'track:dapan',
         operator: {
@@ -1703,7 +1829,7 @@ describe('registered generated operators', () => {
         '莱万汀天赋一默认仓库回归',
       );
       scenario.battle.durationFrames = 180;
-      scenario.enemy.editable.resistances.heat = 50;
+      firstScenarioEnemy(scenario).enemy.editable.resistances.heat = 50;
       scenario.tracks[0] = {
         id: 'track:laevatain',
         operator: {
@@ -1943,7 +2069,7 @@ describe('registered generated operators', () => {
   it('runs all four Fluorite ultimate projectile hits with the native per-target marker', () => {
     const scenario = createEmptyScenario('scenario:fluorite:ultimate', '萤石终结技完整回归');
     scenario.battle.durationFrames = 120;
-    scenario.enemy.editable.hp = 10_000_000;
+    firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
     scenario.tracks[0] = {
       id: 'track:fluorite',
       operator: {
@@ -2256,7 +2382,7 @@ describe('registered generated operators', () => {
         '卡米拉曜夜治疗增伤生产回归',
       );
       scenario.battle.durationFrames = 300;
-      scenario.enemy.editable.hp = 10_000_000;
+      firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
       scenario.tracks[0] = {
         id: 'track:camille',
         operator: {
@@ -2647,7 +2773,7 @@ describe('registered generated operators', () => {
       '庄方宜普攻独立输入回归',
     );
     scenario.battle.durationFrames = 60;
-    scenario.enemy.editable.hp = 10_000_000;
+    firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
     scenario.tracks[0] = {
       id: 'track:zhuang-fangyi',
       operator: {
@@ -2821,7 +2947,7 @@ describe('registered generated operators', () => {
       '庄方宜强化普攻命中回归',
     );
     scenario.battle.durationFrames = 90;
-    scenario.enemy.editable.hp = 10_000_000;
+    firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
     scenario.tracks[0] = {
       id: 'track:zhuang-fangyi',
       operator: {
@@ -2906,7 +3032,7 @@ describe('registered generated operators', () => {
         initialSp: 100,
         spRecoveryPerSecond: 0,
       };
-      scenario.enemy.editable.hp = 10_000_000;
+      firstScenarioEnemy(scenario).enemy.editable.hp = 10_000_000;
       scenario.tracks[0] = {
         id: 'track:zhuang-fangyi',
         operator: {

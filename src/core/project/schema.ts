@@ -1,3 +1,5 @@
+import type { StageEnemyIdentity } from '../../../packages/game-data-contract/src/enemies';
+export type { StageEnemyIdentity } from '../../../packages/game-data-contract/src/enemies';
 import type { SkillBuffDefinition } from '../../../packages/game-data-contract/src/buffs';
 import type { SimulationRandomMode } from '../combat/random/simulationRandom';
 import type { GlobalEffectDefinition } from '../game-data/globalEffectDefinition';
@@ -22,7 +24,7 @@ import type {
 } from '../game-data/equipmentDefinition';
 
 export const PROJECT_KIND = 'EndaxisProject' as const;
-export const PROJECT_SCHEMA_VERSION = 1 as const;
+export const PROJECT_SCHEMA_VERSION = 3 as const;
 export const PROJECT_FPS = 30 as const;
 
 /** 存档 JSON 相关结构定义 */
@@ -249,15 +251,13 @@ export interface EnemyEditableValues {
   stagger: EnemyStaggerEditableValues;
 }
 
-/** 原生关卡与敌人条目身份；模板 ID 用于基础资料查询，不包含刷怪配置哈希。 */
-export interface StageEnemyIdentity {
-  stageId: string;
-  enemyId: string;
-  templateId: string;
-}
-
-/** 场景中的敌人：基础预制体、原生关卡敌人，或自定义配置；均保存完整数值。 */
+/** 场景中的敌人：基础预制体、原生关卡敌人，或自定义配置；均保存基础数值。 */
 export interface EnemyDocument {
+  /** 引用出生规则；editable 始终保存基础属性，结算值只在运行时派生。 */
+  birthEffects?: {
+    /** 显式启用的出生效果键；空列表表示全部关闭，读取时不合并定义默认项。 */
+    enabledBuffs: string[];
+  };
   source:
     | { kind: 'prefab'; enemyId: string; level: number }
     | ({ kind: 'stage'; level: number } & StageEnemyIdentity)
@@ -265,6 +265,27 @@ export interface EnemyDocument {
   /** 场景实例捕获的原生战斗等级；运行时不回查敌人定义。 */
   rank: EnemyRank;
   editable: EnemyEditableValues;
+  /** 省略时模拟开始即存在，全程在场，不设手动死亡时间。 */
+  lifecycle?: EnemyLifecycleDocument;
+}
+
+/** 关卡中的敌人实例，身份不随轨道顺序改变。 */
+export interface EnemyInstanceDocument {
+  id: string;
+  name?: string;
+  enemy: EnemyDocument;
+}
+
+/** 关卡类型同时决定敌人配置与编辑视图。 */
+export type LevelDocument =
+  | { kind: 'singleEnemy'; enemy: EnemyInstanceDocument }
+  | { kind: 'multiEnemies'; enemies: EnemyInstanceDocument[] };
+
+/** 敌人时间线输入；手动死亡时间在自动死亡开启期间仍保存。 */
+export interface EnemyLifecycleDocument {
+  spawnFrame: number;
+  presenceChanges: { id: string; frame: number; present: boolean }[];
+  deathFrame?: number;
 }
 
 /** 循环分界线 */
@@ -311,6 +332,9 @@ export interface DodgeMarkerDocument {
 
 /** 一次模拟的时间范围、共享资源规则与控制事件。敌人失衡规则归敌人实例所有。 */
 export interface BattleDocument {
+  enemyTargetSwitches?: { id: string; frame: number; targetId: string }[];
+  /** 省略/关闭时维持木桩规则，死亡只能由敌人的手动死亡时间触发。 */
+  enemyAutomaticDeath?: boolean;
   /** 法术爆发、物理异常的逐次命中覆盖，与技能块本身的覆盖分开。 */
   reactionCriticalOverrides?: Record<string, boolean>;
   prepFrames: number;
@@ -399,7 +423,7 @@ export interface ScenarioDocument {
   inheritance?: ScenarioInheritanceDocument;
   tracks: TrackListDocument;
   connections: ConnectionDocument[];
-  enemy: EnemyDocument;
+  level: LevelDocument;
   battle: BattleDocument;
   mechanics: ScenarioMechanicsDocument;
   globalConfig: GlobalConfigDocument;

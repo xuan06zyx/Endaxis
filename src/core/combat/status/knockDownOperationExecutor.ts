@@ -1,4 +1,8 @@
-import { runtimeTargetEntityId, type RuntimeTargetRef } from '../../game-data/logicalAbilityEntity';
+import {
+  firstRuntimeEntityTarget,
+  runtimeTargetEntityId,
+  type RuntimeTargetRef,
+} from '../../game-data/logicalAbilityEntity';
 import {
   PHYSICAL_NO_GUARD_BUFF as NO_GUARD,
   PHYSICAL_INFLICTION_BUFFS,
@@ -46,6 +50,7 @@ export interface KnockDownTargetBinding {
 export interface KnockDownOperationDependencies {
   readonly queryTargets: NonNullable<CombatOperationExecutor['queryTargets']>;
   readonly resolveTarget: (target: RuntimeTargetRef) => KnockDownTargetBinding | undefined;
+  readonly exitOwnerControl?: (ownerId: string) => void;
   readonly predefine: GameplayTagPredefine;
   readonly readSourceDurationAddition: (sourceId: string) => number;
   readonly resolveBuffDefinition: (id: string) => ResolvedSkillBuffDefinition | undefined;
@@ -68,11 +73,17 @@ export class KnockDownOperationExecutor implements CombatOperationExecutor {
   constructor(readonly dependencies: KnockDownOperationDependencies) {}
 
   execute(step: ResolvedCombatOperationStep, context?: CombatOperationContext): boolean {
+    if (step.kind === 'exitControlledState') {
+      if (!context?.actionOwnerId || !this.dependencies.exitOwnerControl)
+        throw new Error('controlled-state exit requires an owner control binding');
+      this.dependencies.exitOwnerControl(context.actionOwnerId);
+      return true;
+    }
     if (step.kind !== 'applyPhysicalInfliction' || step.parameters.type !== 'knockDown')
       return this.dependencies.delegate.execute(step, context);
     const d = this.dependencies;
     if (context === undefined) throw new Error('physical knockDown requires an action context');
-    const source = d.queryTargets(step.parameters.source, context)[0];
+    const source = firstRuntimeEntityTarget(d.queryTargets(step.parameters.source, context));
     const sourceId = source === undefined ? undefined : runtimeTargetEntityId(source);
     if (sourceId === undefined) return false;
     const targets = d.queryTargets(step.parameters.target, context);

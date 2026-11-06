@@ -16,33 +16,66 @@ const terminal = {
 
 describe('EventContextConditionExecutor', () => {
   it.each(['collectAddedBuffBlackboard', 'collectOutputBuffBlackboard'] as const)(
-    '%s 只修改当前收集黑板，并从监听器实时读取操作数', event => {
+    '%s 只修改当前收集黑板，并从监听器实时读取操作数',
+    event => {
       const executor = new EventContextConditionExecutor(terminal);
       const blackboard = new ActionBlackboard({ extend: 5 });
       const collected = new ActionBlackboard({ duration: 3 });
       const modifiedKeys = new Set<string>();
-      const context = { blackboard, event: { event, payload: {
-        sourceId: 'source', targetId: 'target', buffId: 'new', buffTags: [],
-        blackboard: collected, modifiedKeys,
-      } } };
-      const step = { kind: 'modifyCollectedBuffValue', parameters: {
-        key: 'duration', useDirectValue: false, multiplier: numberInput({ kind: 'constant', value: 2 }),
-        addition: numberInput({ kind: 'blackboard', key: 'extend' }), directValue: numberInput({ kind: 'constant', value: 99 }),
-      } } as const;
+      const context = {
+        blackboard,
+        event: {
+          event,
+          payload: {
+            sourceId: 'source',
+            targetId: 'target',
+            buffId: 'new',
+            buffTags: [],
+            blackboard: collected,
+            modifiedKeys,
+          },
+        },
+      };
+      const step = {
+        kind: 'modifyCollectedBuffValue',
+        parameters: {
+          key: 'duration',
+          useDirectValue: false,
+          multiplier: numberInput({ kind: 'constant', value: 2 }),
+          addition: numberInput({ kind: 'blackboard', key: 'extend' }),
+          directValue: numberInput({ kind: 'constant', value: 99 }),
+        },
+      } as const;
       expect(executor.execute(step, context)).toBe(true);
       expect(collected.getNumber('duration')).toBe(11);
       expect(blackboard.getNumber('duration')).toBeUndefined();
       expect(modifiedKeys).toEqual(new Set(['duration']));
-      expect(executor.execute({ kind: 'storeCollectedBuffValue', parameters: {
-        key: 'duration', outputKey: 'saved',
-      } }, context)).toBe(true);
+      expect(
+        executor.execute(
+          {
+            kind: 'storeCollectedBuffValue',
+            parameters: {
+              key: 'duration',
+              outputKey: 'saved',
+            },
+          },
+          context,
+        ),
+      ).toBe(true);
       expect(blackboard.getNumber('saved')).toBe(11);
       blackboard.assignDynamic('extend', 1);
       executor.execute(step, context);
       expect(collected.getNumber('duration')).toBe(23);
-      expect(executor.execute({ ...step, parameters: { ...step.parameters, useDirectValue: true } }, context)).toBe(true);
+      expect(
+        executor.execute(
+          { ...step, parameters: { ...step.parameters, useDirectValue: true } },
+          context,
+        ),
+      ).toBe(true);
       expect(collected.getNumber('duration')).toBe(99);
-      expect(executor.execute({ ...step, parameters: { ...step.parameters, key: 'missing' } }, context)).toBe(false);
+      expect(
+        executor.execute({ ...step, parameters: { ...step.parameters, key: 'missing' } }, context),
+      ).toBe(false);
       expect(collected.getNumber('missing')).toBeUndefined();
       expect(executor.execute(step, { blackboard })).toBe(false);
     },
@@ -127,7 +160,7 @@ describe('EventContextConditionExecutor', () => {
           tagQueryType: 'hasAny',
           tags: ['Soul'],
         });
-        inspected.push(context!.actionInputTarget!);
+        inspected.push(context!.actionInputTargets?.[0]!);
         return matches;
       },
     });
@@ -161,9 +194,9 @@ describe('EventContextConditionExecutor', () => {
     expect(inspected).toEqual([{ kind: 'abilityEntity', instanceId: 2 }]);
     expect(targetContext.get('part')).toEqual(inspected);
     matches = false;
-    targetContext.set('part', [{ kind: 'enemy' }]);
+    targetContext.set('part', [{ kind: 'enemy', enemyId: 'enemy' }]);
     expect(executor.evaluate(condition, context)).toBe(false);
-    expect(targetContext.get('part')).toEqual([{ kind: 'enemy' }]);
+    expect(targetContext.get('part')).toEqual([{ kind: 'enemy', enemyId: 'enemy' }]);
     expect(executor.evaluate(condition, { ...context, event })).toBe(false);
     expect(executor.evaluate(condition, { ...context, event: undefined })).toBe(false);
     expect(inspected).toHaveLength(2);
@@ -207,7 +240,10 @@ describe('EventContextConditionExecutor', () => {
         reads.push(target);
         return subtype;
       },
-      query => [{ kind: 'operator', operatorId: query.kind === 'owner' ? 'owner' : 'controlled' }],
+      query => [
+        { kind: 'spatialPoint', pointId: 1 },
+        { kind: 'operator', operatorId: query.kind === 'owner' ? 'owner' : 'controlled' },
+      ],
     );
     const context = {
       blackboard: new ActionBlackboard(),
@@ -1311,4 +1347,71 @@ describe('EventContextConditionExecutor', () => {
       ).toBe(false);
     },
   );
+});
+
+describe('事件技能标签', () => {
+  const executor = new EventContextConditionExecutor(terminal);
+  const source = {
+    skillCastId: 1,
+    originSkillId: 'source',
+    nonReturnedSpCost: 0,
+    originSkillTags: ['Skill/Test/Child'],
+  };
+  const context = { blackboard: new ActionBlackboard(), skillCastInfo: source };
+  const condition = {
+    kind: 'eventSkillTagsMatch' as const,
+    tagQueryType: 'hasAny' as const,
+    tags: ['Skill/Test/Child'],
+  };
+
+  it('读取当前事件的施法来源，不回退监听器或执行上下文', () => {
+    const event = {
+      event: 'beforeOutputDamage' as const,
+      payload: { ...createKillEvent().payload, skillCastInfo: source },
+    };
+    expect(executor.evaluate(condition, { ...context, event })).toBe(true);
+    expect(executor.evaluate(condition, context)).toBe(false);
+    expect(
+      executor.evaluate(condition, {
+        ...context,
+        event: { ...event, payload: { ...event.payload, skillCastInfo: null } },
+      }),
+    ).toBe(false);
+    expect(executor.evaluate({ ...condition, tags: ['Skill/Test'] }, { ...context, event })).toBe(
+      false,
+    );
+  });
+
+  it('施放事件检查本次技能，不读取继承的来源技能标签', () => {
+    const event = {
+      event: 'beforeCastSkill' as const,
+      payload: {
+        sourceId: 'operator',
+        targetId: 'operator',
+        skillId: 'child',
+        skillCastId: 2,
+        skillTags: ['Skill/Other'],
+        skillCastInfo: source,
+      },
+    };
+    expect(executor.evaluate(condition, { ...context, event })).toBe(false);
+    expect(executor.evaluate({ ...condition, tags: ['Skill/Other'] }, { ...context, event })).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    ['hasAny', false],
+    ['hasAll', true],
+    ['exceptAny', true],
+    ['exceptAll', false],
+  ] as const)('空条件集合 %s 遵循集合语义，但没有技能时仍为假', (tagQueryType, expected) => {
+    const event = {
+      event: 'beforeOutputDamage' as const,
+      payload: { ...createKillEvent().payload, skillCastInfo: source },
+    };
+    const empty = { ...condition, tags: [], tagQueryType };
+    expect(executor.evaluate(empty, { ...context, event })).toBe(expected);
+    expect(executor.evaluate(empty, context)).toBe(false);
+  });
 });

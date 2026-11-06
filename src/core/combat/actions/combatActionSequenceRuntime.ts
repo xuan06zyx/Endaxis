@@ -3,9 +3,10 @@ import type { ResolvedCombatStepForKind } from '../../compiler/combatProgram';
 import type { CompiledCondition } from '../../compiler/compiledGraphData';
 import { conditionInputExpression } from '../../compiler/compiledGraphData';
 import type { RuntimeTargetGroup, RuntimeTargetRef } from '../../game-data/logicalAbilityEntity';
-import { runtimeTargetFromEntityId } from '../../game-data/logicalAbilityEntity';
+import { singleTargetList, runtimeTargetFromEntityId } from '../../game-data/logicalAbilityEntity';
 import { resolveDirectActionTargets } from '../abilities/targetContextOperationExecutor';
 import type {
+  BoneAttachState,
   ActionBuffReferencesState,
   ActionRegistrationState,
   ActionSequenceState,
@@ -69,6 +70,7 @@ export interface CombatActionSequenceRuntimeHooks {
 }
 
 class OperationStep extends StatelessCombatStep {
+  #attachment: BoneAttachState | null = null;
   #registrationState: ActionRegistrationState | null = null;
   #buffReferencesState: ActionBuffReferencesState | null = null;
 
@@ -78,6 +80,7 @@ class OperationStep extends StatelessCombatStep {
     readonly operationContext: CombatOperationContext,
   ) {
     super();
+    if (step.kind === 'boneAttach') this.#attachment = { targetId: null };
     if (
       step.kind === 'changePlayerActionMode' ||
       step.kind === 'overrideBasicAttackMapping' ||
@@ -85,6 +88,7 @@ class OperationStep extends StatelessCombatStep {
       step.kind === 'disableNormalSkill' ||
       step.kind === 'limitMovementGait' ||
       step.kind === 'skillAffix' ||
+      step.kind === 'startTyphoeaArchery' ||
       (step.kind === 'changeSkillSlot' && step.parameters.lifetime !== undefined)
     )
       this.#registrationState = { registrationIds: [] };
@@ -97,6 +101,8 @@ class OperationStep extends StatelessCombatStep {
   }
 
   override get executionData(): OperationStepData {
+    if (this.#attachment) return { kind: 'boneAttach', attachment: this.#attachment };
+
     if (this.#registrationState !== null) {
       return {
         kind: this.#registrationKind(),
@@ -113,6 +119,12 @@ class OperationStep extends StatelessCombatStep {
   }
 
   override bindExecutionData(data: ActionStepData | null): void {
+    if (this.#attachment) {
+      if (data?.kind !== 'boneAttach') throw new Error('expected bone attachment data');
+      this.#attachment = data.attachment;
+      return;
+    }
+
     if (this.step.kind === 'dealDamage' && this.step.parameters.takeAttackSnapshot === true) {
       const snapshots = this.operationContext.damageCalculationSnapshots;
       if (snapshots === undefined) {
@@ -136,8 +148,15 @@ class OperationStep extends StatelessCombatStep {
   }
 
   #withState<T>(operation: () => T): T {
-    if (this.#registrationState === null && this.#buffReferencesState === null) return operation();
+    if (
+      this.#registrationState === null &&
+      this.#buffReferencesState === null &&
+      this.#attachment === null
+    )
+      return operation();
     const context = this.operationContext;
+    const previousAttachment = context.boneAttachState;
+    if (this.#attachment) context.boneAttachState = this.#attachment;
     const previous = context.actionRegistrationState;
     const previousBuffs = context.actionBuffReferencesState;
     if (this.#registrationState !== null) context.actionRegistrationState = this.#registrationState;
@@ -146,6 +165,8 @@ class OperationStep extends StatelessCombatStep {
     try {
       return operation();
     } finally {
+      if (previousAttachment === undefined) delete context.boneAttachState;
+      else context.boneAttachState = previousAttachment;
       if (previous === undefined) delete context.actionRegistrationState;
       else context.actionRegistrationState = previous;
       if (previousBuffs === undefined) delete context.actionBuffReferencesState;
@@ -160,7 +181,8 @@ class OperationStep extends StatelessCombatStep {
     | 'skillSlotReplacement'
     | 'normalSkillRestriction'
     | 'movementGait'
-    | 'skillAffix' {
+    | 'skillAffix'
+    | 'typhoeaArchery' {
     switch (this.step.kind) {
       case 'changePlayerActionMode':
         return 'playerActionMode';
@@ -176,6 +198,8 @@ class OperationStep extends StatelessCombatStep {
         return 'movementGait';
       case 'skillAffix':
         return 'skillAffix';
+      case 'startTyphoeaArchery':
+        return 'typhoeaArchery';
       default:
         throw new Error('operation does not own a registration');
     }
@@ -262,6 +286,62 @@ class HealthFloorStep extends CombatStep {
   }
 }
 
+/** 原生 ContinuousFindTargetAction 复用单次查询，只额外保存计时和输入句柄。 */
+class ContinuousTargetQueryStep extends CombatStep {
+  #data: Extract<GraphLeafStepData, { kind: 'continuousTargetQuery' }> = {
+    kind: 'continuousTargetQuery',
+    timer: 0,
+    lastFindTime: 0,
+    inputTarget: null,
+  };
+  constructor(
+    readonly step: ResolvedCombatStepForKind<'findTargets'>,
+    readonly runtime: CombatActionSequenceRuntime,
+    readonly context: CombatOperationContext,
+  ) {
+    super();
+  }
+  override get executionData() {
+    return this.#data;
+  }
+  override bindExecutionData(data: ActionStepData | null): void {
+    if (data?.kind !== 'continuousTargetQuery')
+      throw new Error('expected continuous target query state');
+    this.#data = data;
+  }
+  execute(): void {
+    this.runtime.hooks.stepReached?.(this.step);
+    this.runtime.operations.execute(this.step, this.context);
+    this.#data.timer = 0;
+    this.#data.lastFindTime = 0;
+    this.#data.inputTarget = this.context.actionInputTargets?.[0]
+      ? { ...this.context.actionInputTargets?.[0] }
+      : null;
+  }
+  override tick(delta: number): void {
+    const state = this.#data;
+    state.timer = Math.fround(state.timer + Math.fround(delta));
+    if (
+      Math.fround(state.timer - state.lastFindTime) <=
+      Math.fround(this.step.parameters.continuousIntervalSeconds!)
+    )
+      return;
+    this.runtime.operations.execute(this.step, {
+      ...this.context,
+      actionInputTargets: singleTargetList(state.inputTarget ?? undefined),
+    });
+    state.lastFindTime = state.timer;
+  }
+  override end(): void {
+    this.#data.timer = 0;
+    this.#data.lastFindTime = 0;
+    this.#data.inputTarget = null;
+  }
+  override reset(): void {
+    this.end();
+  }
+}
+
 class ProjectileLaunchStep extends StatelessCombatStep {
   constructor(
     readonly step: ResolvedCombatStepForKind<'launchProjectile'>,
@@ -308,7 +388,11 @@ class ProjectileLaunchStep extends StatelessCombatStep {
       if (selected) {
         for (const target of selected)
           this.launchSingle(
-            { ...parent, currentTarget: target, actionInputTarget: target },
+            {
+              ...parent,
+              currentTarget: target,
+              actionInputTargets: singleTargetList(target),
+            },
             prepared.forkEntityScope(),
             onlyHitTargets,
           );
@@ -363,7 +447,7 @@ class ProjectileLaunchStep extends StatelessCombatStep {
             skill,
             {
               ...context,
-              actionInputTarget: state.inputTarget,
+              actionInputTargets: singleTargetList(state.inputTarget),
               actionOwnerId: `ability-entity:${entity.instanceId}`,
               actionSourceId: sourceId,
               actionOwnerAbilityEntity: entity,
@@ -374,6 +458,7 @@ class ProjectileLaunchStep extends StatelessCombatStep {
       };
     });
     const launched = launch({
+      faction: this.step.parameters.faction,
       schedule: resolveProjectileSchedule(this.step.parameters.schedule, input =>
         typeof input === 'number' ? input : resolveActionValueOperand(input, parent.blackboard),
       ),
@@ -388,7 +473,13 @@ class ProjectileLaunchStep extends StatelessCombatStep {
       producedBy: operationProducer(parent),
       hit: this.step.parameters.hit,
       hitTarget:
-        this.step.parameters.hit?.target === 'currentTarget' ? parent.currentTarget : undefined,
+        this.step.parameters.hit?.target === 'currentTarget' ||
+        (this.step.parameters.targets !== undefined &&
+          this.step.parameters.schedule.callbacks.some(
+            callback => callback.event === 'hit' && callback.hitKind === 'arrival',
+          ))
+          ? parent.currentTarget
+          : undefined,
     });
     entity = launched.target;
     // 原生在发射初始化末尾施放，目标为投射物自身。必须等 launch 返回后再执行：
@@ -496,8 +587,9 @@ export class CombatActionSequenceRuntime {
     const trace = this.operations.executionTrace;
     return {
       frame: this.operations.frame,
+      channelingCountTarget: this.operations.channelingCountTarget,
       get inputTarget() {
-        return operationContext.actionInputTarget;
+        return operationContext.actionInputTargets?.[0];
       },
       selectTargets: (selection, input) => {
         if (selection.kind === 'context')
@@ -560,13 +652,13 @@ export class CombatActionSequenceRuntime {
         this.#graphHost(
           inheritCombatOperationContext(operationContext, {
             currentTarget: target,
-            ...(asInput ? { actionInputTarget: target } : {}),
+            ...(asInput ? { actionInputTargets: singleTargetList(target) } : {}),
           }),
         ),
       withSavedInput: target =>
         this.#graphHost(
           inheritCombatOperationContext(operationContext, {
-            actionInputTarget: target ?? undefined,
+            actionInputTargets: singleTargetList(target ?? undefined),
             currentTarget: target ?? undefined,
             event: undefined,
             eventSkillCastInfo: undefined,
@@ -668,6 +760,8 @@ export class CombatActionSequenceRuntime {
     operationContext: CombatOperationContext,
   ): CombatStep & { readonly executionData: GraphLeafStepData } {
     if (step.kind === 'setHealthFloor') return new HealthFloorStep(step, this, operationContext);
+    if (step.kind === 'findTargets' && step.parameters.continuousIntervalSeconds !== undefined)
+      return new ContinuousTargetQueryStep(step, this, operationContext);
     if (isCombatOperationStep(step)) return new OperationStep(step, this, operationContext);
     if (step.kind === 'launchProjectile')
       return new ProjectileLaunchStep(step, this, operationContext);

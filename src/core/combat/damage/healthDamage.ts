@@ -138,6 +138,7 @@ export interface HealthDamageReceiptDetail {
 
 /** 在正确事件边界写入一次生命伤害所需的状态和端口。 */
 export interface ExecuteHealthDamageInput {
+  readonly targetCanDie?: boolean;
   readonly partTransferInfo?: EnemyPartTransferInfo;
   /** 原生 HP/Minus 的 PowerAttack 清理先于 BeforeTakeDamage。 */
   readonly consumeFinisherEligibility?: () => void;
@@ -207,46 +208,54 @@ export function executeHealthDamage(input: ExecuteHealthDamageInput): HealthDama
       ? input.result
       : { ...input.result, value: input.absorbDamage(input.damageType, input.result.value) };
   const payload: HealthDamageEventPayload = { ...beforePayload, result };
-  const stateChange = applyHealthDamageWithKillEvents(input.target, payload, input.emitSourceEvent);
-  input.receipt.record({
-    ...(input.producedBy === undefined ? {} : { producedBy: input.producedBy }),
-    frame: input.clock.frame,
-    time: input.clock.time,
-    event: 'DamageApplied',
-    ...(input.appliedDamageModifiers?.length
-      ? { appliedDamageModifiers: input.appliedDamageModifiers }
-      : {}),
-    sourceId: input.sourceId,
-    targetId: input.targetId,
-    ...(input.skillMultiplierCalculation === undefined
-      ? {}
-      : { skillMultiplierCalculation: input.skillMultiplierCalculation }),
-    data: {
-      ...(input.partTransferInfo === undefined
-        ? {}
-        : {
-            transferredSourceId: input.partTransferInfo.mainBodyToPart.get(input.targetId),
-          }),
-      damageType: input.damageType,
-      value: result.value,
-      damageBeforeAbsorption: input.result.value,
-      actualDamage: stateChange.actualDamage,
-      remainingHealth: stateChange.currentHealth,
-      isCritical: result.isCritical,
-      criticalMultiplier: result.criticalMultiplier,
-      defenseMultiplier: result.defenseMultiplier,
-      resistanceMultiplier: result.resistanceMultiplier,
-      weaknessShelterMultiplier: result.weaknessShelterMultiplier,
-      runtimeExtensionMultiplier: result.runtimeExtensionMultiplier,
-      igniteMultiplier: result.igniteMultiplier,
-      physicalInflictionMultiplier: result.physicalInflictionMultiplier,
-      ...input.detail,
-      ...(spellBurstType === undefined ? {} : { spellBurstType }),
-      ...(input.stepKey === undefined ? {} : { stepKey: input.stepKey }),
-      ...(input.castId === undefined ? {} : { castId: input.castId }),
-      ...(input.hitId === undefined ? {} : { hitId: input.hitId }),
+  const stateChange = applyHealthDamageWithKillEvents(
+    input.target,
+    payload,
+    input.emitSourceEvent,
+    input.targetCanDie,
+    stateChange => {
+      input.receipt.record({
+        ...(input.producedBy === undefined ? {} : { producedBy: input.producedBy }),
+        frame: input.clock.frame,
+        time: input.clock.time,
+        event: 'DamageApplied',
+        ...(input.appliedDamageModifiers?.length
+          ? { appliedDamageModifiers: input.appliedDamageModifiers }
+          : {}),
+        sourceId: input.sourceId,
+        targetId: input.targetId,
+        ...(input.skillMultiplierCalculation === undefined
+          ? {}
+          : { skillMultiplierCalculation: input.skillMultiplierCalculation }),
+        data: {
+          ...(input.partTransferInfo === undefined
+            ? {}
+            : {
+                transferredSourceId: input.partTransferInfo.mainBodyToPart.get(input.targetId),
+              }),
+          damageType: input.damageType,
+          value: result.value,
+          damageBeforeAbsorption: input.result.value,
+          actualDamage: stateChange.actualDamage,
+          remainingHealth: stateChange.currentHealth,
+          isCritical: result.isCritical,
+          criticalMultiplier: result.criticalMultiplier,
+          defenseMultiplier: result.defenseMultiplier,
+          resistanceMultiplier: result.resistanceMultiplier,
+          weaknessShelterMultiplier: result.weaknessShelterMultiplier,
+          runtimeExtensionMultiplier: result.runtimeExtensionMultiplier,
+          igniteMultiplier: result.igniteMultiplier,
+          physicalInflictionMultiplier: result.physicalInflictionMultiplier,
+          ...input.detail,
+          ...(spellBurstType === undefined ? {} : { spellBurstType }),
+          ...(input.stepKey === undefined ? {} : { stepKey: input.stepKey }),
+          ...(input.castId === undefined ? {} : { castId: input.castId }),
+          ...(input.hitId === undefined ? {} : { hitId: input.hitId }),
+        },
+      });
     },
-  });
+  );
+
   input.emitTargetEvent('takeDamage', { ...payload, actualDamage: stateChange.actualDamage });
   input.emitSourceEvent('outputDamage', {
     ...sourceBeforePayload,
@@ -261,11 +270,13 @@ export function applyHealthDamageWithKillEvents(
   target: CombatVitals,
   payload: HealthDamageEventPayload,
   emitSourceEvent: ExecuteHealthDamageInput['emitSourceEvent'],
+  targetCanDie = true,
+  recordChange?: (result: HealthDamageResult) => void,
 ): HealthDamageResult {
-  const mayKillTarget = target.health > 0 && payload.result.value >= target.health;
+  const mayKillTarget = targetCanDie && target.health > 0 && payload.result.value >= target.health;
   if (mayKillTarget) emitSourceEvent('beforeKillEntity', payload);
   // takeDamage 同步触发生命观察者，包括能力实体的死亡与结束流程。
-  const stateChange = target.takeDamage(payload.result.value);
+  const stateChange = target.takeDamage(payload.result.value, recordChange);
   if (mayKillTarget && stateChange.currentHealth === 0) {
     emitSourceEvent('afterKillEntity', payload);
   }

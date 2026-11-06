@@ -115,6 +115,7 @@
     "confirmButton": "Confirm Reset"
   },
   "common": {
+    "originalNameSuffix": " ({name})",
     "increase": "Increase",
     "decrease": "Decrease",
     "add": "Add",
@@ -463,6 +464,24 @@
     "zhCNShort": "中"
   },
   "timeline": {
+    "enemies": {
+      "mainTarget": "Main attack target",
+      "setMainTarget": "Set main attack target",
+      "backToOverview": "Back to overview",
+      "name": "Enemy name",
+      "spawn": "Spawn",
+      "enter": "Enter",
+      "exit": "Leave",
+      "timeSeconds": "Time (seconds)",
+      "manualDeath": "Manual death",
+      "title": "Enemy overview",
+      "add": "Add enemy",
+      "openDetail": "View enemy details",
+      "moreActions": "More actions",
+      "present": "Present",
+      "absent": "Absent",
+      "death": "Dead"
+    },
     "legacyConversion": {
       "title": "Convert legacy save",
       "question": "A legacy save was detected. Convert it?",
@@ -628,6 +647,10 @@
       "sectionScenarioSettings": "Scenario settings",
       "sectionPrefs": "User preferences",
       "automaticControlSwitches": "Automatic control switching",
+      "multiEnemy": "Multiple enemies",
+      "multiEnemyRequired": "Remove additional enemies and restore the default lifecycle before disabling this mode.",
+      "enemyAutomaticDeath": "Automatic enemy death",
+      "enemyAutomaticDeathHelp": "When enabled, enemies die at zero HP. Scheduled death times always apply; whichever happens first takes effect.",
       "comboSkillPriority": "Combo skill priority",
       "automaticControlSwitchesHelp": "Switch control to the acting operator when a basic attack, enhanced basic attack, plunging attack, or finisher needs it.",
       "sectionViewLayers": "Layers",
@@ -1391,7 +1414,6 @@
         "eventBuffIdMatch": "Event Buff ID match",
         "currentSkillTypeIn": "Current skill type matches",
         "combatActive": "Combat active",
-        "singleEnemyPresent": "Single enemy present",
         "checkMainCharacter": "Target is the controlled operator",
         "enemySuperArmorCompare": "Enemy super armor comparison",
         "targetStaggered": "Target staggered",
@@ -1692,6 +1714,7 @@
         "pickContextTarget": "Picks one instance from an existing Context target group by stable index and saves it as a new Context target group.",
         "forEachContextTarget": "Synchronously executes one step sequence for each stable target handle already stored in the cast context.",
         "setAbilityEntityRemainingDuration": "Sets the first target ability entity's remaining lifetime between zero and its actual spawn period. Infinite lifetimes are unchanged.",
+        "setAbilityEntityTarget": "Replaces the action owner's ability entity targets. Empty results clear previous targets; fails when the owner has no ability entity controller.",
         "startCurrentAbilityEntityChildSkillById": "Starts an existing child timeline by stable child-skill ID on the ability entity referenced by the current Context target.",
         "spawnAbilityEntity": "Creates an ability entity from the definition embedded in this step, preserving its native identity, target, lifetime, blackboard, and optional entity-local child timeline.",
         "applyElementalInfliction": "Applies elemental infliction to the enemy for later elemental reactions.",
@@ -1766,7 +1789,12 @@
         "finishOwner": "End the selected summoned entities or projectiles. Ending flight does not trigger a timeout skill.",
         "queueComboLock": "Append a timed lock. Existing windows stay available; later windows must wait for the lock to expire.",
         "disableNormalSkill": "Apply a battle-skill restriction while the action is active, optionally allowing additional stages.",
-        "limitMovementGait": "Write the owner's shared gait limit until all gait actions end. A maximum below Sprint affects dodge eligibility."
+        "limitMovementGait": "Write the owner's shared gait limit until all gait actions end. A maximum below Sprint affects dodge eligibility.",
+        "exitControlledState": "Exit controlled state",
+        "pushBack": "Preserves attacker life-state checks and target queries. A nonempty target list succeeds without simulating movement.",
+        "pull": "Preserves target queries and pull processing results without moving targets. Uses the continuation flag when no target is processed.",
+        "saveTargetDistance": "Writes distance when both targets exist; simulated distance is zero. Leaves the variable unchanged if either target is missing.",
+        "blowOffEnemy": "Preserves source life-state checks, target queries and action results. Currently supports the native OnlyDead branch, which processes no entities."
       },
       "damageType": "Damage type",
       "eventListenerWindowHint": "The current scheduled sequence start and end frames define the listening window. Responses run synchronously on the triggering frame.",
@@ -1831,6 +1859,7 @@
         "pickContextTarget": "Pick Context target",
         "forEachContextTarget": "For each Context target",
         "setAbilityEntityRemainingDuration": "Set ability entity remaining duration",
+        "setAbilityEntityTarget": "Set ability entity targets",
         "startCurrentAbilityEntityChildSkillById": "Start entity child skill by ID",
         "castSkillDuringAction": "Cast skill during action",
         "readBuffRemainingDuration": "Read Buff remaining duration",
@@ -1900,7 +1929,12 @@
         "finishOwner": "Finish target entities",
         "queueComboLock": "Lock combo queue",
         "disableNormalSkill": "Disable battle skill",
-        "limitMovementGait": "Limit movement gait"
+        "limitMovementGait": "Limit movement gait",
+        "exitControlledState": "Exit controlled state",
+        "pushBack": "Push targets back",
+        "pull": "Pull targets",
+        "saveTargetDistance": "Save target distance",
+        "blowOffEnemy": "Blow off enemies"
       }
     },
     "inspector": {
@@ -2038,6 +2072,7 @@
       "points": "Signs"
     },
     "buffDetail": {
+      "host": "Status host",
       "title": "Status details",
       "source": "Source",
       "effect": "Effect summary",
@@ -2093,6 +2128,7 @@
       "suppressedHint": "This candidate remains recorded but contributes no active stacks or effects during this window."
     },
     "hitDetail": {
+      "target": "Damage target",
       "previousHit": "Previous damage instance",
       "nextHit": "Next damage instance",
       "frame": "Frame",
@@ -2562,6 +2598,7 @@
       "barrageArray": "Barrage Array",
       "firefangVesperwings": "Firefang Vesperwings",
       "artfulIntent": "Artful Intent",
+      "sunderization": "Sunderization",
       "immobilization": "Immobilization",
       "sunderblades": "Sunderblades",
       "electrification": "Electrification",
@@ -2704,6 +2741,11 @@
       "searchPlaceholder": "Search enemy...",
       "level": "Level",
       "byEnemy": "Base enemies",
+      "stageCountUnknown": "Count unverified; applies one enemy for now",
+      "applyStageAll": "Apply all enemies",
+      "applyStageAllHelp": "Replace this scenario's enemies with this difficulty's enemy list. This can be undone.",
+      "enableMultiForStage": "Applying stage enemies requires multiple-enemy mode and replaces the current enemy list. Enable and apply?",
+      "enableAndApply": "Enable and apply",
       "byStage": "Stage variants",
       "allStages": "All stage series",
       "searchStage": "Search stages or enemies",
@@ -2715,7 +2757,25 @@
       "standardGroup": "Enemies",
       "customDesc": "Manually adjust attribute values",
       "desc": "Max:{max} · Nodes:{nodes}",
-      "empty": "No matching enemies found"
+      "empty": "No matching enemies found",
+      "basicAttributes": "Base attributes",
+      "staggerAttributes": "Stagger",
+      "birthMaxPoise": "Increased stagger limit",
+      "birthDamageReduction": "Birth damage reduction",
+      "birthHealing": "Periodic healing",
+      "birthEffects": "Spawn effects",
+      "baseValue": "Base",
+      "settledValue": "Calculated",
+      "baseBirthEffect": "Enemy default",
+      "stageBirthEffect": "Stage configuration",
+      "unsupportedBirthEffect": "Not supported",
+      "birthResistanceOverride": "Resistance override",
+      "birthPoiseImmune": "Stagger immunity",
+      "birthPhysicalReduction": "Physical status removes damage reduction",
+      "birthSpellReduction": "Arts status removes damage reduction",
+      "birthDeathSp": "SP recovery on death",
+      "countShield": "Layered Shield",
+      "countShieldLayers": "Layered Shield · {count} layers"
     }
   },
   "globalConfig": {
@@ -2737,34 +2797,7 @@
     "initialVariables": "Initial variables",
     "editInitialVariables": "Edit initial variables",
     "clearInitialVariables": "Clear custom values",
-    "preview": {
-      "operationName": "Blue Immersion Test Operation",
-      "note": "Preview: behavior uses native Buffs. Tag combinations and default values await the official contract data.",
-      "comboLock": "Timed Combo Lock",
-      "comboDamage": "Combo Skill Damage Boost",
-      "battleLock": "Battle Skill Lock",
-      "heal": "Engorgement",
-      "tags": {
-        "200001": {
-          "name": "Environment: Lockdown",
-          "description": "Combo skill damage +{comboDamagePercent}%. Every {comboCount} squad combo casts inserts a {lockSeconds}-second lock into the combo queue. Windows opened before the lock remain usable. Rossi’s second combo stage does not count."
-        },
-        "200002": {
-          "name": "Environment: Silence",
-          "description": "Natural SP recovery +{spRecoveryPercent}%; SP recovered by skills +{spGainPercent}%. Casting a normal battle skill locks normal battle skills until the squad completes a round. Native follow-up stages remain available and do not count."
-        },
-        "200003": {
-          "name": "Environment: Dissipation",
-          "description": "After an operator casts an ultimate and pays its cost, clear the other squad members’ ultimate energy."
-        },
-        "200004": {
-          "name": "Rewrite: Engorgement",
-          "description": "Once the enemy has neither Vulnerability nor Arts Infliction, wait {healDelaySeconds} seconds, then recover {healPercent}% maximum HP each second. Reapplying these statuses stops the timer and healing."
-        }
-      }
-    },
     "title": "Contingency Contract",
-    "operationName": "Rekindled Test Operation",
     "score": "Risk level",
     "queue": "Queue",
     "selectedCount": "{count} selected",
@@ -2790,6 +2823,37 @@
       "selfGlobalBuff": "Operator modifier",
       "reduceTime": "Time limit",
       "none": "No effect"
+    },
+    "share": {
+      "copy": "Copy",
+      "import": "Import",
+      "placeholder": "Enter or paste a share code",
+      "copied": "Share code copied",
+      "copyFailed": "Copy failed. Allow clipboard access and try again.",
+      "imported": "Contract selection imported",
+      "hint": "Share codes include this season’s selections, not custom parameters.",
+      "preview": "{count} modifiers, risk level {score}. Import replaces this season’s selection and resets imported modifiers to default parameters.",
+      "errors": {
+        "invalid": "Invalid share code or wrong season.",
+        "unavailable": "The code contains modifiers not yet available in Endaxis.",
+        "conflict": "The code contains conflicting modifiers.",
+        "prerequisite": "The code is missing prerequisite modifiers."
+      },
+      "title": "Import and share modifiers",
+      "open": "Import & share",
+      "generate": "Generate share code",
+      "total": "Total risk",
+      "importTitle": "Import share code",
+      "importHint": "Paste a share code to import its modifiers."
+    },
+    "operations": {
+      "indie_contract001": "Rekindled Test Operation",
+      "indie_contract002": "Blue Immersion Test Operation"
+    },
+    "buffs": {
+      "comboLock": "Timed Combo Lock",
+      "battleLock": "Battle Skill Lock",
+      "heal": "Engorgement"
     }
   },
   "statDetail": {
@@ -2859,6 +2923,7 @@
     "link_cd_reduction": "Combo CD reduction"
   },
   "buffEffects": {
+    "maxHp": "Max HP",
     "allResistance": "All resistance",
     "corrosionOverTime": "All resistances decrease over time",
     "resistance": " resistance",

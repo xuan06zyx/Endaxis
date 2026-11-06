@@ -1,3 +1,4 @@
+import { GameplayTagRegistry } from '../tags/gameplayTags';
 import type {
   GameplayTag,
   GameplayTagMatchType,
@@ -5,6 +6,8 @@ import type {
 import type { ResolvedCombatOperationStep } from '../../compiler/combatProgram';
 import type { CompiledCondition } from '../../compiler/compiledGraphData.ts';
 import {
+  singleTargetList,
+  firstRuntimeEntityTarget,
   runtimeTargetEntityId,
   runtimeTargetFromEntityId,
 } from '../../game-data/logicalAbilityEntity';
@@ -35,6 +38,8 @@ import { resolveActionValueOperand } from '../actions/actionBlackboard';
 import { NATIVE_ELEMENT_VALUES, spellBurstElement } from '../infliction/elementalInfliction';
 import type { CombatOperationContext, CombatOperationExecutor } from '../skills/skillRuntime';
 import type { GameplayTagQueryType } from '../tags/gameplayTags';
+
+const skillTagRegistry = new GameplayTagRegistry();
 
 export class EventContextConditionExecutor implements CombatOperationExecutor {
   constructor(
@@ -149,7 +154,7 @@ export class EventContextConditionExecutor implements CombatOperationExecutor {
           tagQueryType: condition.tagQueryType,
           tags: condition.tags,
         },
-        { ...context!, actionInputTarget: part },
+        { ...context!, actionInputTargets: singleTargetList(part) },
       );
       if (matched && condition.saveToContextKey !== undefined) {
         if (context?.targetContext === undefined)
@@ -163,6 +168,15 @@ export class EventContextConditionExecutor implements CombatOperationExecutor {
       return (
         event?.event === 'skillInterrupted' && condition.reasons.includes(event.payload.reason)
       );
+    }
+    if (condition.kind === 'eventSkillTagsMatch') {
+      const event = context?.event;
+      if (event === undefined || !('event' in event)) return false;
+      const skill = skillAbilityEvent(event);
+      const source = abilityEventSkillCastInfo(event);
+      if (skill === undefined && source == null) return false;
+      const tags = skill === undefined ? source?.originSkillTags : skill.payload.skillTags;
+      return skillTagRegistry.query(tags ?? [], condition.tags, condition.tagQueryType, true);
     }
     if (condition.kind === 'skillDamageTypeIn') {
       const eventSkill =
@@ -260,6 +274,8 @@ export class EventContextConditionExecutor implements CombatOperationExecutor {
         : this.delegate.evaluate(condition, context);
     }
     if (condition.kind === 'eventBuffFinishReasonIn') {
+      if (context?.buffFinishContext !== undefined)
+        return condition.reasons.includes(context.buffFinishContext.reason);
       const event = context?.event;
       if (!event || !('event' in event)) return false;
       if (
@@ -285,7 +301,7 @@ export class EventContextConditionExecutor implements CombatOperationExecutor {
       }
       if (!context || !this.queryTargets)
         throw new Error('current skill query requires action targets');
-      const target = this.queryTargets(condition.target, context)[0];
+      const target = firstRuntimeEntityTarget(this.queryTargets(condition.target, context));
       const id = target === undefined ? undefined : runtimeTargetEntityId(target);
       if (id === undefined) return false;
       const skillType = this.resolveCurrentSkillType(id, context);
@@ -327,6 +343,42 @@ export class EventContextConditionExecutor implements CombatOperationExecutor {
         skillCastInfo.originSkillType !== undefined &&
         condition.skillTypes.includes(skillCastInfo.originSkillType)
       );
+    }
+    if (
+      condition.kind === 'eventConsumedBuffLayerCompare' ||
+      condition.kind === 'eventBuffEnhanceLayerCompare'
+    ) {
+      const event = context?.event;
+      const layers =
+        condition.kind === 'eventBuffEnhanceLayerCompare' &&
+        context?.buffFinishContext !== undefined
+          ? context.buffFinishContext.layerCount
+          : event === undefined || !('payload' in event)
+            ? undefined
+            : condition.kind === 'eventBuffEnhanceLayerCompare'
+              ? event.event === 'buffEnhanceChanged' ||
+                event.event === 'buffAbsorbedFrameEnd' ||
+                event.event === 'buffConsumedFrameEnd'
+                ? event.payload.layerCount
+                : undefined
+              : event.event === 'buffConsumed' || event.event === 'buffAbsorbed'
+                ? event.payload.layers
+                : undefined;
+      if (layers === undefined || context === undefined) return false;
+      const matched = compareCombatNumbers(
+        layers,
+        resolveActionValueOperand(condition.value, context.blackboard),
+        condition.operator,
+      );
+      if (!matched) return false;
+      if (condition.outputKey) {
+        const old = Math.fround(readRequiredActionNumber(context.blackboard, condition.outputKey));
+        const value = Math.fround(layers);
+        if (!(Math.abs(Math.fround(old - value)) <= Math.fround(0.00001))) {
+          context.blackboard.assignDynamicUnconditionally(condition.outputKey, value);
+        }
+      }
+      return true;
     }
     if (context?.event === undefined) {
       throw new Error(`${condition.kind} requires a combat event context`);
@@ -475,38 +527,6 @@ export class EventContextConditionExecutor implements CombatOperationExecutor {
         (condition.sources === undefined || condition.sources.includes(event.source)) &&
         (condition.gainKinds === undefined || condition.gainKinds.includes(event.gainKind))
       );
-    }
-    if (
-      condition.kind === 'eventConsumedBuffLayerCompare' ||
-      condition.kind === 'eventBuffEnhanceLayerCompare'
-    ) {
-      const event = context.event;
-      const layers = !('payload' in event)
-        ? undefined
-        : condition.kind === 'eventBuffEnhanceLayerCompare'
-          ? event.event === 'buffEnhanceChanged' ||
-            event.event === 'buffAbsorbedFrameEnd' ||
-            event.event === 'buffConsumedFrameEnd'
-            ? event.payload.layerCount
-            : undefined
-          : event.event === 'buffConsumed' || event.event === 'buffAbsorbed'
-            ? event.payload.layers
-            : undefined;
-      if (layers === undefined) return false;
-      const matched = compareCombatNumbers(
-        layers,
-        resolveActionValueOperand(condition.value, context.blackboard),
-        condition.operator,
-      );
-      if (!matched) return false;
-      if (condition.outputKey) {
-        const old = Math.fround(readRequiredActionNumber(context.blackboard, condition.outputKey));
-        const value = Math.fround(layers);
-        if (!(Math.abs(Math.fround(old - value)) <= Math.fround(0.00001))) {
-          context.blackboard.assignDynamicUnconditionally(condition.outputKey, value);
-        }
-      }
-      return true;
     }
     if (condition.kind === 'eventOverheal') {
       const event = healAbilityEvent(context.event)?.payload;

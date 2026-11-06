@@ -197,12 +197,19 @@ export interface BuffDuringEnableAction<Key extends string> {
   reset(buff: CombatBuff<Key>): void;
 }
 
+/** 本次结束操作的同步上下文；与 Buff 初始来源及对外广播事件分离。 */
+export interface BuffFinishContext {
+  readonly reason: BuffFinishReason;
+  readonly layerCount: number;
+  readonly skillCastInfo: CombatSkillCastInfo | null | undefined;
+}
+
 /** Buff 在启用、结束和移除边界执行的有序生命周期行为。 */
 export interface BuffLifecycleActions<Key extends string> {
   readonly start?: (buff: CombatBuff<Key>) => void;
   readonly enable?: (buff: CombatBuff<Key>) => void;
   readonly disable?: (buff: CombatBuff<Key>) => void;
-  readonly finish?: (buff: CombatBuff<Key>) => void;
+  readonly finish?: (buff: CombatBuff<Key>, context: BuffFinishContext) => void;
   readonly dispelled?: (buff: CombatBuff<Key>, sourceId: string) => void;
   /** 原生 OnBuffReleased：释放清理前执行，与执行器的 release 清理钩子分开。 */
   readonly beforeRelease?: (buff: CombatBuff<Key>) => void;
@@ -217,6 +224,7 @@ export interface BuffLifecycleActions<Key extends string> {
     igniteType: string,
     sourceId: string,
     skillCastInfo?: CombatSkillCastInfo,
+    partTransferInfo?: EnemyPartTransferInfo,
   ) => boolean;
   readonly duringEnable?: BuffDuringEnableAction<Key>;
 }
@@ -895,9 +903,14 @@ export class CombatBuff<Key extends string> {
     reason: BuffFinishReason = 'other',
     finishSkillCastInfo?: CombatSkillCastInfo | null,
   ): boolean {
+    const context: BuffFinishContext = {
+      reason,
+      layerCount: -this.enhanceCount,
+      skillCastInfo: finishSkillCastInfo,
+    };
     const finished = finishBuffLifecycle(this.#state.lifecycle, reason, {
       addExtendTags: () => this.addExtendTags(),
-      finishAction: () => this.definition.actions?.finish?.(this),
+      finishAction: () => this.definition.actions?.finish?.(this, context),
       endDuringEnable: () => this.endDuringEnableAction(),
       finishChildren: () => {
         finishBuffChildren(this.#state.children, reference => {
@@ -1788,14 +1801,27 @@ export class CombatBuffContainer<Key extends string> {
   }
 
   /** 同步点燃所有在调用开始时仍活动的 Buff；响应可在处理过程中结束自身。 */
-  ignite(igniteType: string, sourceId: string, skillCastInfo?: CombatSkillCastInfo): number {
+  ignite(
+    igniteType: string,
+    sourceId: string,
+    skillCastInfo?: CombatSkillCastInfo,
+    partTransferInfo?: EnemyPartTransferInfo,
+  ): number {
     if (igniteType.length === 0) throw new Error('Buff ignite type must not be empty');
     if (sourceId.length === 0) throw new Error('Buff ignite source id must not be empty');
     const active = this.#snapshotBuffs().filter(buff => !buff.isFinished);
     let count = 0;
     for (const buff of active) {
       if (buff.isFinished) continue;
-      if (buff.definition.actions?.ignite?.(buff, igniteType, sourceId, skillCastInfo)) {
+      if (
+        buff.definition.actions?.ignite?.(
+          buff,
+          igniteType,
+          sourceId,
+          skillCastInfo,
+          partTransferInfo,
+        )
+      ) {
         count += 1;
       }
     }

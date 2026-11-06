@@ -31,7 +31,7 @@ const commonBuff_buff_cc02_eny_numshield$actionGraph = {
         expression: {
           kind: 'eventDamageTagsMatch',
           match: 'exceptAny',
-          tags: ['normalSkill', 'ultimateSkill', 'comboSkill', 'normalAttackLastCombo'],
+          tags: ['normalAttackLastCombo', 'normalSkill', 'ultimateSkill', 'comboSkill'],
         },
       },
       data_2: {
@@ -229,7 +229,7 @@ const commonBuff_buff_cc_chr_combo_lock$actionGraph = {
         action: {
           kind: 'readBuffStackCount',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
             outputKey: 'stack',
             query: { kind: 'id', buffIds: ['buff_cc_chr_combo_lock_stack'] },
           },
@@ -322,7 +322,7 @@ const commonBuff_buff_cc_chr_combo_lock_instance: SkillBuffDefinition = {
     showInHeadBarAttached: false,
     icon: 'endaxis:contingency_contract/2/lockdown',
     showInSquadIcon: true,
-    nameKey: 'contingencyContract.preview.comboLock',
+    nameKey: 'contingencyContract.buffs.comboLock',
   },
   applyTags: [],
   extendTags: [],
@@ -684,7 +684,7 @@ const commonBuff_buff_cc_chr_disable_normal_skill: SkillBuffDefinition = {
     showInHeadBarAttached: false,
     icon: 'endaxis:contingency_contract/2/silence',
     showInSquadIcon: true,
-    nameKey: 'contingencyContract.preview.battleLock',
+    nameKey: 'contingencyContract.buffs.battleLock',
   },
   applyTags: ['Status/DisableNormalSkillExceptForAdditional'],
   extendTags: [],
@@ -1539,7 +1539,7 @@ const commonBuff_buff_cc_chr_heal_reflect_to_eny_heal$actionGraph = {
         action: {
           kind: 'readBuffStackCount',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
             outputKey: 'heal_times',
             query: { kind: 'id', buffIds: ['buff_cc_chr_heal_reflect_to_eny_stack_heal'] },
           },
@@ -1797,7 +1797,7 @@ const commonBuff_buff_cc_chr_heal_reflect_to_eny_shield$actionGraph = {
         action: {
           kind: 'readBuffStackCount',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
             outputKey: 'heal_times',
             query: { kind: 'id', buffIds: ['buff_cc_chr_heal_reflect_to_eny_stack_shield'] },
           },
@@ -2028,15 +2028,26 @@ const commonBuff_buff_cc_chr_heal_reflect_to_eny_stack_heal$actionGraph = {
       forEachContextTarget_2: {
         action: {
           kind: 'forEachContextTarget',
-          parameters: { targets: { kind: 'fixed', target: 'enemy' } },
+          parameters: { targets: { kind: 'context', key: 'tar' } },
           body: { $sequence: 'applyBuff_1' },
         },
         next: null,
       },
-      mergeContextTargets_3: {
+      findTargets_3: {
         action: {
-          kind: 'mergeContextTargets',
-          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+          kind: 'findTargets',
+          parameters: {
+            owner: { kind: 'owner' },
+            center: { kind: 'source' },
+            query: {
+              kind: 'enemyByTags',
+              scope: 'global',
+              reverse: true,
+              tagQueryType: 'hasAll',
+              tags: [],
+            },
+            saveToContextKey: 'tar',
+          },
         },
         next: 'forEachContextTarget_2',
       },
@@ -2053,7 +2064,7 @@ const commonBuff_buff_cc_chr_heal_reflect_to_eny_stack_heal: SkillBuffDefinition
   extendTags: [],
   blackboard: { eny_heal_ratio: 0.05 },
   attributeModifiers: [],
-  lifecycleSequences: { enable: [{ $sequence: 'mergeContextTargets_3' }] },
+  lifecycleSequences: { enable: [{ $sequence: 'findTargets_3' }] },
   actionGraph: commonBuff_buff_cc_chr_heal_reflect_to_eny_stack_heal$actionGraph,
 };
 
@@ -2120,15 +2131,26 @@ const commonBuff_buff_cc_chr_heal_reflect_to_eny_stack_shield$actionGraph = {
       forEachContextTarget_2: {
         action: {
           kind: 'forEachContextTarget',
-          parameters: { targets: { kind: 'fixed', target: 'enemy' } },
+          parameters: { targets: { kind: 'context', key: 'tar' } },
           body: { $sequence: 'applyBuff_1' },
         },
         next: null,
       },
-      mergeContextTargets_3: {
+      findTargets_3: {
         action: {
-          kind: 'mergeContextTargets',
-          parameters: { saveToContextKey: 'tar', sources: [{ kind: 'fixed', target: 'enemy' }] },
+          kind: 'findTargets',
+          parameters: {
+            owner: { kind: 'owner' },
+            center: { kind: 'source' },
+            query: {
+              kind: 'enemyByTags',
+              scope: 'global',
+              reverse: true,
+              tagQueryType: 'hasAll',
+              tags: [],
+            },
+            saveToContextKey: 'tar',
+          },
         },
         next: 'forEachContextTarget_2',
       },
@@ -2145,7 +2167,7 @@ const commonBuff_buff_cc_chr_heal_reflect_to_eny_stack_shield: SkillBuffDefiniti
   extendTags: [],
   blackboard: { eny_heal_ratio: 0.05 },
   attributeModifiers: [],
-  lifecycleSequences: { enable: [{ $sequence: 'mergeContextTargets_3' }] },
+  lifecycleSequences: { enable: [{ $sequence: 'findTargets_3' }] },
   actionGraph: commonBuff_buff_cc_chr_heal_reflect_to_eny_stack_shield$actionGraph,
 };
 
@@ -2367,7 +2389,7 @@ const commonBuff_buff_cc_chr_no_lastcombo_stop_atb_recover$actionGraph = {
         expression: {
           kind: 'eventDamageTagsMatch',
           match: 'hasAny',
-          tags: ['powerAttack', 'normalAttackLastCombo'],
+          tags: ['normalAttackLastCombo', 'powerAttack'],
         },
       },
       data_2: {
@@ -2594,7 +2616,7 @@ const commonBuff_buff_cc_chr_no_lastcombo_weak$actionGraph = {
         expression: {
           kind: 'eventDamageTagsMatch',
           match: 'hasAny',
-          tags: ['powerAttack', 'normalAttackLastCombo'],
+          tags: ['normalAttackLastCombo', 'powerAttack'],
         },
       },
       data_3: {
@@ -2690,6 +2712,7 @@ const commonBuff_buff_cc_chr_no_lastcombo_weak_countdown: SkillBuffDefinition = 
     showInHeadBarCommon: false,
     showInHeadBarAttached: false,
     showInSquadIcon: true,
+    visible: false,
   },
   applyTags: [],
   extendTags: [],
@@ -3333,11 +3356,7 @@ const commonBuff_buff_cc_chr_set_skill_atb_recover_ratio$actionGraph = {
       data_2: { type: 'number', expression: { kind: 'blackboard', key: 'skill_ratio' } },
       data_3: {
         type: 'boolean',
-        expression: {
-          kind: 'eventSpGainMatch',
-          sources: ['skill', 'default'],
-          gainKinds: ['gain'],
-        },
+        expression: { kind: 'eventSpGainMatch', sources: ['skill'], gainKinds: ['gain'] },
       },
     },
   },
@@ -3436,7 +3455,7 @@ const commonBuff_buff_cc_chr_ult_dmg_down_gradual_instance$actionGraph = {
         action: {
           kind: 'readBuffStackCount',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
             outputKey: 'layer',
             query: { kind: 'id', buffIds: ['buff_cc_chr_ult_dmg_down_gradual_stack'] },
           },
@@ -4575,7 +4594,7 @@ const commonBuff_buff_cc_enemy_inflict_stack_resist_add_listener$actionGraph = {
         action: {
           kind: 'readBuffStackCount',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
             outputKey: 'stack',
             query: {
               kind: 'tag',
@@ -4650,7 +4669,7 @@ const commonBuff_buff_cc_enemy_inflict_stack_resist_add_listener$actionGraph = {
         action: {
           kind: 'readBuffStackCount',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
             outputKey: 'stack',
             query: {
               kind: 'tag',
@@ -4725,7 +4744,7 @@ const commonBuff_buff_cc_enemy_inflict_stack_resist_add_listener$actionGraph = {
         action: {
           kind: 'readBuffStackCount',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
             outputKey: 'stack',
             query: {
               kind: 'tag',
@@ -4800,7 +4819,7 @@ const commonBuff_buff_cc_enemy_inflict_stack_resist_add_listener$actionGraph = {
         action: {
           kind: 'readBuffStackCount',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
             outputKey: 'stack',
             query: {
               kind: 'tag',
@@ -4875,7 +4894,7 @@ const commonBuff_buff_cc_enemy_inflict_stack_resist_add_listener$actionGraph = {
         action: {
           kind: 'readBuffStackCount',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
             outputKey: 'stack',
             query: {
               kind: 'tag',
@@ -6024,7 +6043,7 @@ const commonBuff_buff_cc_eny_heal_no_inflict_do_heal: SkillBuffDefinition = {
   presentation: {
     icon: 'endaxis:icons/icon_battle_continuous_healing',
     showInHeadBarCommon: true,
-    nameKey: 'contingencyContract.preview.heal',
+    nameKey: 'contingencyContract.buffs.heal',
   },
   applyTags: [],
   extendTags: [],
@@ -6037,14 +6056,26 @@ const commonBuff_buff_cc_eny_heal_no_inflict_do_heal: SkillBuffDefinition = {
 const commonBuff_buff_cc_eny_numshield_instance$actionGraph = {
   main: {
     nodes: {
-      checkCondition_13: {
+      checkCondition_18: {
         action: {
           kind: 'checkCondition',
           parameters: { condition: { kind: 'conditionNode', nodeId: 'data_1' } },
         },
         next: null,
       },
-      modifyActionValue_1: {
+      setCountShieldUi_1: {
+        action: {
+          kind: 'setCountShieldUi',
+          parameters: {
+            target: { kind: 'owner' },
+            remove: false,
+            maximum: { kind: 'valueNode', nodeId: 'data_2' },
+            current: { kind: 'valueNode', nodeId: 'data_3' },
+          },
+        },
+        next: null,
+      },
+      modifyActionValue_2: {
         action: {
           kind: 'modifyActionValue',
           parameters: {
@@ -6053,43 +6084,67 @@ const commonBuff_buff_cc_eny_numshield_instance$actionGraph = {
             value: { kind: 'valueNode', nodeId: 'data_2' },
           },
         },
+        next: 'setCountShieldUi_1',
+      },
+      setCountShieldUi_8: {
+        action: {
+          kind: 'setCountShieldUi',
+          parameters: {
+            target: { kind: 'owner' },
+            remove: true,
+            maximum: { kind: 'valueNode', nodeId: 'data_2' },
+            current: { kind: 'valueNode', nodeId: 'data_3' },
+          },
+        },
         next: null,
       },
-      readBuffBlackboard_3: {
+      setCountShieldUi_5: {
+        action: {
+          kind: 'setCountShieldUi',
+          parameters: {
+            target: { kind: 'owner' },
+            remove: true,
+            maximum: { kind: 'valueNode', nodeId: 'data_2' },
+            current: { kind: 'valueNode', nodeId: 'data_3' },
+          },
+        },
+        next: 'setCountShieldUi_1',
+      },
+      readBuffBlackboard_6: {
         action: {
           kind: 'readBuffBlackboard',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
             query: { kind: 'id', buffIds: ['buff_eny_0128_babyents_numshield'] },
             desiredKey: 'shield_num_max',
             outputKey: 'shield_num_max',
           },
         },
-        next: null,
+        next: 'setCountShieldUi_5',
       },
-      readBuffBlackboard_4: {
+      readBuffBlackboard_7: {
         action: {
           kind: 'readBuffBlackboard',
           parameters: {
-            target: 'buffOwner',
+            target: { kind: 'owner' },
             query: { kind: 'id', buffIds: ['buff_eny_0128_babyents_numshield'] },
             desiredKey: 'shield_num',
             outputKey: 'shield_num',
           },
         },
-        next: 'readBuffBlackboard_3',
+        next: 'readBuffBlackboard_6',
       },
-      ifElse_5: {
+      ifElse_9: {
         action: {
           kind: 'ifElse',
           parameters: { alwaysNext: true },
-          condition: { kind: 'conditionNode', nodeId: 'data_3' },
-          whenTrue: { $sequence: 'readBuffBlackboard_4' },
-          whenFalse: { $sequence: null },
+          condition: { kind: 'conditionNode', nodeId: 'data_4' },
+          whenTrue: { $sequence: 'readBuffBlackboard_7' },
+          whenFalse: { $sequence: 'setCountShieldUi_8' },
         },
         next: null,
       },
-      finishBuffsById_6: {
+      finishBuffsById_10: {
         action: {
           kind: 'finishBuffsById',
           parameters: {
@@ -6101,14 +6156,26 @@ const commonBuff_buff_cc_eny_numshield_instance$actionGraph = {
         },
         next: null,
       },
-      checkCondition_7: {
+      checkCondition_11: {
         action: {
           kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_5' } },
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
         },
-        next: 'finishBuffsById_6',
+        next: 'finishBuffsById_10',
       },
-      modifyActionValue_8: {
+      setCountShieldUi_12: {
+        action: {
+          kind: 'setCountShieldUi',
+          parameters: {
+            target: { kind: 'owner' },
+            remove: false,
+            maximum: { kind: 'valueNode', nodeId: 'data_2' },
+            current: { kind: 'valueNode', nodeId: 'data_3' },
+          },
+        },
+        next: 'checkCondition_11',
+      },
+      modifyActionValue_13: {
         action: {
           kind: 'modifyActionValue',
           parameters: {
@@ -6117,29 +6184,29 @@ const commonBuff_buff_cc_eny_numshield_instance$actionGraph = {
             value: { kind: 'constant', value: -1 },
           },
         },
-        next: 'checkCondition_7',
+        next: 'setCountShieldUi_12',
       },
-      saveDamageSkillCastId_9: {
+      saveDamageSkillCastId_14: {
         action: { kind: 'saveDamageSkillCastId', parameters: {} },
-        next: 'modifyActionValue_8',
+        next: 'modifyActionValue_13',
       },
-      checkCondition_10: {
-        action: {
-          kind: 'checkCondition',
-          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_6' } },
-        },
-        next: 'saveDamageSkillCastId_9',
-      },
-      invertNextResult_11: {
-        action: { kind: 'invertNextResult', parameters: {} },
-        next: 'checkCondition_10',
-      },
-      checkCondition_12: {
+      checkCondition_15: {
         action: {
           kind: 'checkCondition',
           parameters: { condition: { kind: 'conditionNode', nodeId: 'data_7' } },
         },
-        next: 'invertNextResult_11',
+        next: 'saveDamageSkillCastId_14',
+      },
+      invertNextResult_16: {
+        action: { kind: 'invertNextResult', parameters: {} },
+        next: 'checkCondition_15',
+      },
+      checkCondition_17: {
+        action: {
+          kind: 'checkCondition',
+          parameters: { condition: { kind: 'conditionNode', nodeId: 'data_8' } },
+        },
+        next: 'invertNextResult_16',
       },
     },
     dataNodes: {
@@ -6152,7 +6219,8 @@ const commonBuff_buff_cc_eny_numshield_instance$actionGraph = {
         },
       },
       data_2: { type: 'number', expression: { kind: 'blackboard', key: 'shield_num_max' } },
-      data_3: {
+      data_3: { type: 'number', expression: { kind: 'blackboard', key: 'shield_num' } },
+      data_4: {
         type: 'boolean',
         expression: {
           kind: 'buffIdStackCompare',
@@ -6163,21 +6231,21 @@ const commonBuff_buff_cc_eny_numshield_instance$actionGraph = {
           buffIds: ['buff_eny_0128_babyents_numshield'],
         },
       },
-      data_4: {
+      data_5: {
         type: 'number',
         expression: { kind: 'blackboard', key: 'shield_num', fallback: 0 },
       },
-      data_5: {
+      data_6: {
         type: 'boolean',
         expression: {
           kind: 'actionValueCompare',
-          left: { kind: 'valueNode', nodeId: 'data_4' },
+          left: { kind: 'valueNode', nodeId: 'data_5' },
           operator: 'lessOrEqual',
           right: { kind: 'constant', value: 0 },
         },
       },
-      data_6: { type: 'boolean', expression: { kind: 'eventDamageSkillCastRecorded' } },
-      data_7: {
+      data_7: { type: 'boolean', expression: { kind: 'eventDamageSkillCastRecorded' } },
+      data_8: {
         type: 'boolean',
         expression: {
           kind: 'eventDamageTagsMatch',
@@ -6201,16 +6269,16 @@ const commonBuff_buff_cc_eny_numshield_instance: SkillBuffDefinition = {
   damageModifiers: [
     {
       enabledSide: 'defender',
-      condition: { $sequence: 'checkCondition_13' },
+      condition: { $sequence: 'checkCondition_18' },
       processors: [{ kind: 'damageScale', side: 'defender', zone: 'product', addition: -9999 }],
     },
   ],
   lifecycleSequences: {
-    start: [{ $sequence: 'modifyActionValue_1' }],
-    finish: [{ $sequence: 'ifElse_5' }],
+    start: [{ $sequence: 'modifyActionValue_2' }],
+    finish: [{ $sequence: 'ifElse_9' }],
   },
   abilityEventResponses: [
-    { event: 'beforeTakeDamage', priority: 0, sequence: { $sequence: 'checkCondition_12' } },
+    { event: 'beforeTakeDamage', priority: 0, sequence: { $sequence: 'checkCondition_17' } },
   ],
   actionGraph: commonBuff_buff_cc_eny_numshield_instance$actionGraph,
 };
@@ -8215,4 +8283,4 @@ export const contingencyContractOmittedTagReasons = Object.freeze({
   '102201': 'changes stage wave enemy composition rather than the selected fixed target',
   '102202': 'changes stage wave enemy composition rather than the selected fixed target',
 }) as Readonly<Record<number, string>>;
-export const contingencyContractDefinitionRevision = 'local-vfs-20261021';
+export const contingencyContractDefinitionRevision = 'local-index-20261030';

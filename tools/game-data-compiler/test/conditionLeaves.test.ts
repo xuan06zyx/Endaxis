@@ -1,3 +1,4 @@
+import { singleTargetList } from '../../../src/core/game-data/logicalAbilityEntity.ts';
 import { TargetContextOperationExecutor } from '../../../src/core/combat/abilities/targetContextOperationExecutor';
 import { RuntimeTargetContext } from '../../../src/core/combat/abilities/runtimeTargetContext';
 import { parseTargetReferenceSource } from '../src/source/target.ts';
@@ -37,6 +38,28 @@ const TARGET_CONTEXT = {
 } as const;
 
 describe('公共条件叶子 IR', () => {
+  it('全部敌人查询保留全局范围、目录顺序及真实 selector owner 排除', () => {
+    const raw = targetFixture('InstantSearch', {
+      finderData: { $type: 'Beyond.Gameplay.Core.Selector+AllEnemyFinder+Data, Gameplay.Beyond' },
+      validatorData: [
+        { $type: 'Beyond.Gameplay.Core.Selector+ExcludeOwnerValidator+Data, Gameplay.Beyond' },
+      ],
+      postProcessorData: [],
+    });
+    const target = parseTargetReferenceSource({ ...raw, selectorOwner: 'ActionSource' }, 'target');
+    const graph = createActionGraphBuilder<CompiledBuffStepSource>();
+    expect(projectActionTargetQuery(target, { ...TARGET_CONTEXT, graph }, 'target')).toEqual({
+      kind: 'exclude',
+      targets: {
+        kind: 'enemyByTags',
+        scope: 'global',
+        reverse: true,
+        tagQueryType: 'hasAll',
+        tags: [],
+      },
+      excludeTargets: { kind: 'source' },
+    });
+  });
   it('BuffValidator 保留查询组合、匹配模式与空 ID，不额外生成行为', () => {
     const validator = (mode: string, checkType: string) => ({
       $type: 'Beyond.Gameplay.Core.Selector+BuffValidator+Data, Gameplay.Beyond',
@@ -156,6 +179,35 @@ describe('公共条件叶子 IR', () => {
     });
     expect(isPresentationOnlyActionSequence(source)).toBe(false);
   });
+  it.each([true, false])('即时敌对命中盒保留范围查询及存活筛选 %s，不折叠为主敌人', checkAlive => {
+    const target = {
+      ...parseTargetReferenceSource(targetFixture('Owner'), 'target'),
+      targetSource: 'InstantSearch' as const,
+      finderType: 'HitBoxFinder' as const,
+      finderAutoSetTargetFaction: true,
+      finderFactionTarget: 'Anti' as const,
+      finderTargetObjectType: 'Normal' as const,
+      finderCheckAlive: checkAlive,
+      finderContainsUnMarkable: false,
+    };
+    const graph = createActionGraphBuilder<CompiledBuffStepSource>();
+    expect(projectActionTargetQuery(target, { ...TARGET_CONTEXT, graph }, 'target')).toEqual({
+      kind: 'factionHitBox',
+      factionTarget: 'anti',
+      owner: { kind: 'owner' },
+      checkAlive,
+      containsUnmarkable: false,
+      replacePartsWithMainBodies: false,
+    });
+    expect(() =>
+      projectActionTargetQuery(
+        { ...target, postProcessorTypes: ['RandomPostProcessor'] },
+        { ...TARGET_CONTEXT, graph },
+        'target',
+      ),
+    ).toThrow();
+  });
+
   it('普通队伍 finder 复用队伍查询，不吞掉未实现的后处理', () => {
     const target = {
       ...parseTargetReferenceSource(targetFixture('Owner'), 'target'),
@@ -298,7 +350,7 @@ describe('公共条件叶子 IR', () => {
       undefined,
       undefined,
       {
-        mainTarget: () => (hasTarget ? { kind: 'enemy' } : undefined),
+        mainTarget: () => (hasTarget ? { kind: 'enemy', enemyId: 'enemy' } : undefined),
         ownerSpawned: () => [],
       },
     );
@@ -316,7 +368,7 @@ describe('公共条件叶子 IR', () => {
     expect(executor.execute(step, context)).toBe(false);
     expect(targets.get('result')).toEqual([{ kind: 'operator', operatorId: 'old' }]);
     expect(executor.execute(step, { ...context, actionOwnerId: 'enemy' })).toBe(true);
-    expect(targets.get('result')).toEqual([{ kind: 'enemy' }]);
+    expect(targets.get('result')).toEqual([{ kind: 'enemy', enemyId: 'enemy' }]);
     hasTarget = false;
     expect(executor.execute(step, { ...context, actionOwnerId: 'enemy' })).toBe(true);
     expect(targets.get('result')).toEqual([]);
@@ -357,19 +409,27 @@ describe('公共条件叶子 IR', () => {
       },
       'target',
     );
-    const executor = new TargetContextOperationExecutor('operator', {
-      execute: () => true,
-      evaluate: () => false,
-    });
+    const executor = new TargetContextOperationExecutor(
+      'operator',
+      {
+        execute: () => true,
+        evaluate: () => false,
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { mainTarget: () => ({ kind: 'enemy', enemyId: 'enemy' }), ownerSpawned: () => [] },
+    );
     if (query.kind !== 'battleMainTarget')
       throw new Error('MainTarget must resolve to the battle target');
     expect(
       executor.queryTargets(query, {
         blackboard: new ActionBlackboard(),
         actionOwnerId: 'enemy',
-        actionInputTarget: { kind: 'operator', operatorId: 'operator' },
+        actionInputTargets: singleTargetList({ kind: 'operator', operatorId: 'operator' }),
       }),
-    ).toEqual([{ kind: 'enemy' }]);
+    ).toEqual([{ kind: 'enemy', enemyId: 'enemy' }]);
   });
   it('原始 SkillData 的技能类型数字枚举与已解码名称一致', () => {
     const payload = {
@@ -786,7 +846,7 @@ it('原生队伍遍历在已编译图中实时排除Owner与保护组，并把�
     undefined,
     undefined,
     {
-      mainTarget: () => ({ kind: 'enemy' }),
+      mainTarget: () => ({ kind: 'enemy', enemyId: 'enemy' }),
       ownerSpawned: () => [],
       exclusionTarget: target => target,
     },
@@ -939,7 +999,7 @@ it('距离检查保留一个原生调用，查询在每次执行时读取，空�
     { blackboard: new ActionBlackboard(), targetContext: targets, actionOwnerId: 'owner' },
   ).createSequence(compiled);
   expect(runtime.executeInstant({})).toBe(false);
-  targets.set('target', [{ kind: 'enemy' }]);
+  targets.set('target', [{ kind: 'enemy', enemyId: 'enemy' }]);
   expect(runtime.executeInstant({})).toBe(true);
   targets.set('target', []);
   expect(runtime.executeInstant({})).toBe(false);
@@ -1103,7 +1163,7 @@ it('原生实体计数每次重新查询，比较失败不写值，保留一个�
       undefined,
       undefined,
       {
-        mainTarget: () => ({ kind: 'enemy' }),
+        mainTarget: () => ({ kind: 'enemy', enemyId: 'enemy' }),
         ownerSpawned: () => [],
         entityLifeState: () => (alive ? 'alive' : 'dead'),
       },
@@ -1285,7 +1345,10 @@ it('武器类型条件动态读取查询首目标，掩码不与武器编号混�
   expect(executor.evaluate(runtimeCondition, context)).toBe(false);
   targets.set('picked', [{ kind: 'operator', operatorId: 'second' }]);
   expect(executor.evaluate(runtimeCondition, context)).toBe(true);
-  targets.set('picked', [{ kind: 'enemy' }, { kind: 'operator', operatorId: 'second' }]);
+  targets.set('picked', [
+    { kind: 'enemy', enemyId: 'enemy' },
+    { kind: 'operator', operatorId: 'second' },
+  ]);
   expect(executor.evaluate(runtimeCondition, context)).toBe(false);
   targets.set('picked', []);
   expect(executor.evaluate(runtimeCondition, context)).toBe(false);

@@ -305,6 +305,63 @@ describe('SkillRuntime', () => {
     expect(resumed.runtimeState.timeline).toEqual(skill.runtimeState.timeline);
     expect(original.operations.execute).toHaveBeenCalledTimes(2);
   });
+  it.each([false, true])(
+    '施法输入按原生选项保存独立目标快照并支持恢复：multi=%s',
+    allowMultiInputTarget => {
+      const program = {
+        operatorId: 'operator',
+        skillId: 'multi-input',
+        skillType: 'battleSkill' as const,
+        initialBlackboard: {},
+        costs: [],
+        timelineActions: [],
+        naturalDurationFrames: 4,
+      };
+      let nextId = 1;
+      const dependencies = {
+        clock: new CombatClock(),
+        receipt: new CombatReceiptCollector(),
+        operations: { execute: () => true, evaluate: () => true },
+        resources: null,
+        allocateSkillCastId: () => nextId++,
+      };
+      const runtime = new SkillRuntime(program, dependencies);
+      const targets = [
+        { kind: 'enemy' as const, enemyId: 'enemy:first' },
+        { kind: 'enemy' as const, enemyId: 'enemy:second' },
+      ];
+      runtime.prepareCastInput({
+        skipApplyCost: false,
+        inputTargets: targets,
+        allowMultiInputTarget,
+      });
+      targets[0]!.enemyId = 'enemy:mutated';
+      targets.pop();
+      expect(runtime.tryStart()).toBe(true);
+      const expected = allowMultiInputTarget
+        ? [
+            { kind: 'enemy', enemyId: 'enemy:first' },
+            { kind: 'enemy', enemyId: 'enemy:second' },
+          ]
+        : [{ kind: 'enemy', enemyId: 'enemy:first' }];
+      expect(runtime.operationContext.actionInputTargets).toEqual(expected);
+      expect(runtime.runtimeState.execution.preparedInputTargets).toBeUndefined();
+      const restored = new SkillRuntime(program, dependencies, {
+        state: structuredClone(runtime.runtimeState),
+        damageSnapshotProgram: runtime.damageSnapshotProgram,
+        resolveAttachedBuff: () => undefined,
+      });
+      expect(restored.operationContext.actionInputTargets).toEqual(expected);
+      restored.interrupt('default');
+      expect(restored.tryStart()).toBe(true);
+      expect(restored.operationContext.actionInputTargets).toBeUndefined();
+      restored.interrupt('default');
+      restored.prepareCastInput({ skipApplyCost: false, inputTargets: [], allowMultiInputTarget });
+      expect(restored.tryStart()).toBe(true);
+      expect(restored.operationContext.actionInputTargets).toEqual([]);
+      expect(restored.operationContext.actionInputTargets?.[0]).toBeUndefined();
+    },
+  );
   it('同一执行程序支持不同施放身份，回执与恢复使用实例身份', () => {
     const program = {
       operatorId: 'operator',
@@ -353,14 +410,14 @@ describe('SkillRuntime', () => {
     );
     expect(restored.castId).toBe('first');
     expect(restored.skillCastInfo).toEqual(first.skillCastInfo);
-    expect(restored.operationContext.actionInputTarget).toEqual({
+    expect(restored.operationContext.actionInputTargets?.[0]).toEqual({
       kind: 'operator',
       operatorId: 'attacker',
     });
-    expect(second.operationContext.actionInputTarget).toBeUndefined();
+    expect(second.operationContext.actionInputTargets?.[0]).toBeUndefined();
     restored.interrupt('default');
     restored.tryStart();
-    expect(restored.operationContext.actionInputTarget).toBeUndefined();
+    expect(restored.operationContext.actionInputTargets?.[0]).toBeUndefined();
     expect(
       () =>
         new SkillRuntime(
@@ -1133,7 +1190,7 @@ describe('SkillRuntime', () => {
       emitAfterSkillApplyCost,
     );
     const afterCastStart = {
-      trigger: { kind: 'enemy' as const },
+      trigger: [{ kind: 'enemy' as const, enemyId: 'enemy' }],
       assignPairs: { preparationProbe: 7 },
     };
     const ability = new AbilitySystemRuntime({ skills: [current.runtime, ending.runtime] });
@@ -1312,7 +1369,10 @@ describe('SkillRuntime', () => {
       observed.push(context!.blackboard.getNumber('local')!);
       return true;
     });
-    const callback = { trigger: { kind: 'enemy' as const }, assignPairs: { local: 4 } };
+    const callback = {
+      trigger: [{ kind: 'enemy' as const, enemyId: 'enemy' }],
+      assignPairs: { local: 4 },
+    };
     fixture.runtime.prepareAfterCastStart(callback);
     fixture.runtime.tryStart();
     expect(observed).toEqual([4]);
@@ -2317,6 +2377,7 @@ describe('SkillRuntime', () => {
     const inherited = {
       skillCastId: 41,
       originSkillId: 'ultimateSkill',
+      originSkillTags: ['Skill/Source'],
       originSkillType: 'ultimate' as const,
       nonReturnedSpCost: 73,
     };
@@ -2558,4 +2619,31 @@ describe('SkillRuntime', () => {
     expect(fixture.runtime.cooldown.ready).toBe(true);
     expect(fixture.receipt.entries.map(entry => entry.event)).toContain('SkillCooldownReady');
   });
+});
+
+it('技能定义标签经过编译进入施法事件和来源身份', () => {
+  const definition = {
+    ...defineSkillFixture({ key: 'tagged', timelineBlockFrames: 2, costFrame: 0, costs: [] }),
+    skillTags: ['Skill/Test'],
+  };
+  const compiled = compileSkill({
+    operatorId: 'operator',
+    skillGroupKey: 'battleSkill',
+    skillType: 'battleSkill',
+    skill: definition,
+    skillLevel: 1,
+    programs: skillPrograms,
+  });
+  const emitted: AbilitySkillPayload[] = [];
+  const runtime = new SkillRuntime(compiled, {
+    clock: new CombatClock(),
+    receipt: new CombatReceiptCollector(),
+    resources: null,
+    operations: { execute: () => true, evaluate: () => true },
+    allocateSkillCastId: () => 1,
+    emitAfterSkillApplyCost: payload => emitted.push(payload),
+  });
+  expect(runtime.tryStart()).toBe(true);
+  expect(runtime.skillCastInfo.originSkillTags).toEqual(['Skill/Test']);
+  expect(emitted[0]?.skillTags).toEqual(['Skill/Test']);
 });

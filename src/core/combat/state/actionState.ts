@@ -48,6 +48,8 @@ export function createBranchActionState(): BranchActionState {
 
 /** 重复动作的计时和触发次数。 */
 export interface RepeatedActionState {
+  inputTarget: RuntimeTargetRef | null;
+  checkFrame: number;
   skipInitialTick: boolean;
   timerSeconds: number;
   scanCount: number;
@@ -77,6 +79,8 @@ export function createChannelingActionState(): ChannelingActionState {
 
 export function createRepeatedActionState(): RepeatedActionState {
   return {
+    inputTarget: null,
+    checkFrame: -1,
     skipInitialTick: false,
     timerSeconds: 0,
     scanCount: 0,
@@ -241,7 +245,12 @@ export type ActionGraphNodeData =
     }
   | { readonly kind: 'graphOnce'; executed: boolean; body: ActionGraphExecutionState | null }
   | { readonly kind: 'channeling'; readonly channeling: ChannelingActionState }
-  | { readonly kind: 'graphAura'; active: boolean; readonly influences: AuraInfluenceState[] }
+  | {
+      readonly kind: 'graphAura';
+      active: boolean;
+      readonly influences: AuraInfluenceState[];
+      influenceCounts?: { target: RuntimeTargetRef; count: number }[];
+    }
   | { readonly kind: 'graphMacro'; body: ActionGraphExecutionState | null }
   | {
       readonly kind: 'graphListener';
@@ -266,6 +275,11 @@ export type ActionGraphNodeData =
     }
   | { readonly kind: 'graphGuard'; body: ActionGraphExecutionState | null };
 
+/** 挂接控制绑定执行时的目标；结束时不重新查询目标。 */
+export interface BoneAttachState {
+  targetId: string | null;
+}
+
 /** 当前动作按顺序持有的登记；结束时逐项解除，同一动作的多项登记共享寿命。 */
 export interface ActionRegistrationState {
   registrationIds: number[];
@@ -287,13 +301,22 @@ export type OperationStepData =
   | { readonly kind: 'normalSkillRestriction'; readonly activation: ActionRegistrationState }
   | { readonly kind: 'movementGait'; readonly activation: ActionRegistrationState }
   | { readonly kind: 'skillAffix'; readonly activation: ActionRegistrationState }
+  | { readonly kind: 'typhoeaArchery'; readonly activation: ActionRegistrationState }
   | { readonly kind: 'actionDurationBuffs'; readonly buffs: ActionBuffReferencesState }
   | { readonly kind: 'inheritedBuff'; readonly buffs: ActionBuffReferencesState }
   | { readonly kind: 'buffHold'; readonly buffs: ActionBuffReferencesState }
+  | { readonly kind: 'boneAttach'; readonly attachment: BoneAttachState }
   | { readonly kind: 'stateless' };
 
 export type GraphLeafStepData =
-  OperationStepData | { readonly kind: 'healthFloor'; body: ActionGraphExecutionState | null };
+  | OperationStepData
+  | { readonly kind: 'healthFloor'; body: ActionGraphExecutionState | null }
+  | {
+      readonly kind: 'continuousTargetQuery';
+      timer: number;
+      lastFindTime: number;
+      inputTarget: RuntimeTargetRef | null;
+    };
 
 export type ActionStepData =
   | GraphLeafStepData

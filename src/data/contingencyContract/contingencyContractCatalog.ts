@@ -6,12 +6,24 @@ import {
   contingencyContractInitializationPlans,
 } from './generated/contingencyContractDefinitions.generated';
 import { CONTINGENCY_CONTRACT_MECHANIC_PREFIX } from './contingencyContractAdapter';
-import { seasonTwoPreviewTags } from './previewSeasonTwo';
+import {
+  contingencyContractTagDefinitions as seasonTwoTags,
+  contingencyContractBlockedTagReasons as seasonTwoBlocked,
+  contingencyContractOmittedTagReasons as seasonTwoOmitted,
+} from './generated/contingencyContract.indie_contract002.generated';
 
 export type ContingencyContractTagSupport = 'supported' | 'blocked' | 'omitted';
 export const contingencyContractSeasons = [
-  { id: 1, nameKey: 'contingencyContract.operationName' },
-  { id: 2, nameKey: 'contingencyContract.preview.operationName' },
+  {
+    id: 1,
+    gameId: 'indie_contract001',
+    nameKey: 'contingencyContract.operations.indie_contract001',
+  },
+  {
+    id: 2,
+    gameId: 'indie_contract002',
+    nameKey: 'contingencyContract.operations.indie_contract002',
+  },
 ] as const;
 
 export interface ContingencyContractTagPresentation extends ContingencyContractTagDefinition {
@@ -45,10 +57,17 @@ export const contingencyContractTags: readonly ContingencyContractTagPresentatio
         ...(supportReason === undefined ? {} : { supportReason }),
       });
     }),
-    ...seasonTwoPreviewTags.map(tag => ({
+    ...seasonTwoTags.map(tag => ({
       ...tag,
       season: 2 as const,
-      support: 'supported' as const,
+      support: Object.hasOwn(seasonTwoBlocked, tag.tagId)
+        ? ('blocked' as const)
+        : Object.hasOwn(seasonTwoOmitted, tag.tagId)
+          ? ('omitted' as const)
+          : ('supported' as const),
+      ...(seasonTwoBlocked[tag.tagId] || seasonTwoOmitted[tag.tagId]
+        ? { supportReason: seasonTwoBlocked[tag.tagId] ?? seasonTwoOmitted[tag.tagId] }
+        : {}),
     })),
   ],
 );

@@ -1,3 +1,4 @@
+import { projectDamageDecorateMask } from '../damageDecorateMask.ts';
 import { projectSelectorBuffValidators } from './selectorBuffProjection.ts';
 import { projectNativeTagQueryType } from '../../source/tagQuery.ts';
 import type { SkillInterruptReason } from '../../../../../packages/game-data-contract/src/conditions.ts';
@@ -13,7 +14,6 @@ import type {
 import {
   isPartyInstantSearch,
   isPartyExceptOwnerInstantSearch,
-  isUniqueEnemyHitBoxInstantSearch,
   projectGameplayTags,
 } from '../combatProjectionCommon.ts';
 import { projectSpGainKind, projectSpGainSource } from '../../source/spGainEnums.ts';
@@ -58,6 +58,13 @@ function compileConditionLeaf(
   sourcePath: string,
   context: CombatActionProjectionContextSource,
 ): CompiledBuffConditionSource {
+  if (condition.kind === 'skillGameplayTag') {
+    return {
+      kind: 'eventSkillTagsMatch',
+      tagQueryType: condition.queryType,
+      tags: projectGameplayTags(condition.tagIds, context, sourcePath + '.gameplayTagList'),
+    };
+  }
   if (condition.kind === 'globalBuffCount') {
     const operator = COMPARISON_OPERATORS[condition.comparison];
     if (!operator) throw new Error(`${sourcePath}: unsupported global Buff comparison`);
@@ -549,43 +556,8 @@ function compileConditionLeaf(
       ExceptAny: 'exceptAny',
       ExceptAll: 'exceptAll',
     }[condition.checkType] as 'hasAny' | 'hasAll' | 'exceptAny' | 'exceptAll' | undefined;
-    const has = (bit: number) => Math.floor(condition.mask / bit) % 2 === 1;
-    const tags = [
-      ...(has(4) ? (['powerAttack'] as const) : []),
-      ...(has(128) ? (['normalAttack'] as const) : []),
-      ...(has(256) ? (['normalSkill'] as const) : []),
-      ...(has(512) ? (['ultimateSkill'] as const) : []),
-      ...(has(1024) ? (['plungingAttack'] as const) : []),
-      ...(has(8192) ? (['comboSkill'] as const) : []),
-      ...(has(131072) ? (['dashAttack'] as const) : []),
-      ...(has(2097152) ? (['normalAttackLastCombo'] as const) : []),
-      ...(has(4194304) ? (['fireBurst'] as const) : []),
-      ...(has(8388608) ? (['cryoBurst'] as const) : []),
-      ...(has(16777216) ? (['electricBurst'] as const) : []),
-      ...(has(33554432) ? (['natureBurst'] as const) : []),
-    ];
-    const features = [
-      ...(has(4096) ? (['canBreakWeakness'] as const) : []),
-      ...(has(16384) ? (['crush'] as const) : []),
-      ...(has(32768) ? (['airborne'] as const) : []),
-      ...(has(65536) ? (['knockDown'] as const) : []),
-      ...(has(134217728) ? (['shatter'] as const) : []),
-      ...(has(268435456) ? (['dot'] as const) : []),
-      ...(has(536870912) ? (['remainArea'] as const) : []),
-      ...(has(1073741824) ? (['physicalInfliction'] as const) : []),
-      ...(has(2147483648) ? (['talentDamage'] as const) : []),
-    ];
-    const knownBits = [
-      4, 128, 256, 512, 1024, 4096, 8192, 16384, 32768, 65536, 131072, 2097152, 4194304, 8388608,
-      16777216, 33554432, 134217728, 268435456, 536870912, 1073741824, 2147483648,
-    ];
-    if (
-      match === undefined ||
-      tags.length + features.length === 0 ||
-      !Number.isSafeInteger(condition.mask) ||
-      condition.mask < 0 ||
-      condition.mask - knownBits.reduce((sum, bit) => sum + (has(bit) ? bit : 0), 0) !== 0
-    ) {
+    const { tags, features } = projectDamageDecorateMask(condition.mask, sourcePath);
+    if (match === undefined || tags.length + features.length === 0) {
       throw new Error(`${sourcePath}: unsupported damage decorate mask ${condition.mask}`);
     }
     const projected = [
@@ -761,6 +733,7 @@ function compileConditionLeaf(
   if (condition.kind === 'entityTag') {
     return {
       kind: 'entityTagMatch',
+      ...(condition.sourceType === 'CheckPartTagMatch' ? { checkPartTags: true } : {}),
       target: projectActionTargetQuery(condition.target, context, `${sourcePath}.checkTarget`),
       tagQueryType: condition.tagQueryType,
       tags: projectGameplayTags(condition.tagIds, context, sourcePath),
@@ -932,7 +905,6 @@ export function projectActionTargetQuery(
   }
   if (isPartyInstantSearch(target)) return { kind: 'characterTeam', excludeOwner: false };
   if (isPartyExceptOwnerInstantSearch(target)) return { kind: 'characterTeam', excludeOwner: true };
-  if (isUniqueEnemyHitBoxInstantSearch(target)) return { kind: 'fixed', target: 'enemy' };
   if (target.targetSource !== 'InstantSearch') {
     switch (target.targetSource) {
       case 'Owner':
@@ -960,6 +932,22 @@ export function projectActionTargetQuery(
     throw new Error(`${path}: unsupported selector owner ${target.selectorOwner}`);
   };
   if (
+    target.finderType === 'AllEnemyFinder' &&
+    target.postProcessorTypes.length === 0 &&
+    target.validatorTypes.every(type => type === 'ExcludeOwnerValidator')
+  ) {
+    const targets: ActionTargetQuery = {
+      kind: 'enemyByTags',
+      scope: 'global',
+      reverse: true,
+      tagQueryType: 'hasAll',
+      tags: [],
+    };
+    return target.validatorTypes.includes('ExcludeOwnerValidator')
+      ? { kind: 'exclude', targets, excludeTargets: owner() }
+      : targets;
+  }
+  if (
     target.finderType === 'HitBoxFinder' &&
     target.finderAutoSetTargetFaction === true &&
     (target.finderFactionTarget === 'Ally' || target.finderFactionTarget === 'Anti') &&
@@ -968,7 +956,10 @@ export function projectActionTargetQuery(
     target.finderCheckAlive !== undefined &&
     target.finderContainsUnMarkable !== undefined &&
     target.validatorTypes.length === 0 &&
-    target.postProcessorTypes.length === 0
+    target.postProcessorTypes.length === 0 &&
+    target.priorityFilters.length === 0 &&
+    target.shuffleTargets.length === 0 &&
+    target.distanceValidators.length === 0
   )
     return {
       kind: 'factionHitBox',
@@ -1042,11 +1033,17 @@ export function projectActionTargetQuery(
     return { kind: 'mainCharacter' };
   if (
     target.finderType === 'OwnerSpawnedEntityFinder' &&
-    target.finderSpawnedObjectType === 'All' &&
+    (target.finderSpawnedObjectType === 'All' ||
+      target.finderSpawnedObjectType === 'AbilityEntity') &&
     target.validatorTypes.length === 0 &&
     target.postProcessorTypes.length === 0
   ) {
-    return { kind: 'ownerSpawned', owner: owner(), objectType: 'all', sameSourceSkillCast: false };
+    return {
+      kind: 'ownerSpawned',
+      owner: owner(),
+      objectType: target.finderSpawnedObjectType === 'All' ? 'all' : 'abilityEntity',
+      sameSourceSkillCast: false,
+    };
   }
   if (target.finderType === 'OwnerSpawnedEntityFinder' && context.abilityEntityQueries) {
     const query = compileTargetReferenceAbilityEntityQuerySource(

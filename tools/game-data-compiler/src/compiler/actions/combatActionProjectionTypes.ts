@@ -1,3 +1,4 @@
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 import type { ActionGraphReference } from '../../../../../packages/game-data-contract/src/actionGraph.ts';
 import type {
   NativeSkillType,
@@ -42,9 +43,6 @@ type BuffQueryTarget =
   | 'buffOwner'
   | 'buffSource'
   | 'currentTarget';
-type MarkerTarget =
-  'caster' | 'enemy' | 'eventTarget' | 'buffOwner' | 'buffSource' | 'currentAbilityEntity';
-
 export type CompiledBuffConditionSource =
   | Condition<'constant'>
   | Condition<'skillHasHit'>
@@ -97,6 +95,7 @@ export type CompiledBuffConditionSource =
   | Condition<'eventDamageTagsMatch' | 'eventDamageGameplayTagsMatch' | 'eventDamageFeaturesMatch'>
   | Condition<'eventSpGainMatch'>
   | Condition<'skillDamageTypeIn'>
+  | Condition<'eventSkillTagsMatch'>
   | Condition<'skillInterruptReasonIn'>
   | Condition<'eventSkillTypeIn'>
   | Condition<'currentSkillTypeIn'>
@@ -119,11 +118,9 @@ export type CompiledBuffConditionSource =
 
 type GlobalTimeDilation = Omit<
   Extract<Parameters<'startTimeDilation'>, { scope: 'global' }>,
-  'influenceSkillCooldownSeconds' | 'curve' | 'ignoredTargets' | 'ignoredAbilityEntityTargets'
+  'curve'
 > & {
   readonly curve: TimeScaleCurveDefinition;
-  readonly ignoredTargets: readonly ('controlled' | 'caster')[];
-  readonly ignoredAbilityEntityTargets?: readonly [{ readonly kind: 'current' | 'ownerSpawned' }];
 };
 type EntityTimeDilation = Omit<
   Extract<Parameters<'startTimeDilation'>, { scope: 'entity' }>,
@@ -165,39 +162,19 @@ type DamageParameters = Pick<
   readonly calculationAddition?: CompiledActionValueOperandSource;
   readonly calculationValue?: CompiledActionValueOperandSource;
   readonly calculationValueScale?: CompiledActionValueOperandSource;
-  readonly tags: readonly (
-    | 'normalAttack'
-    | 'normalAttackLastCombo'
-    | 'powerAttack'
-    | 'plungingAttack'
-    | 'dashAttack'
-    | 'normalSkill'
-    | 'ultimateSkill'
-    | 'comboSkill'
-    | 'fireBurst'
-    | 'electricBurst'
-    | 'cryoBurst'
-    | 'natureBurst'
-    | 'fireAbnormal'
-    | 'cryoAbnormal'
-  )[];
+  readonly tags: Parameters<'dealDamage'>['tags'];
   readonly gameplayTags?: Parameters<'dealDamage'>['gameplayTags'];
-  readonly features?: readonly (
-    | 'canBreakWeakness'
-    | 'dot'
-    | 'remainArea'
-    | 'talentDamage'
-    | 'knockDown'
-    | 'physicalInfliction'
-    | 'shatter'
-  )[];
+  readonly features?: Parameters<'dealDamage'>['features'];
   readonly stagger?: CompiledActionValueOperandSource;
   readonly staggerMultiplier?: CompiledActionValueOperandSource;
 };
 export type CompiledSimpleDamageOperationSource = Step<'dealDamage', DamageParameters>;
 export type CompiledSimplePoiseOperationSource = Step<'dealStagger'>;
 
-type HealParameters = Pick<Parameters<'heal'>, 'target' | 'healer' | 'alwaysNext' | 'tags'> &
+type HealParameters<A = NonNullable<Parameters<'heal'>['attribute']>> = Pick<
+  Parameters<'heal'>,
+  'target' | 'healer' | 'alwaysNext' | 'tags'
+> &
   (
     | {
         readonly amount: CompiledActionValueOperandSource;
@@ -207,7 +184,7 @@ type HealParameters = Pick<Parameters<'heal'>, 'target' | 'healer' | 'alwaysNext
       }
     | {
         readonly amount?: never;
-        readonly attribute: NonNullable<Parameters<'heal'>['attribute']>;
+        readonly attribute: A;
         readonly attributeSource?: 'target';
         readonly multiplier: CompiledActionValueOperandSource;
         readonly addition: CompiledActionValueOperandSource;
@@ -245,20 +222,21 @@ export type CompiledBuffStepSource =
   | Step<'overrideMultiDashLimit'>
   | Step<'changePlayerActionMode'>
   | Step<'changeNativeSkillType'>
+  | Step<'setCountShieldUi'>
   | Step<'setCharacterPassiveUiValue'>
   | Step<'inheritSkillCastInfoForBasicAttack'>
   | Step<'startCurrentAbilityEntityChildSkillById'>
-  | Step<'startTimeDilation', GlobalTimeDilation | EntityTimeDilation>
+  | Step<
+      'startTimeDilation',
+      | GlobalTimeDilation
+      | EntityTimeDilation
+      | Extract<Parameters<'startTimeDilation'>, { scope: 'hitStop' }>
+    >
   | Step<'setIgnoreGlobalTimeScale'>
   | Step<'changeOriginSkillToEventContextSkill'>
   | Step<'terminateAddingBuff'>
   | Step<'hideUi'>
-  | Step<
-      'startUltimateTimeDilation',
-      Pick<Parameters<'startUltimateTimeDilation'>, 'priority' | 'targetScale'> & {
-        readonly ignoredTargets: readonly [];
-      }
-    >
+  | Step<'startUltimateTimeDilation'>
   | Step<'findOwnerSpawnedAbilityEntities', Parameters<'findOwnerSpawnedAbilityEntities'>>
   | Step<
       'spawnAbilityEntity',
@@ -278,6 +256,7 @@ export type CompiledBuffStepSource =
         >
     >
   | Step<'setAbilityEntityRemainingDuration'>
+  | Step<'setAbilityEntityTarget'>
   | Step<'finishOwner'>
   | Step<'interruptCurrentSkill'>
   | (Step<'jumpTimeline'> & { readonly condition: CombatCondition })
@@ -311,20 +290,22 @@ export type CompiledBuffStepSource =
   | (Step<'launchProjectile'> & {
       readonly callbacks: readonly {
         readonly event: 'launch' | 'hit' | 'block' | 'reach' | 'finish';
-        readonly skill: {
-          readonly actionGraph: ActionGraphResourceDefinition;
-          readonly skillId: string;
-          readonly nativeSkillType: NativeSkillType;
-          readonly normalSkillSubType?: 'normal' | 'additionalNormalSkill';
-          readonly naturalDurationFrames: number;
-          readonly castResource: SkillCastResourceDefinition;
-          readonly blackboard: Readonly<Record<string, number>>;
-          readonly scheduledSequences: readonly {
-            readonly startFrame: number;
-            readonly endFrame: number;
-            readonly sequence: CompiledBuffSequenceSource;
-          }[];
-        };
+        readonly skill:
+          | { readonly $skill: string }
+          | {
+              readonly actionGraph: ActionGraphResourceDefinition;
+              readonly skillId: string;
+              readonly nativeSkillType: NativeSkillType;
+              readonly normalSkillSubType?: 'normal' | 'additionalNormalSkill';
+              readonly naturalDurationFrames: number;
+              readonly castResource: SkillCastResourceDefinition;
+              readonly blackboard: Readonly<Record<string, number>>;
+              readonly scheduledSequences: readonly {
+                readonly startFrame: number;
+                readonly endFrame: number;
+                readonly sequence: CompiledBuffSequenceSource;
+              }[];
+            };
       }[];
     })
   | (Step<'once'> & { readonly body: CompiledBuffSequenceSource })
@@ -334,6 +315,7 @@ export type CompiledBuffStepSource =
       })[];
     })
   | Step<'saveTwoDirectionAngle'>
+  | Step<'startTyphoeaArchery'>
   | Step<'copyContextTargets'>
   | Step<'findTargets'>
   | Step<
@@ -383,7 +365,7 @@ export type CompiledBuffStepSource =
   | Step<
       'readBuffStackCount',
       Pick<Parameters<'readBuffStackCount'>, 'outputKey'> & {
-        readonly target: MarkerTarget | 'enemy';
+        readonly target: Parameters<'readBuffStackCount'>['target'];
         readonly countType?: 'instance';
         readonly query: Parameters<'readBuffStackCount'>['query'];
       }
@@ -409,6 +391,10 @@ export type CompiledBuffStepSource =
   | Step<'calculateActionValue'>
   | Step<'evaluateCurve'>
   | Step<'saveTargetDistance'>
+  | Step<'blowOffEnemy'>
+  | Step<'exitControlledState'>
+  | Step<'pushBack'>
+  | Step<'pull'>
   | Step<'storeRandomInteger'>
   | Step<'storeRandomFloat'>
   | Step<'readBuffRemainingDuration'>
@@ -432,6 +418,7 @@ export type CompiledBuffStepSource =
     >
   | Step<'gainFinisherSp'>
   | Step<'disableNormalSkill'>
+  | Step<'boneAttach'>
   | Step<'limitMovementGait'>
   | Step<'queueComboLock'>
   | Step<'restrictUltimateEnergyRecovery'>
@@ -441,6 +428,10 @@ export type CompiledBuffStepSource =
   | CompiledSimpleDamageOperationSource
   | CompiledSimplePoiseOperationSource
   | Step<'heal', HealParameters>
+  | Step<
+      'recoverPoise',
+      DistributiveOmit<HealParameters<NonNullable<Parameters<'recoverPoise'>['attribute']>>, 'tags'>
+    >
   | Step<'finishBuffsById'>
   | Step<'dispelBuffs'>
   | Step<'finishBuffsByTag'>
