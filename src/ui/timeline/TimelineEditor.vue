@@ -53,6 +53,7 @@ import type { OperatorPanelContributionReceipt } from '../../core/compiler/resol
 import type { SkillGraphPresentation } from '../../core/project/graphPresentation';
 import { getSkillCastPlacementAnchor } from '../../core/project/skillCastPlacement';
 import { projectPublishedEnemyCurves } from './results/publishedEnemyCurves';
+import { projectControlSwitchMarkers } from './results/controlSwitchMarkers';
 import { projectCombatHudSnapshot } from '../../core/projection/combatHudSnapshot';
 import { projectDodgeMarkerDiagnostics } from '../../core/projection/dodgeMarkerDiagnostics';
 import { projectDodgeMarkerEffects } from '../../core/projection/dodgeMarkerEffects';
@@ -417,7 +418,9 @@ import {
   capturePublishedEquipmentSources,
   resolvePublishedBuffSource,
   resolvePublishedEquipmentTrait,
+  type PublishedBuffSource,
 } from './results/publishedBuffSource';
+import { capturePublishedOperatorMetadata } from './results/publishedOperatorMetadata';
 import { projectPublishedHitDetail } from './results/publishedHitDetail';
 import {
   projectTimelineHitOccurrences,
@@ -1533,6 +1536,11 @@ const operatorBuffDisplayNameKeys = computed(() => {
   return names;
 });
 
+const buildSourceOperators = computed(() => {
+  operatorDefinitionRevision.value;
+  return capturePublishedOperatorMetadata(scenario.value, editorGameDataRepository);
+});
+
 const {
   operatorDialogTrack,
   weaponDialogTrack,
@@ -1694,20 +1702,13 @@ const viewModel = computed(() => {
   void operatorDefinitionRevision.value;
   return projectTimelineEditor(scenario.value, editorGameDataRepository);
 });
-const projectedControlSwitches = computed(() => {
-  if (scenario.value.battle.automaticControlSwitches === false) return [];
-  const tracksById = new Map(
-    scenario.value.tracks.flatMap((track, index) =>
-      track === null ? [] : [[track.id, index] as const],
-    ),
-  );
-  return publishedReceiptEntries.value.flatMap(entry => {
-    if (entry.event !== 'AutomaticControlSwitched' || entry.sourceId === undefined) return [];
-    const trackIndex = tracksById.get(entry.sourceId);
-    if (trackIndex === undefined) return [];
-    return [{ id: `automatic-control:${entry.sequence}`, frame: entry.frame, trackIndex }];
-  });
-});
+const projectedControlSwitches = computed(() =>
+  projectControlSwitchMarkers(
+    publishedReceiptEntries.value,
+    scenario.value.tracks,
+    scenario.value.battle.automaticControlSwitches !== false,
+  ),
+);
 const skillCastDefinitionDurations = computed(
   () =>
     new Map(
@@ -4494,7 +4495,24 @@ function buffSourceName(segment: BuffPresentationSource): string | undefined {
     publishedOperators.value,
     publishedWeaponSources.value,
   );
-  if (source === undefined) return undefined;
+  return source === undefined ? undefined : publishedBuffSourceName(source);
+}
+
+function buildModifierSourceName(source: {
+  sourceId: string;
+  sourceActionId: string;
+}): string | undefined {
+  const origin = resolvePublishedBuffSource(
+    source,
+    scenario.value,
+    buildSourceOperators.value,
+    capturePublishedEquipmentSources(editorGameDataRepository.getWeapons()),
+    capturePublishedEquipmentSources(editorGameDataRepository.getGears(), 'gear'),
+  );
+  return origin === undefined ? undefined : publishedBuffSourceName(origin);
+}
+
+function publishedBuffSourceName(source: PublishedBuffSource): string {
   switch (source.kind) {
     case 'custom':
       return source.name;
@@ -7970,6 +7988,7 @@ function setMobileGuideFrame(frame: number | null): void {
                 "
                 @reorder-drop="dropTrackOrder($event, track.trackIndex)"
                 @stats="openPanelDialog(track.trackIndex)"
+                @presets="openOperatorPresets(track.trackIndex)"
                 @weapon="openWeaponDialog(track.trackIndex)"
                 @gear="openGearDialog(track.trackIndex, $event)"
                 @update-initial-ultimate-energy="
@@ -8226,8 +8245,20 @@ function setMobileGuideFrame(frame: number | null): void {
                   :key="marker.id"
                   class="timeline-marker track-switch-marker track-switch-marker--automatic"
                   :style="{ left: `${timelineFramePx(marker.frame)}px` }"
-                  :title="t('timeline.header.automaticControlSwitchesHelp')"
-                  :aria-label="t('timeline.markerLabels.automaticControlSwitch')"
+                  :title="
+                    t(
+                      marker.kind === 'skill'
+                        ? 'timeline.markerLabels.skillControlSwitch'
+                        : 'timeline.header.automaticControlSwitchesHelp',
+                    )
+                  "
+                  :aria-label="
+                    t(
+                      marker.kind === 'skill'
+                        ? 'timeline.markerLabels.skillControlSwitch'
+                        : 'timeline.markerLabels.automaticControlSwitch',
+                    )
+                  "
                 >
                   <OperatorAvatar
                     v-if="track.operatorSlug"
@@ -8533,6 +8564,10 @@ function setMobileGuideFrame(frame: number | null): void {
                       :top="statusTop + 2"
                       :frame-px="timelineFramePx"
                       :burst-label="t('timeline.effect.burst')"
+                      @open-damage-detail="
+                        hitDetailTarget = null;
+                        enemyDamageDetailSequence = $event;
+                      "
                     />
                     <TimelineDamageHit
                       v-for="hit in enemyOverviewDamageHits.get(id) ?? []"
@@ -9207,6 +9242,7 @@ function setMobileGuideFrame(frame: number | null): void {
     :build-modifiers="
       selectedPanel ? buildAttributes.operatorModifiers.get(selectedPanel.operatorId) : undefined
     "
+    :build-modifier-source-name="buildModifierSourceName"
     :mechanic-selections="scenario.mechanics.selections"
     :build-attributes="
       selectedPanel ? buildAttributes.operators.get(selectedPanel.operatorId) : undefined
@@ -9252,6 +9288,7 @@ function setMobileGuideFrame(frame: number | null): void {
     :force-critical="hitDetailForceCritical"
     :result-force-critical="hitDetailResultForceCritical"
     :entries="hitDetailEntries"
+    :initial-sequence="enemyDamageDetailSequence ?? undefined"
     :contribution-source-label="hitDetailContributionSourceLabel"
     :damage-type-label="damageElementLabel"
     :skill-type-label="skillTypeLabel"

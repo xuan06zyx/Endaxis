@@ -935,6 +935,7 @@
       "simulationStart": "模拟起始线",
       "simulationEnd": "模拟终止线",
       "controlSwitch": "切入干员",
+      "skillControlSwitch": "技能切换主控",
       "automaticControlSwitch": "自动切换主控（模拟投影）",
       "dodge": "闪避",
       "perfectDodge": "极限闪避",
@@ -1985,7 +1986,7 @@
       "title": "全局属性修正"
     },
     "panel": {
-      "trustNode": "天赋阵列 {node}",
+      "trustNode": "信赖节点 {node}",
       "staggerDamage": "失衡伤害加成",
       "unavailable": "属性详情暂不可用：{reason}"
     },
