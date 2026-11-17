@@ -7710,6 +7710,7 @@ function setMobileGuideFrame(frame: number | null): void {
             :track-header-width="TIMELINE_TRACK_HEADER_WIDTH"
             :cast-actual-start-frames="skillCastActualStartFrames"
             :cast-actual-duration-frames="skillCastActualDurationFrames"
+            :skill-accent-color="skillAccentColor"
             :selected-connection-id="selectedConnectionId"
             :hovered-skill-cast-id="hoveredCastId"
             :dragging-connection="connectionDrag !== null"
@@ -9164,9 +9165,7 @@ function setMobileGuideFrame(frame: number | null): void {
       }),
       searchPlaceholder: t('timelineGrid.equipmentDialog.searchPlaceholder'),
       unequip: t('common.unequip'),
-      close: t('common.close'),
       empty: t('timelineGrid.equipmentDialog.empty'),
-      defense: t('timeline.gearDialog.defense'),
       noSet: t('timeline.gearDialog.noSet'),
     }"
     @close="gearDialogTarget = null"
