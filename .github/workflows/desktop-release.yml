@@ -90,12 +90,23 @@ jobs:
             # tag 形如 desktop-v1.0.1
             $next = "${{ github.ref_name }}" -replace '^desktop-v', ''
           } else {
-            # 默认把 patch 号 +1：必须严格递增，否则客户端不会认为有更新。
-            $parts = $current.Split('.')
-            $next = "$($parts[0]).$($parts[1]).$([int]$parts[2] + 1)"
+            # 不自动 +1：版本号由同步流程维护（它会把 package.json 升好并打 tag），
+            # 这里直接发布当前版本，产物名、tag、latest.yml 三者才会一致。
+            # 早先这里写的是 +1，导致「解析 1.1.23、产物 1.1.22」找不到文件。
+            $next = $current
           }
 
           Write-Host "当前版本 $current → 发布版本 $next"
+
+          # 产物名是 Endaxis-Setup-<package.json 的 version>：如果请求的版本与它不同，
+          # 先把 package.json 改过来，否则上传阶段会找不到文件。
+          if ($next -ne $current) {
+            Write-Host "把 desktop-shell/package.json 版本改为 $next（让产物文件名与发布版本一致）"
+            $document = Get-Content desktop-shell/package.json -Raw | ConvertFrom-Json
+            $document.version = $next
+            $document | ConvertTo-Json -Depth 32 | Set-Content desktop-shell/package.json -Encoding utf8
+          }
+
           "next=$next" >> $env:GITHUB_OUTPUT
 
       - name: Build frontend (Vite)
