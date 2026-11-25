@@ -62,7 +62,7 @@ $t = [Environment]::GetEnvironmentVariable('GH_TOKEN','User')
 
 ```powershell
 # 真的调一次 API 确认身份与权限
-$env:HTTPS_PROXY='http://127.0.0.1:7897'
+$env:HTTPS_PROXY='http://127.0.0.1:<你的代理端口>'  # 按本机实际端口填
 $H = @{ Authorization = "Bearer $t"; 'User-Agent'='dsh' }
 (Invoke-RestMethod https://api.github.com/user -Headers $H).login
 (Invoke-RestMethod https://api.github.com/repos/xuan06zyx/Endaxis -Headers $H).permissions
