@@ -39,6 +39,14 @@
 
 **B. 本机手动发版**
 
+用仓库自带的小脚本（会先验证令牌，**输入不回显**，也不进命令历史）：
+
+```powershell
+pwsh -File desktop-shell/scripts/sync-gh-token.ps1
+```
+
+手动设置也可以（注意令牌会留在命令历史里）：
+
 ```powershell
 [Environment]::SetEnvironmentVariable('GH_TOKEN','github_pat_粘贴完整token','User')
 ```
@@ -71,6 +79,32 @@ $H = @{ Authorization = "Bearer $t"; 'User-Agent'='dsh' }
 
 记住：`ghp_` 和 `github_pat_` **只能有一个**。发布脚本现在会主动检测这种形态并报错，
 不会再让你往"权限不够"的方向排查。
+
+## Token 过期会怎样（2026-11 真实事故）
+
+现象最容易让人误判：**仓库天天在更新、tag 也一直在打，但 Release 停在旧版本，
+而 Sync Upstream 每次都是绿色成功。**
+
+链路是这样的：
+
+1. PAT 过期，发布脚本调 API → `401 Bad credentials`；
+2. 同步工作流用 PAT 拼 remote 推 tag，但 `actions/checkout` 会注入
+   `http.https://github.com/.extraheader`（内容是内置的 `GITHUB_TOKEN`）。
+   PAT 失效时 git **不会失败**，而是用这个凭据顶上 —— push 成功，
+   但推送者是 `github-actions[bot]`；
+3. **bot 的推送不会触发其它工作流**（GitHub 防递归），所以发布工作流从未启动，
+   同步步骤却因为 push 返回 0 显示 success。
+
+结果：1.1.8 ~ 1.1.22 共 15 个版本只有 tag、没有 Release。
+
+现在工作流已经改成：推 tag 前先用 PAT 打一次 API 校验，不可用就 `::error::`
+失败退出；推 tag 时清空 extraheader 与 credential.helper，杜绝降级成 bot。
+所以**同样的故障以后会直接报错**，不会再伪装成成功。
+
+防范：
+
+- fine-grained PAT 的 Expiration 是**强制**的，建议选最长周期并记个提醒；
+- 到期前用上面的方法更新仓库 Secret 与本机环境变量（两处都要换）。
 
 ## 安全提醒
 
