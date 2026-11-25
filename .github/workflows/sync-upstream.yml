@@ -99,18 +99,37 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: pwsh
         run: |
-          if ("${{ secrets.GH_TOKEN }}" -eq '') {
-            # 没有 PAT 也能同步，只是不发版。这不是错误，但要让人知道。
-            Write-Host '::warning::未配置 GH_TOKEN，本次只同步代码，未发布 Release'
-            exit 0
+          if (-not $env:GH_TOKEN) {
+            # 以前这里是「警告 + exit 0」，结果就是「只同步不发版」被当成正常。
+            # 发版是这个工作流存在的主要目的之一，缺令牌必须失败。
+            Write-Host '::error::未配置 GH_TOKEN，无法发布 Release。请在仓库 Secrets 里配置带 Contents 写权限的 PAT。'
+            exit 1
           }
+
+          # 先验证 PAT 真能用。过期的 PAT 不会让 push 失败 —— git 会退回 checkout
+          # 注入的 GITHUB_TOKEN，push 成功但身份是 bot，而 bot 推送**不触发工作流**，
+          # 于是 tag 上去了、发布从未开始、同步却显示 success。
+          # 2026-11-05 起连续 15 个版本就是卡在这里。
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept        = 'application/vnd.github+json'
+            'User-Agent'  = 'endaxis-sync'
+          }
+          try {
+            Invoke-RestMethod -Uri "https://api.github.com/repos/${{ github.repository }}" -Headers $headers -Method Get | Out-Null
+          } catch {
+            Write-Host "::error::GH_TOKEN 不可用：$($_.Exception.Message)。PAT 过期会导致只同步不发版，请更新仓库 Secret。"
+            exit 1
+          }
+
           $version = '${{ steps.sync.outputs.next }}'
           git tag "desktop-v$version"
-          # 必须用 PAT 推 tag：GITHUB_TOKEN 推送产生的 push 事件**不会触发其它工作流**
+          # 必须用 PAT 推 tag：GITHUB_TOKEN 推送产生的 push 事件不会触发其它工作流
           # （GitHub 防递归），而发布工作流正是靠 tag 推送启动的。
-          # 首次上线就踩到了：tag 推出去了，Release 却从未开始构建。
+          # `-c ...extraheader=` 与 `credential.helper=` 是刻意清空的：否则 PAT 失效时
+          # git 会用 bot 凭据顶上，把「没发版」伪装成成功。
           $remote = "https://x-access-token:$env:GH_TOKEN@github.com/${{ github.repository }}.git"
-          git push $remote "desktop-v$version"
+          git -c credential.helper= -c "http.https://github.com/.extraheader=" push $remote "desktop-v$version"
           Write-Host "已推送 tag desktop-v$version，发布工作流将接手构建。"
 
       # 不再自动开 issue：本仓库 Issues 已关闭，而且这条通知渠道失败过三次。
