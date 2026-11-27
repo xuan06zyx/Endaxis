@@ -38,11 +38,10 @@ export function resolveScenarioBuildAttributes(
       ...instance,
       enemy: { ...instance.enemy, lifecycle: { spawnFrame: 0, presenceChanges: [] } },
     })),
+    markers: [],
     battle: {
       ...scenario.battle,
       enemyAutomaticDeath: false,
-      controlSwitches: [],
-      enemyTargetSwitches: [],
     },
   };
   const runtime = createScenarioSimulationService(repository).createBuildAttributeRuntime(build);
@@ -78,10 +77,11 @@ export function resolveScenarioBuildAttributes(
       ]),
     ),
     enemies: new Map(
-      [...(graph.environment?.enemyInstances ?? [])].map(([id, enemy]) => [
-        id,
-        capture(new CombatAttributeSet(enemy.buffs.attributes)),
-      ]),
+      [...graph.enemies].flatMap(([id, enemy]) =>
+        enemy.buffs
+          ? ([[id, capture(new CombatAttributeSet(enemy.buffs.attributes))]] as const)
+          : [],
+      ),
     ),
     operators: new Map(
       resolveScenarioBuilds(build, repository).flatMap(resolved => {

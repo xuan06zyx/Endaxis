@@ -1,3 +1,4 @@
+import { operatorOwner } from '../../../core/project/scenarioMarkers';
 import { firstScenarioEnemy } from '../../../core/project/level';
 import { expect, it } from 'vitest';
 import { createEmptyScenario } from '../../../core/project/createProject';
@@ -82,9 +83,12 @@ it('腐蚀重复施加在正式切面恢复后仍继承累计减抗', async () =
   }
   const session = createEditorSimulationService().createCombatSession(scenario);
   session.advanceToFrame(700);
-  const corrosion = [...session.runtime.readState().enemy.buffs!.instances.values()].find(
-    item => item.identity.definitionId === 'buff_common_natural_cryst_triggered_wrapper',
-  );
+  const corrosion = [
+    ...session.runtime
+      .readState()
+      .enemies.get(firstScenarioEnemy(scenario).id)!
+      .buffs!.instances.values(),
+  ].find(item => item.identity.definitionId === 'buff_common_natural_cryst_triggered_wrapper');
   expect(corrosion?.blackboard.values.get('duration')).toBe(25);
   const restored = session.fork(session.runtime.save());
   session.advanceToFrame(1400);
@@ -196,8 +200,14 @@ it.each([true, false])('守墓人之赠重击增伤要求受益者为主控（�
     ]);
     owner.operator!.potential = potential;
     scenario.tracks[1] = owner;
-    scenario.battle.controlSwitches = [
-      { id: 'diagnostic-control', frame: 0, trackIndex: controlled ? 1 : 0 },
+    scenario.markers = [
+      ...scenario.markers.filter(marker => marker.kind !== 'controlSwitch'),
+      {
+        kind: 'controlSwitch' as const,
+        id: 'diagnostic-control',
+        frame: 0,
+        owner: operatorOwner(scenario, controlled ? 1 : 0),
+      },
     ];
     const before = JSON.stringify(scenario);
     const result = await createEditorSimulationService().simulate(scenario, 200);
@@ -338,8 +348,14 @@ it.each([true, false])('赛希晶体仅被主控重击消费且正确保留来�
   };
   scenario.tracks[0] = track('arcane', [['basicAttack', 'basicAttack5', 120]]);
   scenario.tracks[1] = healer;
-  scenario.battle.controlSwitches = [
-    { id: 'control:actor', frame: 0, trackIndex: controlled ? 0 : 1 },
+  scenario.markers = [
+    ...scenario.markers.filter(marker => marker.kind !== 'controlSwitch'),
+    {
+      kind: 'controlSwitch' as const,
+      id: 'control:actor',
+      frame: 0,
+      owner: operatorOwner(scenario, controlled ? 0 : 1),
+    },
   ];
   const before = JSON.stringify(scenario);
   const result = await new ScenarioSimulationService({
@@ -420,9 +436,12 @@ it('诀腐蚀天赋按等级与潜能修改时长和减抗上限，切面恢复�
     scenario.tracks[0] = operator;
     const session = createEditorSimulationService().createCombatSession(scenario);
     session.advanceToFrame(150);
-    const buff = [...session.runtime.readState().enemy.buffs!.instances.values()].find(
-      item => item.identity.definitionId === 'buff_common_natural_natural_corrupt_do',
-    )!;
+    const buff = [
+      ...session.runtime
+        .readState()
+        .enemies.get(firstScenarioEnemy(scenario).id)!
+        .buffs!.instances.values(),
+    ].find(item => item.identity.definitionId === 'buff_common_natural_natural_corrupt_do')!;
     expect(buff).toBeDefined();
     const maximum = buff.blackboard.values.get('max_def_decrease');
     expect(typeof maximum).toBe('number');
@@ -842,8 +861,14 @@ it.each([true, false])('诀集束攻击仅由主控重击触发（主控=%s）',
   scenario.battle.automaticControlSwitches = false;
   scenario.tracks[0] = track('arcane', [['ultimate', 'ultimate', 1]]);
   scenario.tracks[1] = track('last-rite', [['basicAttack', 'basicAttack4', 100]]);
-  scenario.battle.controlSwitches = [
-    { id: 'diagnostic-control', frame: 0, trackIndex: controlled ? 1 : 0 },
+  scenario.markers = [
+    ...scenario.markers.filter(marker => marker.kind !== 'controlSwitch'),
+    {
+      kind: 'controlSwitch' as const,
+      id: 'diagnostic-control',
+      frame: 0,
+      owner: operatorOwner(scenario, controlled ? 1 : 0),
+    },
   ];
   const before = JSON.stringify(scenario);
   const result = await createEditorSimulationService().simulate(scenario, 300);

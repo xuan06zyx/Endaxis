@@ -701,7 +701,9 @@ export class CombatActionSequenceRuntime {
         const operations = this.operations.aura;
         if (!operations) throw new Error('Aura Buff operations are not configured');
         return {
-          targets: () => operations.targets(parameters, operationContext),
+          activeChanged: (active: boolean) =>
+            operations.activeChanged?.(parameters, operationContext, active),
+          targets: opening => operations.targets(parameters, operationContext, opening),
           apply: target => operations.apply(parameters, target, operationContext),
           finish: references => operations.finish(references),
         };

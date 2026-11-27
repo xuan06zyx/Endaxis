@@ -112,7 +112,8 @@ export interface ActionGraphExecutionHost {
   withTarget(target: RuntimeTargetRef, asInput?: boolean): ActionGraphExecutionHost;
   withSavedInput(target: RuntimeTargetRef | null): ActionGraphExecutionHost;
   aura?(parameters: ResolvedCombatStepParameters['aura']): {
-    targets(): readonly RuntimeTargetRef[];
+    activeChanged?(active: boolean): void;
+    targets(opening: boolean): readonly RuntimeTargetRef[];
     apply(target: RuntimeTargetRef): BuffReference[];
     finish(references: readonly BuffReference[]): void;
   };
@@ -868,9 +869,9 @@ export class ActionGraphExecution
         item.buffs.length = 0;
         bind(index)?.exit?.tryExecute(context, true);
       };
-      const synchronize = (context: CombatExecutionContext) => {
+      const synchronize = (context: CombatExecutionContext, opening: boolean) => {
         if (!data.active) return;
-        const targets = influence.targets();
+        const targets = influence.targets(opening);
         for (let index = data.influences.length - 1; index >= 0; index--)
           if (
             data.influences[index]!.active &&
@@ -910,12 +911,15 @@ export class ActionGraphExecution
         data,
         execute: context => {
           influenceCounts.length = 0;
+          const opening = !data.active;
+          if (opening) influence.activeChanged?.(true);
           data.active = true;
-          synchronize(context);
+          synchronize(context, opening);
           return true;
         },
-        tick: (_delta, context) => synchronize(context),
+        tick: (_delta, context) => synchronize(context, false),
         end: context => {
+          if (data.active) influence.activeChanged?.(false);
           data.active = false;
           for (let index = data.influences.length - 1; index >= 0; index--) leave(index, context);
           for (const pair of callbacks.values()) {
@@ -924,6 +928,7 @@ export class ActionGraphExecution
           }
         },
         reset: context => {
+          if (data.active) influence.activeChanged?.(false);
           data.active = false;
           for (const pair of callbacks.values()) {
             pair.enter?.reset(context);
